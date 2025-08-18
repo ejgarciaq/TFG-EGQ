@@ -1,0 +1,14 @@
+body {
+    margin: 0px;
+    padding: 0px;
+}
+
+.button_menu {
+    text-align: left;
+    padding-left: 15px; /* Espacio entre el borde izquierdo y el texto */
+}
+
+.body-2 {
+    margin-left: 250px;
+    padding: 20px;
+}
