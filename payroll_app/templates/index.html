@@ -4,10 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Gestion de Nomina {% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-    
+    <div class="container d-flex justify-content-center align-items-center vh-100">
+        <div class="col-md-6 col-lg-4">
+            <div class="text-center">
+                <img src="{{ url_for('static', filename='/img/logo.webp') }}" alt="Logo" class="img-fluid">
+            </div>
+            <h1 class="text-center mb-4">Inicia Sesión</h1>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flashes">
+                    {% for category, message in messages %}
+                        <div class="alert-warning alert {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            {% endwith %}
+            <form action="/auth/login" method="post">
+                <div class="mb-3 text-center">
+                    <input type="text" id="username" name="username" class="form-control" placeholder="Usuario" required>
+                </div>
+            </form>          
+        </div>
+    </div>
 </body>
 </html>
