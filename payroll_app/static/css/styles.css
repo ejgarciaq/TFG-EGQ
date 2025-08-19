@@ -8,7 +8,14 @@ body {
     padding-left: 15px; /* Espacio entre el borde izquierdo y el texto */
 }
 
-.body-2 {
+.body-login {
+  
+    margin-top:10%;
+    padding: 0;
+
+}
+
+.body-3 {
     margin-left: 250px;
     padding: 20px;
 }
