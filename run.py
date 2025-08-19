@@ -1,6 +1,7 @@
 from flask import render_template
 from payroll_app import create_app
 
+
 # Llama a la funcion create_app para crear la instancia de la aplicación Flask
 app = create_app()
 

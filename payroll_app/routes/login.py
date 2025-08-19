@@ -8,7 +8,7 @@ login_bp = Blueprint('auth', __name__)
 
 @login_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """
+    
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
@@ -29,14 +29,14 @@ def login():
             # Redirigir al panel si las credenciales son correctas
             flash('Inicio de sesión exitoso.', 'success')
             #print("Redirigiendo a /auth/base")  # Depuración
-            return redirect(url_for('login.base'))  # Redirige a la ruta 'base'
+            return redirect(url_for('auth.base'))  # Redirige a la ruta 'base'
         else:
             # Mostrar mensaje de error si las credenciales son incorrectas
             flash('Usuario o contraseña incorrectos.', 'danger')
             #print("Credenciales incorrectas")  # Depuración
     return render_template('index.html')
-    """
-    return render_template('index.html')
+    
+
 
 @login_bp.route('/base')
 def base():
@@ -50,4 +50,4 @@ def base():
 def logout():
     session.pop('username', None)  # Elimina el nombre de usuario de la sesión
     flash('Has cerrado sesión correctamente.', 'success')
-    return redirect(url_for('login.login'))  # Redirige a la página de inicio de sesión   
+    return redirect(url_for('auth.login'))  # Redirige a la página de inicio de sesión

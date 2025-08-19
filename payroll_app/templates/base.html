@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %} Gestion de Nomina {% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Navbar lateral -->
+        <nav class="bg-light p-3" style="width: 250px; height: 100vh; position: fixed;">
+            <div class="w-50">
+                <img src="{{ url_for('static', filename='/img/logo.webp') }}" alt="Logo de la Aplicación" class="img-fluid">
+            </div>
+            <h4 class="text-center">Menú</h4>
+            <ul class="nav flex-column menu">
+                <li class="nav-item">
+                    <a class="nav-link active dropdown-item" href="#">Inicio</a>
+                </li> 
+                <li class="nav-item">
+                    <a class="nav-link dropdown-item text-dark" href="#">Nomina</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link dropdown-item text-dark" href="#">Horas Extras</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link dropdown-item text-dark" href="#">Incapacidades</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link dropdown-item text-dark" href="#">Liquidación</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link dropdown-item text-dark" href="#">Aguinaldo</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link dropdown-item text-dark" href="#">Vacaciones</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link dropdown-item text-dark" href="#">Reportes</a>
+                </li>
+                <button class="btn dropdown-toggle dropdown-toggle-split button_menu dropdown-item" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                    Mantenimiento
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    <li>
+                        <a class="dropdown-item" href="#">Empleados</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="#">Usuarios</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="#">test</a>
+                    </li>
+                 </ul>    
+                <li><hr class="dropdown-divider "></li>
+                <li class="nav-item">
+                    <a class="nav-link dropdown-item text-dark" href="{{ url_for('auth.logout') }}">Salir</a>
+                </li>
+            </ul>
+        </nav>
+        <!-- Contenido principal -->
+        <div class="flex-grow-1 body-2">
+            <h4>Bienvenido, {{ username }}!</h4>
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <footer class="text-center mt-4">
+        <div class="text-center fixed-bottom footer">
+            <p>&copy; 2025 Edson García Quirós. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script> 
+</body>
+</html>

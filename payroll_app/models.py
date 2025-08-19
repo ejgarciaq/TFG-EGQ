@@ -1,5 +1,4 @@
 from flask_sqlalchemy import SQLAlchemy
-from payroll_app.config import db # Importa la instancia de SQLAlchemy desde config.py
 
 db = SQLAlchemy()  # Inicializa la instancia de SQLAlchemy
 
@@ -30,7 +29,7 @@ class Usuario(db.Model):
     estado_usuario = db.Column(db.Boolean, nullable=False)  # Estado del usuario (activo/inactivo)
 
     # Clave foránea para la relación con el modelo Rol
-    Rol_id_rol = db.Column(db.Integer, db.ForeignKey('Rol.id_rol'), nullable=False)
+    Rol_id_rol = db.Column(db.Integer, db.ForeignKey('rol.id_rol'), nullable=False)
     # Relación con el modelo Rol
     rol = db.relationship('Rol', back_populates='usuarios')
 
