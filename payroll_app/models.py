@@ -35,3 +35,30 @@ class Usuario(db.Model):
 
     def __repr__(self):
         return f'<Usuario {self.username}>'  # Representación del objeto Usuario
+    
+    class Puesto(db.Model):
+        """
+        Modelo de Puesto para la aplicación de nómina.
+        Representa un puesto con un nombre único y una descripción.
+        """
+        id_puesto = db.Column(db.Integer, primary_key=True)  # ID único del puesto
+        tipo_puesto = db.Column(db.String(100), unique=True, nullable=False)  # Nombre del puesto único
+        # Relación inversa: lista de empleados asociados a este puesto
+        empleados = db.relationship('Empleado', back_populates='puesto')
+        def __repr__(self):
+            return f'<Puesto {self.nombre_puesto}>'
+    
+    class Empleado(db.Model):
+        """
+        Modelo de Empleado para la aplicación de nómina.
+        Representa a un empleado con información personal y laboral.
+        """
+        id_empleado = db.Column(db.Integer, primary_key=True)  # ID único del empleado
+        nombre = db.Column(db.String(100), nullable=False)  # Nombre del empleado
+        apellido = db.Column(db.String(100), nullable=False)  # Apellido del empleado
+        fecha_nacimiento = db.Column(db.Date, nullable=False)  # Fecha de nacimiento del empleado
+        fecha_ingreso = db.Column(db.Date, nullable=False)  # Fecha de ingreso del empleado
+        salario = db.Column(db.Float, nullable=False)  # Salario del empleado
+
+        def __repr__(self):
+            return f'<Empleado {self.nombre} {self.apellido}>'  # Representación del objeto Empleado
