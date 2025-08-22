@@ -63,3 +63,24 @@ nav {
 .nav-link.active {
     color: #ffc107; /* Color amarillo para el enlace activo */
     font-weight: bold; /* Resalta el texto del enlace activo */
+
+}
+
+/* Posiciona el submenú a la derecha */
+.dropdown-submenu {
+  position: relative;
+}
+
+.dropdown-submenu > .dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-left: 0.1rem;
+  margin-top: -0.5rem;
+  display: none;
+  position: absolute;
+}
+
+/* Mostrar el submenú al pasar el mouse */
+.dropdown-submenu:hover > .dropdown-menu {
+  display: block;
+}
