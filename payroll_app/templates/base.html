@@ -15,56 +15,83 @@
                 <img src="{{ url_for('static', filename='/img/logo.webp') }}" alt="Logo de la Aplicación" class="img-fluid">
             </div>
             <h4 class="text-center">Menú</h4>
+            <hr class="dropdown-divider">
             <ul class="nav flex-column menu">
                 <li class="nav-item">
-                    <a class="nav-link active dropdown-item" href="#">Inicio</a>
-                </li> 
-                <li class="nav-item">
-                    <a class="nav-link dropdown-item text-dark" href="#">Nomina</a>
+                    <a class="nav-link dropdown-item" href="#">Inicio</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link dropdown-item text-dark" href="#">Horas Extras</a>
+                    <a class="nav-link dropdown-item" href="#"  >Nomina</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link dropdown-item text-dark" href="#">Incapacidades</a>
+                    <a class="nav-link dropdown-item" href="#">Horas Extras</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link dropdown-item text-dark" href="#">Liquidación</a>
+                    <a class="nav-link dropdown-item" href="#">Incapacidades</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link dropdown-item text-dark" href="#">Aguinaldo</a>
+                    <a class="nav-link dropdown-item" href="#">Liquidación</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link dropdown-item text-dark" href="#">Vacaciones</a>
+                    <a class="nav-link dropdown-item" href="#">Aguinaldo</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link dropdown-item text-dark" href="#">Reportes</a>
+                    <a class="nav-link dropdown-item" href="#">Vacaciones</a>
                 </li>
-                <button class="btn dropdown-toggle dropdown-toggle-split button_menu dropdown-item" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                    Mantenimiento
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                    <li>
-                        <a class="dropdown-item" href="#">Empleados</a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item" href="#">Usuarios</a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item" href="#">test</a>
-                    </li>
-                 </ul>    
-                <li><hr class="dropdown-divider "></li>
                 <li class="nav-item">
-                    <a class="nav-link dropdown-item text-dark" href="{{ url_for('auth.logout') }}">Salir</a>
+                    <a class="nav-link dropdown-item" href="#">Empleados</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link dropdown-item" href="#">Reportes</a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="dropdownMenuButton" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Mantenimiento
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                        <li class="dropdown-submenu dropend">
+                            <a class="dropdown-item dropdown-toggle" href="#">Empleados</a>
+                            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                <li class="dropdown-submenu dropend">
+                                    <a class="dropdown-item dropdown-toggle" href="#">sa</a>
+                                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                        <li><a class="dropdown-item" href="#">Sub Opción 1</a></li>
+                                        <li><a class="dropdown-item" href="#">Sub Opción 2</a></li>
+                                </li>
+
+                            </ul>   
+                        <li>
+                            <a class="dropdown-item" href="#">Reportes</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+            <!-- Contenedor para los últimos elementos -->
+            <ul class="nav flex-column mt-auto">
+                <li><hr class="dropdown-divider bg-primary"></li>
+                <li class="nav-item">
+                    <a class="nav-link dropdown-item text-dark" href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
                 </li>
             </ul>
         </nav>
+
         <!-- Contenido principal -->
-        <div class="flex-grow-1 body-2">
+        <div class="flex-grow-1 body-3">
             <h4>Bienvenido, {{ username }}!</h4>
-            {% block content %}{% endblock %}
+            <div class="d-flex w-100" style="z-index: 9999;">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            <div class="flashes">
+                                {% for category, message in messages %}
+                                    <div class="alert-info alert {{ category }}">{{ message }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endwith %}
+                {% block content %}{% endblock %}
+            </div>            
         </div>
+
     </div>
 
     <footer class="text-center mt-4">
@@ -72,7 +99,15 @@
             <p>&copy; 2025 Edson García Quirós. Todos los derechos reservados.</p>
         </div>
     </footer>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script> 
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Bootstrap JS cargado correctamente');
+        });
+        </script>
+
 </body>
 </html>

@@ -19,3 +19,47 @@ body {
     margin-left: 250px;
     padding: 20px;
 }
+
+.dropdown-menu {
+  z-index: 1050; /* valor recomendado por Bootstrap */
+}
+
+
+/* Estilo para el menú lateral */
+
+/* Habilitar scroll vertical en el menú lateral */
+
+nav {
+    position: fixed; /* Asegura que el menú permanezca fijo */
+    width: 250px; /* Mantén el ancho del menú */
+    box-sizing: border-box; /* Asegura que el padding no afecte el tamaño total */
+    z-index: 1050; /* Asegura que el menú lateral esté por encima del contenido principal */
+}
+
+/* Estilo para submenús */
+.dropdown-submenu {
+    position: relative;
+}
+
+.dropdown-submenu .dropdown-menu {
+    top: 0;
+    left: 100%; /* Posiciona el submenú a la derecha del menú principal */
+    margin-top: -1px;
+    display: none; /* Oculta el submenú por defecto */
+    z-index: 9999; /* Asegura que el submenú esté por encima de todos los elementos */
+    position: absolute; /* Asegura que el submenú esté correctamente posicionado */
+    background-color: #fff; /* Asegura que el fondo sea visible */
+    border: 1px solid #ddd; /* Opcional: agrega un borde para diferenciarlo */
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Agrega una sombra para mayor visibilidad */
+}
+
+.dropdown-submenu:hover .dropdown-menu {
+    display: block; /* Muestra el submenú al pasar el mouse */
+}
+
+/* Estilo para enlaces del menú lateral */
+.nav-link {
+    color: #000;}
+.nav-link.active {
+    color: #ffc107; /* Color amarillo para el enlace activo */
+    font-weight: bold; /* Resalta el texto del enlace activo */
