@@ -41,10 +41,12 @@ class Usuario(db.Model):
         Modelo de Puesto para la aplicación de nómina.
         Representa un puesto con un nombre único y una descripción.
         """
+        __tablename__ = 'puesto'  # Nombre de la tabla en la base de datos
         id_puesto = db.Column(db.Integer, primary_key=True)  # ID único del puesto
         tipo_puesto = db.Column(db.String(100), unique=True, nullable=False)  # Nombre del puesto único
         # Relación inversa: lista de empleados asociados a este puesto
         empleados = db.relationship('Empleado', back_populates='puesto')
+
         def __repr__(self):
             return f'<Puesto {self.nombre_puesto}>'
     
@@ -53,6 +55,7 @@ class Usuario(db.Model):
         Modelo de Empleado para la aplicación de nómina.
         Representa a un empleado con información personal y laboral.
         """
+        __tablename__ = 'empleado'  # Nombre de la tabla en la base de datos
         id_empleado = db.Column(db.Integer, primary_key=True)  # ID único del empleado
         nombre = db.Column(db.String(100), nullable=False)  # Nombre del empleado
         apellido = db.Column(db.String(100), nullable=False)  # Apellido del empleado
@@ -60,5 +63,13 @@ class Usuario(db.Model):
         fecha_ingreso = db.Column(db.Date, nullable=False)  # Fecha de ingreso del empleado
         salario = db.Column(db.Float, nullable=False)  # Salario del empleado
 
+        # Clave foránea para la relación con el modelo Puesto
+        Puesto_id_puesto = db.Column(db.Integer, db.ForeignKey('puesto.id_puesto'), nullable=False)
+        # Clave foránea para la relación con el modelo Usuario
+        Usuario_id_usuario = db.Column(db.Integer, db.ForeignKey('usuario.id_usuario'), nullable=False)
+
+        # Relacion de muchos a uno: un empleado tiene un puesto
+        puesto = db.relationship('Puesto', back_populates='empleados')
+
         def __repr__(self):
-            return f'<Empleado {self.nombre} {self.apellido}>'  # Representación del objeto Empleado
+            return f'<Empleado {self.nombre} {self.apellido_primero}>'  # Representación del objeto Empleado
