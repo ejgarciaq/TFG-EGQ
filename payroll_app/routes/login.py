@@ -12,7 +12,7 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
   
-        #print(f"Username: {username}, Password: {password}")  # Depuración
+        #Print(f"Username: {username}, Password: {password}")  # Depuración
         # Verificar si los campos están vacíos
         if not username or not password:
             flash('Por favor, completa todos los campos', 'danger')

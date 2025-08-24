@@ -42,11 +42,12 @@
     <label for="puesto_id">Puesto:</label>
     <select name="puesto_id" required>
         {% for puesto in puestos %}
-            <option value="{{ puesto.id }}">{{ puesto.nombre_puesto }}</option>
+            <option value="{{ puesto.id_puesto }}">{{ puesto.tipo_puesto }}</option>
         {% endfor %}
-    
+    </select><br>
+
+    <button type="submit">Crear Empleado</button>
 
  </form>
-
 
 {% endblock %}
