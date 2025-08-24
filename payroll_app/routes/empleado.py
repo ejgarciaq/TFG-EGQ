@@ -40,6 +40,7 @@ def crear_empleado():
                 correo=request.form['correo'],
                 telefono=request.form['telefono'],
                 fecha_ingreso=fecha_ingreso,
+                fecha_salida=None,
                 salario_base=float(request.form['salario_base']),
                 estado_empleado=True,
                 Puesto_id_puesto=request.form['puesto_id'],
@@ -49,19 +50,19 @@ def crear_empleado():
             db.session.commit()
 
             flash('Empleado creado exitosamente.', 'success')
-            return redirect(url_for('empleado.listar_empleados'))
+            return redirect(url_for('empleado.listar_empleado'))
         
         except Exception as e:
             db.session.rollback()
             flash(f'Error al crear el empleado: {str(e)}', 'error')
             
-    return redirect(url_for('empleado.crear_empleado', puestos=puestos, roles=roles))
+    return render_template('crear_empleado.html', puestos=puestos, roles=roles)
     
-@empleado_bp.route('/listar_empleados')
-def listar_empleados():
+@empleado_bp.route('/listar_empleado')
+def listar_empleado():
     # Listar todos los empleados
     empleados = Empleado.query.all()
-    return render_template('listar_empleados.html', empleados=empleados)
+    return render_template('listar_empleado.html', empleados=empleados)
 
 @empleado_bp.route('/editar_empleado/<int:id>', methods=['GET', 'POST'])
 def editar_empleado(id):
@@ -96,7 +97,7 @@ def editar_empleado(id):
             
             db.session.commit()
             flash('Empleado actualizado exitosamente.', 'success')
-            return redirect(url_for('empleado.listar_empleados'))
+            return redirect(url_for('empleado.listar_empleado'))
         
         except Exception as e:
             db.session.rollback()
@@ -120,4 +121,4 @@ def eliminar_empleado(id):
         db.session.rollback()
         flash(f'Ocurrió un error al eliminar el empleado: {str(e)}', 'error')
     
-    return redirect(url_for('empleado.listar_empleados'))
+    return redirect(url_for('empleado.listar_empleado'))

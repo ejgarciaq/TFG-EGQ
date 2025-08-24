@@ -1,7 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import check_password_hash
 from payroll_app.models import Usuario
-from flask import session
 
 login_bp = Blueprint('auth', __name__)
 
