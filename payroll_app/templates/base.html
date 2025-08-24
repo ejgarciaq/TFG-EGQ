@@ -63,21 +63,26 @@
         </nav>
 
         <!-- Contenido principal -->
-        <div class="flex-grow-1 body-3">
-            <h4>Bienvenido, {{ username }}!</h4>
-            <div class="d-flex w-100" style="z-index: 9999;">
-                    {% with messages = get_flashed_messages(with_categories=true) %}
-                        {% if messages %}
-                            <div class="flashes">
-                                {% for category, message in messages %}
-                                    <div class="alert-info alert {{ category }}">{{ message }}</div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    {% endwith %}
-                {% block content %}{% endblock %}
-            </div>            
-        </div>
+<div class="flex-grow-1 body-3">
+    <div class="md-12">
+        <h4>Bienvenido, {{ username }}!</h4>
+    </div>
+    
+    <div class="flashes">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <div class="d-flex md-12" style="z-index: 1;">
+        {% block content %}{% endblock %}
+    </div>
+</div>
+</div>
 
     </div>
 

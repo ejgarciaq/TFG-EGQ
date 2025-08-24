@@ -1,42 +1,46 @@
 {% extends 'base.html' %}
 
-{% block title %}Listado de Usuarios{% endblock %}
+{% block title %}Listado de Empleados{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-
-   <div>
-    <a href="{{ url_for('empleado.crear_empleado') }}" class="btn btn-primary mb-3">Crear Nuevo Usuario</a>
-   </div>
-    
-
-    <h2>Listado de Usuarios</h2>
-    {% if usuarios %}
+<div class="container mt-4" >
+    <h2>Listado de Empleados</h2>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>Crear Empleado</h4>
+        <a href="{{ url_for('empleado.crear_empleado') }}" class="btn btn-primary">
+            Nuevo Empleado
+        </a>
+    </div>
+    {% if empleados %}
     <table class="table table-striped table-hover">
         <thead>
             <tr>
                 <th>ID</th>
-                <th>Nombre de Usuario</th>
-                <th>Rol</th>
+                <th>Cédula</th>
+                <th>Nombre Completo</th>
+                <th>Correo</th>
+                <th>Puesto</th>
                 <th>Estado</th>
                 <th>Acciones</th>
             </tr>
         </thead>
         <tbody>
-            {% for usuario in usuarios %}
+            {% for empleado in empleados %}
             <tr>
-                <td>{{ usuario.id_usuario }}</td>
-                <td>{{ usuario.username }}</td>
-                <td>{{ usuario.rol.tipo_rol }}</td>
+                <td>{{ empleado.id_empleado }}</td>
+                <td>{{ empleado.cedula }}</td>
+                <td>{{ empleado.nombre }} {{ empleado.apellido_primero }} {{ empleado.apellido_segundo }}</td>
+                <td>{{ empleado.correo }}</td>
+                <td>{{ empleado.puesto.tipo_puesto }}</td>
                 <td>
-                    {% if usuario.estado_usuario %}
+                    {% if empleado.estado_empleado %}
                     <span class="badge bg-success">Activo</span>
                     {% else %}
                     <span class="badge bg-danger">Inactivo</span>
                     {% endif %}
                 </td>
                 <td>
-                    <a href="#" class="btn btn-sm btn-primary">Editar</a>
+                    <a href="{{ url_for('empleado.editar_empleado', id=empleado.id_empleado) }}" class="btn btn-sm btn-primary">Editar</a>
                     <a href="#" class="btn btn-sm btn-danger">Eliminar</a>
                 </td>
             </tr>
@@ -44,7 +48,7 @@
         </tbody>
     </table>
     {% else %}
-    <p class="alert alert-info">No hay usuarios registrados.</p>
+    <p class="alert alert-info">No hay empleados registrados.</p>
     {% endif %}
 </div>
 {% endblock %}
