@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         setTimeout(() => {
             // Cierra la alerta después de 5000 milisegundos (5 segundos)
             alert.style.display = 'none';
-        }, 2000);
+        }, 7000);
     });
 });
 

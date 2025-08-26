@@ -14,33 +14,41 @@
                 <div class="text-center">
                     <img src="{{ url_for('static', filename='/img/logo.webp') }}" alt="Logo" class="img-fluid">
                 </div>
-                <h1 class="text-center mb-4">Inicia Sesión</h1>
                 {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="flashes">
-                        {% for category, message in messages %}
-                            <div class="alert-info alert {{ category }}">{{ message }}</div>
-                        {% endfor %}
-                    </div>
+                    {% if messages %}
+                        <div class="flashes">
+                            {% for category, message in messages %}
+                                <div class="alert-info alert {{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        </div>
                     {% endif %}
                 {% endwith %}
-                <form action="/auth/login" method="POST" class="form">
-                    <div class="mb-3 text-center">
-                        <input type="text" id="username" name="username" class="form-control" placeholder="Usuario" required>
-                    </div>
-                    <div class="mb-3 text-center">
-                        <input type="password" id="password" name="password" class="form-control" placeholder="Contraseña" required>
-                    </div>
-                    <div class="mb-3 text-center">
-                        <button type="submit" class="btn btn-primary w-100 text-center">Iniciar Sesión</button>
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check from-check-inline">
-                            <input type="checkbox" id="showPassword" name="showPassword" class="form-check-input" disbale="true" onclick="togglePassword()">
-                            <label class="form-check-label" for="showPassword">Mostrar Contraseña</label>
+
+                <fieldset class="shadow border p-2 rounded border-primary mt-4">
+                    <legend class="float-none w-auto px-1 fs-4 text-center">Inicia Sesión</legend>
+
+                    <form action="/auth/login" method="POST" class="form">
+                        <div class="mb-3 text-center">
+                            <input type="text" id="username" name="username" class="form-control" placeholder="Usuario" required>
                         </div>
-                    </div>
-                </form>          
+                        <div class="mb-3 text-center">
+                            <input type="password" id="password" name="password" class="form-control" placeholder="Contraseña" required>
+                        </div>
+                        <div class="mb-3 text-center">
+                            <button type="submit" class="btn btn-primary w-100 text-center">Iniciar Sesión</button>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check from-check-inline">
+                                <input type="checkbox" id="showPassword" name="showPassword" class="form-check-input" disbale="true" onclick="togglePassword()">
+                                <label class="form-check-label" for="showPassword">Mostrar Contraseña</label>
+                            </div>
+                        </div>
+                    </form>  
+
+                </fieldset>
+
+
+        
         </div>
     </div>
         <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>

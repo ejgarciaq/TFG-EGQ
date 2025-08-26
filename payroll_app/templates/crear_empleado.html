@@ -6,7 +6,7 @@
 <div class="container">
     <h4 class="text-center">Crear Empleado</h4>
         <form method="POST" action="{{ url_for('empleado.crear_empleado') }}">
-            <fieldset class="border p-2 mb-0 rounded border-primary">
+            <fieldset class="shadow border p-2 mb-0 rounded border-primary">
                 <legend class="float-none w-auto px-1 fs-5">Datos de Usuario</legend>
                 <div class="row">
                     <div class="col-md-4 mb-3">
@@ -28,7 +28,7 @@
                 </div>
             </fieldset>       
 
-            <fieldset class="border p-2 mb-0 rounded border-primary">
+            <fieldset class="shadow border p-2 mb-0 rounded border-primary">
                 <legend class="float-none w-auto px-2 fs-5">Datos de Empleado</legend>
                 <div class="row">
                     <div class="col-md-4 mb-3">
@@ -59,7 +59,7 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="telefono" class="form-label">Teléfono</label>
-                        <input type="tel" class="form-control" id="telefono" name="telefono" required>
+                        <input type="tel" class="form-control" id="telefono" name="telefono" pattern="[0-9]{8}" required>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="salario_base" class="form-label">Salario Base</label>
