@@ -16,7 +16,7 @@ body {
 }
 
 .body-3 {
-    margin-left: 250px;
+    margin-left: 170px;
     padding: 20px;
 }
 
@@ -31,9 +31,10 @@ body {
 
 nav {
     position: fixed; /* Asegura que el menú permanezca fijo */
-    width: 250px; /* Mantén el ancho del menú */
+    width: 160px; /* Mantén el ancho del menú */
     box-sizing: border-box; /* Asegura que el padding no afecte el tamaño total */
     z-index: 1050; /* Asegura que el menú lateral esté por encima del contenido principal */
+    height: 100vh; position: fixed; 
 }
 
 /* Estilo para submenús */

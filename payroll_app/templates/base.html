@@ -10,13 +10,13 @@
 <body>
     <div class="d-flex">
         <!-- Navbar lateral -->
-        <nav class="bg-light p-3" style="width: 250px; height: 100vh; position: fixed;">
-            <div class="w-50">
+        <nav class="bg-light p-2 menu-vertical">
+            <div class=" justify-content-center mx-auto mb-3">
                 <img src="{{ url_for('static', filename='/img/logo.webp') }}" alt="Logo de la Aplicación" class="img-fluid">
             </div>
-            <hr>
+            <hr class="border border-primary">
             <h4 class="text-center">Menú</h4>
-            <hr>
+            <hr class="border border-primary">
             <ul class="nav flex-column menu">
                 <li class="nav-item">
                      <a class="nav-link dropdown-item" href="{{ url_for('auth.base') }}">Inicio</a>
@@ -52,7 +52,7 @@
                     </ul>
                 </li>
             </ul>
-            <hr>
+            <hr class="border border-primary">
             <!-- Contenedor para los últimos elementos -->
             <ul class="nav flex-column mt-auto">
                 <li><hr class="dropdown-divider bg-primary"></li>
@@ -65,7 +65,8 @@
         <!-- Contenido principal -->
 <div class="flex-grow-1 body-3">
     <div class="md-12">
-        <h4>Bienvenido, {{ username }}!</h4>
+        <h5>Bienvenido, {{ username }}!</h5>
+        <hr class="border border-primary">
     </div>
     
     <div class="flashes">
@@ -87,8 +88,8 @@
     </div>
 
     <footer class="text-center mt-4">
-        <div class="text-center fixed-bottom footer">
-            <p>&copy; 2025 Edson García Quirós. Todos los derechos reservados.</p>
+        <div class="text-center fixed-bottom footer bg-light pt-2">
+            <p class="small">&copy; 2025 Edson García Quirós. Todos los derechos reservados.</p>
         </div>
     </footer>
     
