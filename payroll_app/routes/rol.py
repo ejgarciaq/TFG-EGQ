@@ -18,7 +18,7 @@ def crear_rol():
         tipo_rol = request.form.get('tipo_rol') # Obtener el nombre del rol del formulari
         descripcion_rol = request.form.get('descripcion_rol') # Obtener la descripción del formulario
         if tipo_rol and descripcion_rol:
-            nuevo_rol = Rol(tipo_rol=tipo_rol, decripcion=descripcion_rol) # Crear una nueva instancia de Rol
+            nuevo_rol = Rol(tipo_rol=tipo_rol, descripcion_rol=descripcion_rol) # Crear una nueva instancia de Rol
             db.session.add(nuevo_rol)
             db.session.commit()
             flash('Rol creado exitosamente.', 'success')
@@ -31,15 +31,28 @@ def crear_rol():
 @rol_bp.route('/editar/<int:id>', methods=['GET', 'POST'])
 def editar_rol(id):
     """Muestra el formulario para editar un rol y procesa la actualización."""
-    rol = Rol.query.get_or_404(id)
+    rol_a_editar = Rol.query.get_or_404(id)
+
     if request.method == 'POST':
-        rol.tipo_rol = request.form.get('tipo_rol') # Actualizar el nombre del rol
-        rol.decripcion = request.form.get('descripcion_rol') # Actualizar la descripción del rol
-        db.session.commit()
-        flash('Rol actualizado exitosamente.', 'success')
-        return redirect(url_for('rol.listar_roles'))
-        
-    return render_template('editar_rol.html', rol=rol)
+        # Recupera los datos del formulario, incluyendo la descripción
+        tipo_rol = request.form['tipo_rol']
+        descripcion_rol = request.form.get('descripcion_rol')
+
+        # Actualiza el objeto Rol
+        rol_a_editar.tipo_rol = tipo_rol
+        rol_a_editar.descripcion_rol = descripcion_rol
+
+        try:
+            db.session.commit()
+            flash('Rol actualizado exitosamente', 'success')
+            return redirect(url_for('rol.listar_roles'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al actualizar el rol: {e}', 'danger')
+            return redirect(url_for('rol.editar_rol', id=id))
+
+    # Si el método es GET, simplemente renderiza la plantilla con los datos del rol
+    return render_template('editar_rol.html', rol=rol_a_editar)
 
 @rol_bp.route('/eliminar/<int:id>', methods=['POST'])
 def eliminar_rol(id):
