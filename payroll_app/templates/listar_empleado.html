@@ -41,7 +41,11 @@
                 </td>
                 <td>
                     <a href="{{ url_for('empleado.editar_empleado', id=empleado.id_empleado) }}" class="btn btn-sm btn-primary">Editar</a>
-                    <a href="#" class="btn btn-sm btn-danger">Eliminar</a>
+                    <form action="{{ url_for('empleado.eliminar_empleado', id=empleado.id_empleado) }}" method="POST" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de que quieres eliminar a {{ empleado.nombre }}?');">
+                            Eliminar
+                        </button>
+                    </form>
                 </td>
             </tr>
             {% endfor %}
