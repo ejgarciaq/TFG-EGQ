@@ -11,6 +11,7 @@ class Rol(db.Model):
     __tablename__ = 'rol'  # Nombre de la tabla en la base de datos
     id_rol = db.Column(db.Integer, primary_key=True)  # ID único del rol
     tipo_rol = db.Column(db.String(100), unique=True, nullable=False)  # Nombre del rol único
+    descripcion_rol = db.Column(db.String(255), nullable=True) # Descripción del rol (opcional)
 
     # Relación inversa: lista de usuarios asociados a este rol
     usuarios = db.relationship('Usuario', back_populates='rol')

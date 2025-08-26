@@ -1,8 +1,12 @@
 from flask import Flask
 from payroll_app.config import Config
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
 db = SQLAlchemy()  # Inicializa la instancia de SQLAlchemy
+
+migrate = Migrate()  # Inicializa la instancia de Flask-Migrate
+
 
 def create_app():
     app = Flask(__name__) # Crea una instancia de la aplicación Flask
@@ -11,6 +15,7 @@ def create_app():
     app.config['SECRET_KEY'] = 'f9ddc90157c588ce310b85c62fe82b7e76c94a87'  # Cambia esto por una clave secreta segura
 
     db.init_app(app)  # Inicializa la instancia de SQLAlchemy con la aplicación
+    migrate.init_app(app, db)  # Inicializa Migrate con la app y la db
 
     # Agrega el proceso de contexto de la aplicación
     @app.context_processor
