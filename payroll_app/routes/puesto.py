@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from payroll_app.models import Puesto
 from payroll_app import db
+from flask_login import login_required
 
 puesto_bp = Blueprint('puesto', __name__)
 

@@ -1,34 +1,35 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import current_user, login_required
-from payroll_app.models import db, RegistroAsistencia, Feriado
+from payroll_app.models import db, RegistroAsistencia, Feriado, Empleado
 from datetime import datetime
 
-registro_asistencia_bp = Blueprint('registro_asistencia', __name__, template_folder='templates')
+# El nombre del blueprint es 'registro_asistencia'
+registro_asistencia_bp = Blueprint('registro_asistencia', __name__)
 
 @registro_asistencia_bp.route('/asistencia', methods=['GET'])
-@login_required
+@login_required 
 def ver_asistencia():
-    # Esta ruta simplemente muestra el formulario HTML
+    # Asegúrate de que el archivo 'registro_asistencia.html' esté en la carpeta 'templates'
     return render_template('registro_asistencia.html')
 
 @registro_asistencia_bp.route('/asistencia/registrar', methods=['POST'])
-@login_required
+@login_required 
 def registrar_asistencia():
-    # Obtener el objeto de usuario y empleado del usuario actual
-    empleado = current_user.empleado
-    if not empleado:
-        flash('No se encontró el empleado asociado al usuario.', 'danger')
-        return redirect(url_for('asistencia.ver_asistencia'))
+    empleado = Empleado.query.filter_by(Usuario_id_usuario=current_user.id_usuario).first()
 
-    # Verificar si ya existe un registro de entrada para hoy
-    registro_de_hoy = RegistroAsistencia.query.filter_by(
-        Empleado_id_empleado=empleado.id_empleado,
-        fecha_registro=datetime.utcnow().date()
-    ).first()
+    if not empleado:
+        flash('No se encontró el empleado asociado a tu cuenta. Contacta al administrador.', 'danger')
+        return redirect(url_for('registro_asistencia.ver_asistencia'))
 
     try:
+        hoy = datetime.utcnow().date()
+        registro_de_hoy = RegistroAsistencia.query.filter_by(
+            Empleado_id_empleado=empleado.id_empleado,
+            fecha_registro=hoy
+        ).first()
+
         if registro_de_hoy:
-            # Caso 2: El empleado ya marcó su entrada y ahora está marcando la salida
+            # Lógica para registrar la hora de salida si ya hay una entrada
             if registro_de_hoy.hora_salida:
                 flash('Ya has marcado tu entrada y salida hoy.', 'warning')
             else:
@@ -36,20 +37,15 @@ def registrar_asistencia():
                 db.session.commit()
                 flash('¡Salida registrada exitosamente!', 'success')
         else:
-            # Caso 1: El empleado está marcando su entrada por primera vez hoy
-            
-            # Verificar si es feriado
-            es_feriado_hoy = Feriado.query.filter_by(fecha_feriado=datetime.utcnow().date()).first()
+            # Lógica para registrar la hora de entrada si no hay un registro para hoy
+            es_feriado_hoy = Feriado.query.filter_by(fecha_feriado=hoy).first()
 
             nuevo_registro = RegistroAsistencia(
                 Empleado_id_empleado=empleado.id_empleado,
-                Empleado_Usuario_id_usuario=empleado.Usuario_id_usuario,
-                fecha_registro=datetime.utcnow().date(),
+                fecha_registro=hoy,
                 hora_entrada=datetime.utcnow().time(),
-                hora_salida=None,  # No hay hora de salida aún
-                estado_feriado=1 if es_feriado_hoy else 0,
-                aprobacion_registro=0, # Pendiente de aprobación
-                # Los demás campos (horas_extra, etc.) se calculan y llenan más tarde
+                estado_feriado=True if es_feriado_hoy else False,
+                aprobacion_registro=False,
             )
             db.session.add(nuevo_registro)
             db.session.commit()
@@ -59,4 +55,4 @@ def registrar_asistencia():
         db.session.rollback()
         flash(f'Ocurrió un error al registrar la asistencia: {str(e)}', 'danger')
 
-    return redirect(url_for('asistencia.ver_asistencia'))
+    return render_template('registro_asistencia.html')
