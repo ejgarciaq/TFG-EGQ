@@ -81,3 +81,41 @@ class Empleado(db.Model):
 
     def __repr__(self):
         return f'<Empleado {self.nombre} {self.apellido_primero}>'
+
+class Feriado(db.Model):
+    """
+    Modelo de Feriado para la aplicación de nómina.
+    Representa un día feriado con una fecha y descripción.
+    """
+    __tablename__ = 'Feriado'  # Nombre de la tabla en la base de datos
+    id_feriado = db.Column(db.Integer, primary_key=True)  # ID único del feriado
+    fecha_feriado = db.Column(db.Date, unique=True, nullable=False)  # Fecha del feriado
+    descripcion_feriado = db.Column(db.String(255), nullable=True)  # Descripción del feriado
+
+    # Relación inversa: lista de registros de asistencia asociados a este feriado
+    registros_asistencia = db.relationship('RegistroAsistencia', back_populates='feriado')
+
+    def __repr__(self):
+        return f'<Feriado {self.fecha_feriado}>'
+
+class RegistroAsistencia(db.Model):
+    __tablename__ = 'Registro_Asistencia'
+    id_registro_asistencia = db.Column(db.Integer, primary_key=True)
+    Empleado_id_empleado = db.Column(db.Integer, db.ForeignKey('Empleado.id_empleado'), nullable=False)
+    Empleado_Usuario_id_usuario = db.Column(db.Integer, db.ForeignKey('Usuario.id_usuario'), nullable=False)
+    fecha_registro = db.Column(db.Date, nullable=False)
+    hora_entrada = db.Column(db.Time, nullable=False)
+    hora_salida = db.Column(db.Time, nullable=True)
+    hora_nominal = db.Column(db.Float, nullable=True)
+    hora_extra = db.Column(db.Float, nullable=True)
+    hora_feriado = db.Column(db.Float, nullable=True)
+    estado_feriado = db.Column(db.Boolean, nullable=False, default=False)
+    aprobacion_registro = db.Column(db.Boolean, nullable=False, default=False)
+    Nomina_id_nomina = db.Column(db.Integer, db.ForeignKey('Nomina.id_nomina'), nullable=True)
+    Nomina_Empleado_id_empleado = db.Column(db.Integer, db.ForeignKey('Nomina.Empleado_id_empleado'), nullable=True)
+    Nomina_Empleado_Usuario_id_usuario = db.Column(db.Integer, db.ForeignKey('Nomina.Empleado_Usuario_id_usuario'), nullable=True)
+    
+    Feriado_id_feriado = db.Column(db.Integer, db.ForeignKey('Feriado.id_feriado'), nullable=True)
+
+    # ❗ Línea corregida: Cambia el nombre del backref
+    feriado = db.relationship('Feriado', backref='asistencia_registros', lazy=True)

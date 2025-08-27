@@ -30,11 +30,14 @@ def create_app():
     from .routes.empleado import empleado_bp
     from .routes.rol import rol_bp
     from .routes.puesto import puesto_bp
+    from .routes.registro_asistencia import registro_asistencia_bp
     
-    # Registra el blueprint de login
-    app.register_blueprint(login_bp, url_prefix='/auth')  # Registra el blueprint de rutas
-    app.register_blueprint(empleado_bp, url_prefix='/auth/empleados')  # Registra el blueprint de rutas
-    app.register_blueprint(rol_bp, url_prefix='/auth/roles')  # Registra el blueprint de rutas
-    app.register_blueprint(puesto_bp, url_prefix='/auth/puestos')  # Registra el blueprint de rutas
+    # Registra el blueprints
+    app.register_blueprint(login_bp, url_prefix='/auth')
+    app.register_blueprint(empleado_bp, url_prefix='/auth/empleados')
+    app.register_blueprint(rol_bp, url_prefix='/auth/roles')
+    app.register_blueprint(puesto_bp, url_prefix='/auth/puestos')
+    app.register_blueprint(registro_asistencia_bp, url_prefix='/auth/registro_asistencia')
+
 
     return app  # Devuelve la instancia de la aplicación Flask
