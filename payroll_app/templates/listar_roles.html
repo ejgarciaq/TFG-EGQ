@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Roles{% endblock %}
+{% block content %}
+<div class="container">
+    <h4 class="text-center">Listado de Roles</h4>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <a href="{{ url_for('rol.crear_rol') }}" class="btn btn-primary">
+            Crear Rol
+        </a>
+    </div>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre del Rol</th>
+                <th>Descripción</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rol in roles %}
+            <tr>
+                <td>{{ rol.id_rol }}</td>
+                <td>{{ rol.tipo_rol }}</td>
+                <td>{{ rol.descripcion_rol }}</td>
+                <td>
+                    <a href="{{ url_for('rol.editar_rol', id=rol.id_rol) }}" class="btn btn-sm btn-warning">Editar</a>
+                    <form action="{{ url_for('rol.eliminar_rol', id=rol.id_rol) }}" method="POST" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de que quieres eliminar este rol?');">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

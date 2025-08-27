@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %} Gestion de Nómina {% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Navbar lateral -->
+        <nav class="bg-light p-2 menu-vertical">
+            <div class=" justify-content-center mx-auto mb-3">
+                <img src="{{ url_for('static', filename='/img/logo.webp') }}" alt="Logo de la Aplicación" class="img-fluid">
+            </div>
+            <hr class="border border-primary">
+            <h4 class="text-center">Menú</h4>
+            <hr class="border border-primary">
+            <ul class="nav flex-column menu">
+                <li class="nav-item">
+                     <a class="nav-link dropdown-item" href="{{ url_for('auth.base') }}">Inicio</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link dropdown-item" href="#"  >Nómina</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link dropdown-item" href="#">Horas Extras</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link dropdown-item" href="#">Incapacidades</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link dropdown-item" href="#">Liquidación</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link dropdown-item" href="#">Aguinaldo</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link dropdown-item" href="#">Vacaciones</a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="dropdownMenuButton" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Mantenimiento
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                        <li class="dropdown-submenu dropend">
+                            <a class="nav-link dropdown-item" href="{{ url_for('empleado.listar_empleado') }}">Empleado</a> 
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('rol.listar_roles') }}">Rol</a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('puesto.listar_puestos') }}">Puesto</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+            <hr class="border border-primary">
+            <!-- Contenedor para los últimos elementos -->
+            <ul class="nav flex-column mt-auto">
+                <li><hr class="dropdown-divider bg-primary"></li>
+                <li class="nav-item">
+                    <a class="nav-link dropdown-item text-dark" href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Contenido principal -->
+<div class="flex-grow-1 body-3">
+    <div class="md-12">
+        <h5>Bienvenido, {{ username }}!</h5>
+        <hr class="border border-primary">
+    </div>
+    
+    <div class="flashes">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message|safe }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <div class="d-flex md-12" style="z-index: 1;">
+        {% block content %}{% endblock %}
+    </div>
+</div>
+</div>
+
+    </div>
+
+    <footer class="text-center mt-4">
+        <div class="text-center fixed-bottom footer bg-light pt-2">
+            <p class="small">&copy; 2025 Edson García Quirós. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script> 
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Bootstrap JS cargado correctamente');
+        });
+        </script>
+
+</body>
+</html>

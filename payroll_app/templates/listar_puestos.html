@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Lista de Puestos{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>Lista de Puestos</h4>
+        <a href="{{ url_for('puesto.crear_puesto') }}" class="btn btn-primary">Crear Nuevo Puesto</a>
+    </div>
+
+    {% if puestos %}
+    <table class="table table-striped table-bordered">
+        <thead class="thead-dark">
+            <tr>
+                <th>ID</th>
+                <th>Tipo de Puesto</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for puesto in puestos %}
+            <tr>
+                <td>{{ puesto.id_puesto }}</td>
+                <td>{{ puesto.tipo_puesto }}</td>
+                <td>
+                    <a href="{{ url_for('puesto.editar_puesto', id=puesto.id_puesto) }}" class="btn btn-warning btn-sm">
+                        Editar
+                    </a>
+                    <form action="{{ url_for('puesto.eliminar_puesto', id=puesto.id_puesto) }}" method="POST" style="display:inline-block;">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Está seguro de que desea eliminar este puesto?');">
+                            Eliminar
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        No hay puestos registrados.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
