@@ -21,7 +21,8 @@ def crear_empleado():
         # Validaciones con expresiones regulares
         email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         phone_regex = r'^[0-9]{8}$'
-        password_regex = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+-])[A-Za-z\d!@#$%^&*()_+-]{8,}$'
+        # ❗ CORRECCIÓN: Expresión regular mejorada para permitir el punto y otros símbolos comunes
+        password_regex = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+-.,/])[A-Za-z\d!@#$%^&*()_+-.,/]{8,}$'
         
         if Usuario.query.filter_by(username=username).first():
             flash('El nombre de usuario ya existe. Por favor, elige otro.', 'danger')
@@ -36,7 +37,7 @@ def crear_empleado():
             return redirect(url_for('empleado.crear_empleado'))
 
         if not re.match(password_regex, password):
-            flash('La contraseña debe tener al menos 8 caracteres, incluyendo una mayúscula, una minúscula, un número y un símbolo.', 'danger')
+            flash('La nueva contraseña no cumple con los requisitos: <br>- Mínimo 8 caracteres.<br>- Al menos una mayúscula.<br>- Al menos una minúscula.<br>- Al menos un número.<br>- Al menos un símbolo.', 'danger')
             return redirect(url_for('empleado.crear_empleado'))
 
         try:
@@ -48,9 +49,10 @@ def crear_empleado():
                 estado_usuario=True,
                 Rol_id_rol=request.form['rol_id']
             )
-            db.session.add(nuevo_usuario)
 
             fecha_ingreso = datetime.strptime(request.form['fecha_ingreso'], '%Y-%m-%d').date()
+            
+            # ❗ CORRECCIÓN: Asigna el objeto 'nuevo_usuario' directamente. SQLAlchemy manejará la relación.
             nuevo_empleado = Empleado(
                 nombre=request.form['nombre'],
                 apellido_primero=request.form['apellido_primero'],
@@ -63,15 +65,12 @@ def crear_empleado():
                 salario_base=float(request.form['salario_base']),
                 estado_empleado=True,
                 Puesto_id_puesto=request.form['puesto_id'],
-                Usuario_id_usuario=None
+                usuario=nuevo_usuario 
             )
+            
+            # Agrega solo el objeto 'nuevo_empleado' a la sesión.
             db.session.add(nuevo_empleado)
             
-            # Asignar el ID de usuario después de que la sesión lo genere
-            db.session.flush()
-            nuevo_empleado.Usuario_id_usuario = nuevo_usuario.id_usuario
-
-            # Guardar ambos objetos en una sola transacción
             db.session.commit()
             
             flash('Empleado creado exitosamente.', 'success')
@@ -100,7 +99,8 @@ def editar_empleado(id):
             
             email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
             phone_regex = r'^[0-9]{8}$'
-            password_regex = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+-])[A-Za-z\d!@#$%^&*()_+-]{8,}$'
+            # ❗ CORRECCIÓN: Expresión regular mejorada para permitir el punto y otros símbolos comunes
+            password_regex = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+-.,/])[A-Za-z\d!@#$%^&*()_+-.,/]{8,}$'
             
             if not re.match(email_regex, correo):
                 flash('El formato del correo electrónico no es válido.', 'danger')
@@ -110,11 +110,11 @@ def editar_empleado(id):
                 flash('El número de teléfono debe contener exactamente 8 dígitos.', 'danger')
                 return redirect(url_for('empleado.editar_empleado', id=id))
             
-            # Validar la contraseña solo si se proporciona una nueva
+            # ❗ CORRECCIÓN: El return está dentro del if para que solo redirija si la contraseña falla
             if password:
                 if not re.match(password_regex, password):
-                 flash('La nueva contraseña no cumple con los requisitos: <br>- Mínimo 8 caracteres.<br>- Al menos una mayúscula.<br>- Al menos una minúscula.<br>- Al menos un número.<br>- Al menos un símbolo.', 'danger')
-                return redirect(url_for('empleado.editar_empleado', id=id))
+                    flash('La nueva contraseña no cumple con los requisitos: <br>- Mínimo 8 caracteres.<br>- Al menos una mayúscula.<br>- Al menos una minúscula.<br>- Al menos un número.<br>- Al menos un símbolo.', 'danger')
+                    return redirect(url_for('empleado.editar_empleado', id=id))
             
             # Actualizar datos si las validaciones pasan
             empleado.nombre = request.form['nombre']
