@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, redirect, url_for
 from payroll_app.config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -41,5 +41,10 @@ def create_app():
     app.register_blueprint(rol_bp, url_prefix='/auth/roles')
     app.register_blueprint(puesto_bp, url_prefix='/auth/puestos')
     app.register_blueprint(registro_asistencia_bp, url_prefix='/auth/registro_asistencia')
+    
+    @app.route('/')
+    def index():
+        return redirect(url_for('auth.login'))
+
 
     return app
