@@ -80,8 +80,8 @@ class TipoNomina(db.Model):
     id_tipo_nomina = db.Column(db.Integer, primary_key=True)
     nombre_tipo = db.Column(db.String(100), unique=True, nullable=False)
     
-    # Relación inversa: Un tipo de nómina puede tener muchas nóminas
-    nominas = db.relationship('Nomina', backref='tipo_nomina_relacion', lazy=True)
+    # ❗ Corrección: Usamos back_populates y le decimos el nombre de la relación inversa
+    nominas = db.relationship('Nomina', back_populates='tipo_nomina_relacion', lazy=True)
 
     def __repr__(self):
         return f'<TipoNomina {self.nombre_tipo}>'
@@ -98,16 +98,19 @@ class Nomina(db.Model):
     estado_pago = db.Column(db.String(50), nullable=False, default='Pendiente')
     Empleado_id_empleado = db.Column(db.Integer, db.ForeignKey('empleado.id_empleado'), nullable=False)
     
-    # ❗ ESTA ES LA ÚNICA LÍNEA CORRECTA PARA LA CLAVE FORÁNEA
+    # ❗ Aquí está tu clave foránea (asegúrate de que el nombre sea correcto)
     TipoNomina_id_tipo_nomina = db.Column(db.Integer, db.ForeignKey('tipo_nomina.id_tipo_nomina'), nullable=False)
     
     # Relaciones
     empleado = db.relationship('Empleado', back_populates='nominas')
     registros_asistencia = db.relationship('RegistroAsistencia', back_populates='nomina_relacion')
-    tipo_nomina_relacion = db.relationship('TipoNomina', backref='nominas', lazy=True)
+    
+    # ❗ Corrección: Definimos la relación que se va a popular
+    tipo_nomina_relacion = db.relationship('TipoNomina', back_populates='nominas', lazy=True)
 
     def __repr__(self):
         return f'<Nomina {self.id_nomina} del Empleado {self.Empleado_id_empleado}>'
+    
 class RegistroAsistencia(db.Model):
     __tablename__ = 'registro_asistencia'
     id_registro_asistencia = db.Column(db.Integer, primary_key=True)
