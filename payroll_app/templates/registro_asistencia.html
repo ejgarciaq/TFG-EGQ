@@ -1,18 +1,29 @@
 {% extends 'base.html' %}
 {% block title %}Registro de Asistencia{% endblock %}
 {% block content %}
-    <div class="container">
-        <h1>Registro de Asistencia</h1>
-        <div class="card">
-            <div id="reloj" class="reloj"></div>
-            <p><strong>Fecha Actual:</strong> <span id="fecha_actual"></span></p>
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Registro de Asistencia</h1>
+    <div class="card p-4 shadow">
+        <div class="card-body text-center border border-2 border-primary rounded-3">
+            
+            <div id="reloj" class="bg-dark text-light p-4 rounded-3 d-inline-block fs-2 fw-bold">00:00:00</div>
+                <span id="hora" class="fs-1 fw-bold">00</span>
+                <span class="fs-1 fw-bold">:</span>
+                <span id="minutos" class="fs-1 fw-bold">00</span>
+                <span class="fs-1 fw-bold">:</span>
+                <span id="segundos" class="fs-1 fw-bold">00</span>
+            </div>
+            
+            <p class="mt-3 fs-4"><strong>Fecha Actual:</strong> <span id="fecha_actual"></span></p>
 
-            <form id="form_asistencia" method="POST" action="{{ url_for('registro_asistencia.registrar_asistencia') }}"></form>           
+            <form id="form_asistencia" method="POST" action="{{ url_for('registro_asistencia.registrar_asistencia') }}" class="mt-4">
                 <input type="hidden" name="hora_entrada" id="hora_entrada_input">
-                <button type="submit" id="marcar_btn">Marcar Entrada/Salida</button>
+                <button type="submit" id="marcar_btn" class="btn btn-primary btn-lg">Marcar Entrada/Salida</button>
             </form>
-
+            
         </div>
     </div>
+</div>
     
 {% endblock %}
+    
