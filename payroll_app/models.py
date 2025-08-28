@@ -71,7 +71,22 @@ class Feriado(db.Model):
     def __repr__(self):
         return f'<Feriado {self.fecha_feriado}>'
 
-# ❗ Nuevo modelo Nomina, colocado aquí para evitar conflictos de importación
+
+class TipoNomina(db.Model):
+    """
+    Modelo para la tabla que clasifica los tipos de nómina.
+    """
+    __tablename__ = 'tipo_nomina'
+    id_tipo_nomina = db.Column(db.Integer, primary_key=True)
+    nombre_tipo = db.Column(db.String(100), unique=True, nullable=False)
+    
+    # Relación inversa: Un tipo de nómina puede tener muchas nóminas
+    nominas = db.relationship('Nomina', backref='tipo_nomina_relacion', lazy=True)
+
+    def __repr__(self):
+        return f'<TipoNomina {self.nombre_tipo}>'
+
+# ❗ Nuevo modelo Nomina
 class Nomina(db.Model):
     __tablename__ = 'nomina'
     id_nomina = db.Column(db.Integer, primary_key=True)
@@ -83,12 +98,13 @@ class Nomina(db.Model):
     estado_pago = db.Column(db.String(50), nullable=False, default='Pendiente')
     Empleado_id_empleado = db.Column(db.Integer, db.ForeignKey('empleado.id_empleado'), nullable=False)
     
-    # ❗ ESTA ES LA CLAVE FORÁNEA QUE FALTA O ESTÁ MAL DEFINIDA ❗
+    # ❗ ESTA ES LA ÚNICA LÍNEA CORRECTA PARA LA CLAVE FORÁNEA
     TipoNomina_id_tipo_nomina = db.Column(db.Integer, db.ForeignKey('tipo_nomina.id_tipo_nomina'), nullable=False)
     
     # Relaciones
     empleado = db.relationship('Empleado', back_populates='nominas')
     registros_asistencia = db.relationship('RegistroAsistencia', back_populates='nomina_relacion')
+    tipo_nomina_relacion = db.relationship('TipoNomina', backref='nominas', lazy=True)
 
     def __repr__(self):
         return f'<Nomina {self.id_nomina} del Empleado {self.Empleado_id_empleado}>'
@@ -161,20 +177,6 @@ class Aguinaldo(db.Model):
     
     def __repr__(self):
         return f'<Aguinaldo {self.id_aguinaldo} para Empleado {self.Empleado_id_empleado}>'    
-
-class TipoNomina(db.Model):
-    """
-    Modelo para la tabla que clasifica los tipos de nómina.
-    """
-    __tablename__ = 'tipo_nomina'
-    id_tipo_nomina = db.Column(db.Integer, primary_key=True)
-    nombre_tipo = db.Column(db.String(100), unique=True, nullable=False)
-    
-    # Relación inversa: Un tipo de nómina puede tener muchas nóminas
-    nominas = db.relationship('Nomina', backref='tipo_nomina_relacion', lazy=True)
-
-    def __repr__(self):
-        return f'<TipoNomina {self.nombre_tipo}>'
 
 class Tipo_AP(db.Model):
     """

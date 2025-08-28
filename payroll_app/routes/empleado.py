@@ -1,7 +1,7 @@
 import re
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from werkzeug.security import generate_password_hash
-from payroll_app.models import db, Usuario, Rol, Empleado, Puesto
+from payroll_app.models import db, Usuario, Rol, Empleado, Puesto, RegistroAsistencia, Nomina
 from datetime import datetime
 
 empleado_bp = Blueprint('empleado', __name__, template_folder='templates')
@@ -160,8 +160,16 @@ def eliminar_empleado(id):
     usuario = Usuario.query.get_or_404(empleado.Usuario_id_usuario)
 
     try:
+        # 1. Eliminar los registros de asistencia del empleado
+        RegistroAsistencia.query.filter_by(Empleado_id_empleado=empleado.id_empleado).delete()
+
+        # 2. Eliminar las nóminas del empleado
+        Nomina.query.filter_by(Empleado_id_empleado=empleado.id_empleado).delete()
+        
+        # 3. Finalmente, eliminar el empleado y su usuario
         db.session.delete(empleado)
         db.session.delete(usuario)
+        
         db.session.commit()
         flash('Empleado eliminado exitosamente.', 'success')
     except Exception as e:
