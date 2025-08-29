@@ -6,7 +6,7 @@ from flask import redirect, url_for
 app = create_app()
 
 # Ruta para la página de inicio
-@app.route('/')
+@app.route('/', endpoint='root')
 def index():
     return redirect(url_for('auth.login'))
 
