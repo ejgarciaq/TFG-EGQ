@@ -35,13 +35,15 @@ def create_app():
     from .routes.rol import rol_bp
     from .routes.puesto import puesto_bp
     from .routes.registro_asistencia import registro_asistencia_bp
+    from .routes.feriado import feriado_bp
 
     app.register_blueprint(login_bp, url_prefix='/auth')
     app.register_blueprint(empleado_bp, url_prefix='/auth/empleados')
     app.register_blueprint(rol_bp, url_prefix='/auth/roles')
     app.register_blueprint(puesto_bp, url_prefix='/auth/puestos')
     app.register_blueprint(registro_asistencia_bp, url_prefix='/auth/registro_asistencia')
-    
+    app.register_blueprint(feriado_bp, url_prefix='/auth/feriados')
+
     @app.route('/')
     def index():
         return redirect(url_for('auth.login'))

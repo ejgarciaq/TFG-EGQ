@@ -60,12 +60,15 @@ class Empleado(db.Model):
 
     def __repr__(self):
         return f'<Empleado {self.nombre} {self.apellido_primero}>'
+    
+#----------------- Feriados -------------------------------------------
 
 class Feriado(db.Model):
     __tablename__ = 'feriado'
     id_feriado = db.Column(db.Integer, primary_key=True)
     fecha_feriado = db.Column(db.Date, unique=True, nullable=False)
     descripcion_feriado = db.Column(db.String(255), nullable=True)
+    pago_obligatorio = db.Column(db.Boolean, nullable=False, default=False)
     registros_asistencia = db.relationship('RegistroAsistencia', back_populates='feriado_relacion')
 
     def __repr__(self):
@@ -95,7 +98,7 @@ class Nomina(db.Model):
     salario_bruto = db.Column(db.Float, nullable=False)
     salario_neto = db.Column(db.Float, nullable=False)
     deducciones = db.Column(db.Float, nullable=False, default=0.0)
-    estado_pago = db.Column(db.String(50), nullable=False, default='Pendiente')
+    pago_obligatorio = db.Column(db.Boolean, nullable=False, default=False)
     Empleado_id_empleado = db.Column(db.Integer, db.ForeignKey('empleado.id_empleado'), nullable=False)
     
     # ❗ Aquí está tu clave foránea (asegúrate de que el nombre sea correcto)
