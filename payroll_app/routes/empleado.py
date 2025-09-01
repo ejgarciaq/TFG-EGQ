@@ -29,7 +29,7 @@ def crear_empleado():
             return redirect(url_for('empleado.crear_empleado'))
         
         if not re.match(email_regex, correo):
-            flash('El formato del correo electrónico no es válido.', 'danger')
+            flash('El formato del correo electrónico no es válido. ejemplo@correo.com', 'danger')
             return redirect(url_for('empleado.crear_empleado'))
         
         if not re.match(phone_regex, telefono):

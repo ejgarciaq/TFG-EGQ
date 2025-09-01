@@ -52,18 +52,23 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="correo" class="form-label">Correo</label>
-                        <input type="email" class="form-control" id="correo" name="correo" required>
+                        <input type="email" class="form-control" id="correo" placeholder="ejemplo@correo.com" name="correo" required>
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="telefono" class="form-label">Teléfono</label>
-                        <input type="tel" class="form-control" id="telefono" name="telefono" pattern="[0-9]{8}" required>
+                        <input type="tel"  class="form-control" id="telefono" name="telefono" pattern="[0-9]{8}" placeholder="88888888" required>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label for="salario_base" class="form-label">Salario Base</label>
-                        <input type="number" step="0.01" class="form-control" id="salario_base" name="salario_base" required>
+                        <label for="salario_base" class="form-label" for="inlineFormInputGroupUsername">Salario Base</label>
+                        <div class="input-group"> 
+                            <div class="input-group-prepend">
+                                <div class="input-group-text">₡</div>
+                            </div>      
+                            <input type="number" step="0.01" class="form-control" id="salario_base" name="salario_base" required>
+                        </div>
                     </div>
                 </div>
 

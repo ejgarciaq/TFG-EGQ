@@ -58,21 +58,21 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="correo" class="form-label">Correo</label>
-                        <input type="email" class="form-control" id="correo" name="correo" value="{{ empleado.correo }}" required>
+                        <input type="email" class="form-control" id="correo" name="correo" placeholder="ejemplo@correo.com" value="{{ empleado.correo }}" required>
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="telefono" class="form-label">Teléfono</label>
-                        <input type="tel"  class="form-control" id="telefono" name="telefono" pattern="[0-9]{8}" placeholder="12345678" value="{{ empleado.telefono }}" required>
+                        <input type="tel"  class="form-control" id="telefono" name="telefono" pattern="[0-9]{8}" placeholder="88888888" value="{{ empleado.telefono }}" required>
                     </div>
 
                     <div class="col-md-6 mb-3">
                         <label for="salario_base" class="form-label" for="inlineFormInputGroupUsername">Salario Base</label>
                         <div class="input-group">
                             <div class="input-group-prepend">
-                            <div class="input-group-text">₡</div>
+                                <div class="input-group-text">₡</div>
                             </div>
                             <input type="number" step="0.01" class="form-control" id="salario_base" name="salario_base" value="{{ empleado.salario_base }}" required>
                         </div>
