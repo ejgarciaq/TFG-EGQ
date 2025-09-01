@@ -3,6 +3,8 @@ from flask_login import UserMixin
 
 ## Gestión Administrativa de la base de datos ##
 
+#------- Roles ---------------------------------------------------
+
 class Rol(db.Model):
     __tablename__ = 'rol'
     id_rol = db.Column(db.Integer, primary_key=True)
@@ -12,6 +14,8 @@ class Rol(db.Model):
     
     def __repr__(self):
         return f'<Rol {self.tipo_rol}>'
+    
+#------ Usuarios -------------------------------------------------
 
 class Usuario(db.Model, UserMixin):
     __tablename__ = 'usuario'
@@ -29,6 +33,8 @@ class Usuario(db.Model, UserMixin):
     def __repr__(self):
         return f'<Usuario {self.username}>'
     
+#------- Puesto ---------------------------------------------------    
+    
 class Puesto(db.Model):
     __tablename__ = 'puesto'
     id_puesto = db.Column(db.Integer, primary_key=True)
@@ -37,6 +43,8 @@ class Puesto(db.Model):
 
     def __repr__(self):
         return f'<Puesto {self.tipo_puesto}>'
+    
+#----- Empleados ---------------------------------------------------------
     
 class Empleado(db.Model):
     __tablename__ = 'empleado'
@@ -55,7 +63,7 @@ class Empleado(db.Model):
     Usuario_id_usuario = db.Column(db.Integer, db.ForeignKey('usuario.id_usuario'), unique=True, nullable=False)
     usuario = db.relationship('Usuario', back_populates='empleado')
     puesto = db.relationship('Puesto', back_populates='empleados')
-    # ❗ Nueva relación: Un empleado puede tener muchas nóminas
+    # ❗ relación: Un empleado puede tener muchas nóminas
     nominas = db.relationship('Nomina', back_populates='empleado')
 
     def __repr__(self):
@@ -74,6 +82,7 @@ class Feriado(db.Model):
     def __repr__(self):
         return f'<Feriado {self.fecha_feriado}>'
 
+#----------- Tipo de nomina --------------------------------------
 
 class TipoNomina(db.Model):
     """
@@ -89,7 +98,8 @@ class TipoNomina(db.Model):
     def __repr__(self):
         return f'<TipoNomina {self.nombre_tipo}>'
 
-# ❗ Nuevo modelo Nomina
+#--------- Nomina
+
 class Nomina(db.Model):
     __tablename__ = 'nomina'
     id_nomina = db.Column(db.Integer, primary_key=True)
@@ -114,6 +124,8 @@ class Nomina(db.Model):
     def __repr__(self):
         return f'<Nomina {self.id_nomina} del Empleado {self.Empleado_id_empleado}>'
     
+#-------- Registro de Asistencia -----------------------------
+    
 class RegistroAsistencia(db.Model):
     __tablename__ = 'registro_asistencia'
     id_registro_asistencia = db.Column(db.Integer, primary_key=True)
@@ -121,10 +133,11 @@ class RegistroAsistencia(db.Model):
     fecha_registro = db.Column(db.Date, nullable=False)
     hora_entrada = db.Column(db.Time, nullable=False)
     hora_salida = db.Column(db.Time, nullable=True)
+    total_horas = db.Column(db.Float, nullable=True)
+    monto_pago = db.Column(db.Float, nullable=True)
     hora_nominal = db.Column(db.Float, nullable=True)
     hora_extra = db.Column(db.Float, nullable=True)
     hora_feriado = db.Column(db.Float, nullable=True)
-    estado_feriado = db.Column(db.Boolean, nullable=False, default=False)
     aprobacion_registro = db.Column(db.Boolean, nullable=False, default=False)
     
     # Claves foráneas
