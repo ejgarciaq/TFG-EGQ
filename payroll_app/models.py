@@ -65,6 +65,8 @@ class Empleado(db.Model):
     puesto = db.relationship('Puesto', back_populates='empleados')
     # ❗ relación: Un empleado puede tener muchas nóminas
     nominas = db.relationship('Nomina', back_populates='empleado')
+    registros_asistencia = db.relationship('RegistroAsistencia', backref='empleado', lazy=True)
+
 
     def __repr__(self):
         return f'<Empleado {self.nombre} {self.apellido_primero}>'
@@ -143,6 +145,8 @@ class RegistroAsistencia(db.Model):
     # Claves foráneas
     Nomina_id_nomina = db.Column(db.Integer, db.ForeignKey('nomina.id_nomina'), nullable=True)
     Feriado_id_feriado = db.Column(db.Integer, db.ForeignKey('feriado.id_feriado'), nullable=True)
+    Empleado_id_empleado = db.Column(db.Integer, db.ForeignKey('empleado.id_empleado'), nullable=False)
+
 
     # Relaciones
     feriado_relacion = db.relationship('Feriado', back_populates='registros_asistencia')

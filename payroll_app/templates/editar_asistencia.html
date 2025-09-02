@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Asistencia{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Editar Registro de Asistencia</h1>
+
+    <div class="card shadow mx-auto" style="max-width: 500px;">
+        <div class="card-header bg-warning text-white text-center">
+            Registro para {{ registro.empleado.nombre }} del {{ registro.fecha_registro.strftime('%Y-%m-%d') }}
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('registro_asistencia.editar_asistencia', registro_id=registro.id_registro_asistencia) }}" method="POST">
+                <div class="mb-3">
+                    <label for="fecha" class="form-label">Fecha</label>
+                    <input type="date" class="form-control" id="fecha" name="fecha" value="{{ registro.fecha_registro.strftime('%Y-%m-%d') }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="hora_entrada" class="form-label">Hora de Entrada</label>
+                    <input type="time" class="form-control" id="hora_entrada" name="hora_entrada" value="{{ registro.hora_entrada.strftime('%H:%M:%S') }}" step="1" required>
+                </div>
+                <div class="mb-3">
+                    <label for="hora_salida" class="form-label">Hora de Salida</label>
+                    <input type="time" class="form-control" id="hora_salida" name="hora_salida" value="{{ registro.hora_salida.strftime('%H:%M:%S') if registro.hora_salida else '' }}" step="1" required>
+                </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="aprobado" name="aprobado" {% if registro.aprobacion_registro %}checked{% endif %}>
+                    <label class="form-check-label" for="aprobado">Aprobado</label>
+                </div>
+                <button type="submit" class="btn btn-warning w-100">Guardar Cambios</button>
+                <a href="{{ url_for('registro_asistencia.listar_asistencia') }}" class="btn btn-secondary w-100 mt-2">Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -111,3 +111,94 @@ def registrar_asistencia():
         flash(f'Ocurrió un error al registrar la asistencia: {str(e)}', 'danger')
 
     return redirect(url_for('registro_asistencia.ver_asistencia'))
+
+#----------- Mantenimiento ------------------------------
+
+# listar registros
+@registro_asistencia_bp.route('/listar_asistencia')
+@login_required
+def listar_asistencia():
+    # Obtener todos los registros de asistencia ordenados por fecha
+    registros = RegistroAsistencia.query.order_by(RegistroAsistencia.fecha_registro.desc()).all()
+    return render_template('listar_asistencia.html', registros=registros)
+
+# Editar registro de asistencia
+@registro_asistencia_bp.route('/editar/<int:registro_id>', methods=['GET', 'POST'])
+@login_required
+def editar_asistencia(registro_id):
+    registro = RegistroAsistencia.query.get_or_404(registro_id)
+
+    if request.method == 'POST':
+        try:
+            registro.fecha_registro = datetime.strptime(request.form['fecha'], '%Y-%m-%d').date()
+            registro.hora_entrada = datetime.strptime(request.form['hora_entrada'], '%H:%M:%S').time()
+            registro.hora_salida = datetime.strptime(request.form['hora_salida'], '%H:%M:%S').time()
+            registro.aprobacion_registro = 'aprobado' in request.form
+            
+            # Recalcular todos los valores (total_horas, hora_extra, monto_pago)
+            HORA_NOMINAL_ESTANDAR = 8.0
+            dt_entrada = datetime.combine(registro.fecha_registro, registro.hora_entrada)
+            dt_salida = datetime.combine(registro.fecha_registro, registro.hora_salida)
+
+            if dt_salida < dt_entrada:
+                dt_salida += timedelta(days=1)
+            
+            total_time_delta = dt_salida - dt_entrada
+            registro.total_horas = round(total_time_delta.total_seconds() / 3600, 2)
+            
+            empleado = Empleado.query.get(registro.Empleado_id_empleado)
+            
+            es_feriado_hoy = Feriado.query.filter_by(fecha_feriado=registro.fecha_registro).first()
+            registro.Feriado_id_feriado = es_feriado_hoy.id_feriado if es_feriado_hoy else None
+            
+            horas_nominales_trabajadas = min(registro.total_horas, HORA_NOMINAL_ESTANDAR)
+            registro.hora_extra = max(0, registro.total_horas - HORA_NOMINAL_ESTANDAR)
+            registro.hora_feriado = 0
+
+            horas_mensuales = 30 * HORA_NOMINAL_ESTANDAR
+            costo_por_hora_normal = empleado.salario_base / horas_mensuales if horas_mensuales else 0
+            costo_por_hora_extra = costo_por_hora_normal * 1.5
+            costo_por_hora_feriado = costo_por_hora_normal * 2
+
+            if es_feriado_hoy and es_feriado_hoy.pago_obligatorio:
+                monto_pago_feriado_base = HORA_NOMINAL_ESTANDAR * costo_por_hora_normal
+                registro.monto_pago = monto_pago_feriado_base
+                
+                if registro.total_horas > 0:
+                    pago_por_trabajar_feriado = registro.total_horas * costo_por_hora_feriado
+                    registro.monto_pago += pago_por_trabajar_feriado
+
+                registro.hora_feriado = registro.total_horas
+                horas_nominales_trabajadas = 0
+                registro.hora_extra = 0
+            else:
+                monto_pago = (horas_nominales_trabajadas * costo_por_hora_normal) + \
+                             (registro.hora_extra * costo_por_hora_extra) + \
+                             (registro.hora_feriado * costo_por_hora_feriado)
+                registro.monto_pago = round(monto_pago, 2)
+
+            db.session.commit()
+            flash('Registro de asistencia actualizado exitosamente.', 'success')
+            return redirect(url_for('registro_asistencia.listar_asistencia'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ocurrió un error al actualizar el registro: {str(e)}', 'danger')
+            return redirect(url_for('registro_asistencia.listar_asistencia'))
+
+    return render_template('editar_asistencia.html', registro=registro)
+
+#Eliminar registro
+@registro_asistencia_bp.route('/eliminar/<int:registro_id>', methods=['POST'])
+@login_required
+def eliminar_asistencia(registro_id):
+    registro = RegistroAsistencia.query.get_or_404(registro_id)
+
+    try:
+        db.session.delete(registro)
+        db.session.commit()
+        flash('Registro de asistencia eliminado exitosamente.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Ocurrió un error al eliminar el registro: {str(e)}', 'danger')
+
+    return redirect(url_for('registro_asistencia.listar_asistencia'))
