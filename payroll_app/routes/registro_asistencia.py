@@ -161,20 +161,25 @@ def editar_asistencia(registro_id):
             costo_por_hora_feriado = costo_por_hora_normal * 2
 
             if es_feriado_hoy and es_feriado_hoy.pago_obligatorio:
-                monto_pago_feriado_base = HORA_NOMINAL_ESTANDAR * costo_por_hora_normal
-                registro.monto_pago = monto_pago_feriado_base
+                # 1. Pago base del feriado (salario de un día normal, 8 horas)
+                pago_base_feriado = HORA_NOMINAL_ESTANDAR * costo_por_hora_normal
                 
-                if registro.total_horas > 0:
-                    pago_por_trabajar_feriado = registro.total_horas * costo_por_hora_feriado
-                    registro.monto_pago += pago_por_trabajar_feriado
-
+                # 2. Pago adicional por las horas trabajadas en el feriado (al doble)
+                pago_por_trabajar_feriado = registro.total_horas * costo_por_hora_feriado
+                
+                # 3. El monto total es la suma de ambos pagos
+                registro.monto_pago = round(pago_base_feriado + pago_por_trabajar_feriado, 2)
+                
+                # Se ajustan las horas para reflejar que se trabajaron en un feriado
                 registro.hora_feriado = registro.total_horas
-                horas_nominales_trabajadas = 0
                 registro.hora_extra = 0
+                horas_nominales_trabajadas = 0
+
             else:
+                # Lógica para días normales y feriados de pago no obligatorio
                 monto_pago = (horas_nominales_trabajadas * costo_por_hora_normal) + \
-                             (registro.hora_extra * costo_por_hora_extra) + \
-                             (registro.hora_feriado * costo_por_hora_feriado)
+                            (registro.hora_extra * costo_por_hora_extra) + \
+                            (registro.hora_feriado * costo_por_hora_feriado)
                 registro.monto_pago = round(monto_pago, 2)
 
             db.session.commit()
