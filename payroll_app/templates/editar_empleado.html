@@ -54,7 +54,7 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="cedula" class="form-label">Cédula</label>
-                        <input type="text" class="form-control" id="cedula" name="cedula" value="{{ empleado.cedula }}" required>
+                        <input type="text" class="form-control" id="cedula" pattern="\d{9}" placeholder="123456789" title="La cédula debe tener exactamente 9 números" name="cedula" value="{{ empleado.cedula }}" required>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="correo" class="form-label">Correo</label>
@@ -65,7 +65,7 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="telefono" class="form-label">Teléfono</label>
-                        <input type="tel"  class="form-control" id="telefono" name="telefono" pattern="[0-9]{8}" placeholder="88888888" value="{{ empleado.telefono }}" required>
+                        <input type="tel"  class="form-control" id="telefono" name="telefono" pattern="[0-9]{8}" placeholder="88888888" title="El teléfono debe tener exactamente 8 números" value="{{ empleado.telefono }}" required>
                     </div>
 
                     <div class="col-md-6 mb-3">

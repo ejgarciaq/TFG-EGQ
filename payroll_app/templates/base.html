@@ -73,7 +73,7 @@
         <!-- Contenido principal -->
     <div class="flex-grow-1 body-3">
         <div class="md-12">
-            <h5>Bienvenido,{% if current_user.is_authenticated %} {{ current_user.username }}  {% endif %}</h5>
+            <h5>Bienvenido,{% if current_user.is_authenticated %} {{ current_user.empleado.nombre }}  {% endif %}</h5>
             <hr class="border border-primary">
         </div>
         

@@ -4,6 +4,8 @@ from werkzeug.security import generate_password_hash
 from payroll_app.models import db, Usuario, Rol, Empleado, Puesto, RegistroAsistencia, Nomina
 from datetime import datetime
 
+
+# Se crea un objeto Blueprint llamado 'empleado', que permite modularizar la aplicación Flask.
 empleado_bp = Blueprint('empleado', __name__, template_folder='templates')
 
 @empleado_bp.route('/crear_empleado', methods=['GET', 'POST'])
@@ -12,7 +14,7 @@ def crear_empleado():
     puestos = Puesto.query.all()
 
     if request.method == 'POST':
-        # ❗ Obtener y validar todos los datos al inicio del bloque POST
+        # Obtener y validar todos los datos al inicio del bloque POST
         username = request.form['username']
         password = request.form['password']
         correo = request.form['correo']
@@ -21,7 +23,7 @@ def crear_empleado():
         # Validaciones con expresiones regulares
         email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         phone_regex = r'^[0-9]{8}$'
-        # ❗ CORRECCIÓN: Expresión regular mejorada para permitir el punto y otros símbolos comunes
+        # CORRECCIÓN: Expresión regular mejorada para permitir el punto y otros símbolos comunes
         password_regex = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+-.,/])[A-Za-z\d!@#$%^&*()_+-.,/]{8,}$'
         
         if Usuario.query.filter_by(username=username).first():
