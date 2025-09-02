@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Generar Nómina</h2>
+    <form method="POST" action="{{ url_for('registro_asistencia.generar_nomina') }}">
+        <div class="mb-3">
+            <label for="fecha_inicio" class="form-label">Fecha de inicio</label>
+            <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required>
+        </div>
+        <div class="mb-3">
+            <label for="fecha_fin" class="form-label">Fecha de fin</label>
+            <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required>
+        </div>
+        <div class="mb-3">
+            <label for="tipo_nomina_id" class="form-label">Tipo de Nómina</label>
+            <select class="form-control" id="tipo_nomina_id" name="tipo_nomina_id" required>
+                {% for tipo in tipos_nomina %}
+                <option value="{{ tipo.id_tipo_nomina }}">{{ tipo.nombre_tipo }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Generar Nómina</button>
+    </form>
+    
+    <hr>
+
+    {% if nominas %}
+    <h3 class="mt-5">Nóminas Generadas</h3>
+    <table class="table table-striped mt-3">
+        <thead>
+            <tr>
+                <th>ID Nómina</th>
+                <th>Empleado</th>
+                <th>Tipo de Nómina</th>
+                <th>Periodo</th>
+                <th>Salario Bruto</th>
+                <th>Deducciones</th>
+                <th>Salario Neto</th>
+                <th>Fecha de Creación</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for nomina in nominas %}
+            <tr>
+                <td>{{ nomina.id_nomina }}</td>
+                <td>{{ nomina.empleado.nombre_completo }}</td>
+                <td>{{ nomina.tipo_nomina_relacion.nombre_tipo }}</td>
+                <td>{{ nomina.fecha_inicio.strftime('%Y-%m-%d') }} a {{ nomina.fecha_fin.strftime('%Y-%m-%d') }}</td>
+                <td>₡ {{ "%.2f"|format(nomina.salario_bruto) }}</td>
+                <td>₡ {{ "%.2f"|format(nomina.deducciones) }}</td>
+                <td>₡ {{ "%.2f"|format(nomina.salario_neto) }}</td>
+                <td>{{ nomina.fecha_creacion.strftime('%Y-%m-%d') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="alert alert-info mt-3" role="alert">
+        No hay nóminas generadas. Usa el formulario de arriba para crear una.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

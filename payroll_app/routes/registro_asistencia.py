@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import current_user, login_required
-from payroll_app.models import db, RegistroAsistencia, Feriado, Empleado
+from sqlalchemy import func
+from payroll_app.models import db, RegistroAsistencia, Feriado, Empleado, Nomina, TipoNomina
 from datetime import datetime, date, time, timedelta
 
 # El nombre del blueprint es 'registro_asistencia'
@@ -207,3 +208,74 @@ def eliminar_asistencia(registro_id):
         flash(f'Ocurrió un error al eliminar el registro: {str(e)}', 'danger')
 
     return redirect(url_for('registro_asistencia.listar_asistencia'))
+
+
+# -------------------------  Generar Planilla Planilla 
+
+@registro_asistencia_bp.route('/generar_nomina', methods=['GET', 'POST'])
+@login_required
+def generar_nomina():
+    """Muestra el formulario, la lista de nóminas, y procesa la generación."""
+    tipos_nomina = TipoNomina.query.all()
+    
+    if request.method == 'POST':
+        try:
+            fecha_inicio_str = request.form.get('fecha_inicio')
+            fecha_fin_str = request.form.get('fecha_fin')
+            id_tipo_nomina = request.form.get('tipo_nomina_id')
+
+            if not id_tipo_nomina:
+                flash('Debe seleccionar un tipo de nómina.', 'danger')
+            else:
+                fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+                fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+                
+                empleados = Empleado.query.filter_by(TipoNomina_id_tipo_nomina=id_tipo_nomina).all()
+                
+                if not empleados:
+                    flash('No se encontraron empleados para el tipo de nómina seleccionado.', 'warning')
+                else:
+                    for empleado in empleados:
+                        total_monto_bruto = db.session.query(func.sum(RegistroAsistencia.monto_pago)).filter(
+                            RegistroAsistencia.Empleado_id_empleado == empleado.id_empleado,
+                            RegistroAsistencia.fecha_registro.between(fecha_inicio, fecha_fin)
+                        ).scalar() or 0
+                        
+                        deducciones = total_monto_bruto * 0.105
+                        monto_neto = total_monto_bruto - deducciones
+                        
+                        nueva_nomina = Nomina(
+                            Empleado_id_empleado=empleado.id_empleado,
+                            fecha_inicio=fecha_inicio,
+                            fecha_fin=fecha_fin,
+                            salario_bruto=round(total_monto_bruto, 2),
+                            salario_neto=round(monto_neto, 2),
+                            deducciones=round(deducciones, 2),
+                            TipoNomina_id_tipo_nomina=id_tipo_nomina,
+                            fecha_creacion=datetime.now()
+                        )
+                        db.session.add(nueva_nomina)
+                    
+                    db.session.commit()
+                    flash('Nómina generada y guardada exitosamente.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ocurrió un error al generar la nómina: {str(e)}', 'danger')
+
+    # Al final de la función, recupera todas las nóminas para mostrarlas.
+    # Esto se ejecuta tanto en el GET inicial como después de un POST exitoso.
+    nominas = Nomina.query.order_by(Nomina.fecha_creacion.desc()).all()
+    return render_template('generar_nomina.html', nominas=nominas, tipos_nomina=tipos_nomina)
+        
+@registro_asistencia_bp.route('/listar_nominas')
+@login_required
+def listar_nominas():
+    """Muestra una lista de todas las nóminas generadas."""
+    try:
+        nominas = Nomina.query.order_by(Nomina.fecha_creacion.desc()).all()
+        tipos_nomina = TipoNomina.query.all()
+        return render_template('generar_nomina.html', nominas=nominas, tipos_nomina=tipos_nomina)
+    except Exception as e:
+        flash(f'Ocurrió un error al cargar las nóminas: {str(e)}', 'danger')
+        tipos_nomina = TipoNomina.query.all()
+        return render_template('generar_nomina.html', nominas=[], tipos_nomina=tipos_nomina)

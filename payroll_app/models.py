@@ -66,7 +66,15 @@ class Empleado(db.Model):
     # ❗ relación: Un empleado puede tener muchas nóminas
     nominas = db.relationship('Nomina', back_populates='empleado')
     registros_asistencia = db.relationship('RegistroAsistencia', backref='empleado', lazy=True)
-
+    TipoNomina_id_tipo_nomina = db.Column(db.Integer, db.ForeignKey('tipo_nomina.id_tipo_nomina'), nullable=False)
+    tipo_nomina_relacion = db.relationship('TipoNomina', back_populates='empleados_relacionados', lazy=True)
+    
+    @property
+    def nombre_completo(self):
+        """Devuelve el nombre y los apellidos completos del empleado."""
+        if self.apellido_segundo:
+            return f"{self.nombre} {self.apellido_primero} {self.apellido_segundo}"
+        return f"{self.nombre} {self.apellido_primero}"
 
     def __repr__(self):
         return f'<Empleado {self.nombre} {self.apellido_primero}>'
@@ -87,15 +95,15 @@ class Feriado(db.Model):
 #----------- Tipo de nomina --------------------------------------
 
 class TipoNomina(db.Model):
-    """
-    Modelo para la tabla que clasifica los tipos de nómina.
-    """
     __tablename__ = 'tipo_nomina'
     id_tipo_nomina = db.Column(db.Integer, primary_key=True)
-    nombre_tipo = db.Column(db.String(100), unique=True, nullable=False)
-    
-    # ❗ Corrección: Usamos back_populates y le decimos el nombre de la relación inversa
-    nominas = db.relationship('Nomina', back_populates='tipo_nomina_relacion', lazy=True)
+    nombre_tipo = db.Column(db.String(50), nullable=False)
+
+    # This is the corresponding relationship that connects to the `Nomina` model
+    nominas_relacionadas = db.relationship('Nomina', back_populates='tipo_nomina_relacion', lazy=True)
+
+    # You also had this relationship to `Empleado`
+    empleados_relacionados = db.relationship('Empleado', back_populates='tipo_nomina_relacion', lazy=True)
 
     def __repr__(self):
         return f'<TipoNomina {self.nombre_tipo}>'
@@ -112,16 +120,16 @@ class Nomina(db.Model):
     deducciones = db.Column(db.Float, nullable=False, default=0.0)
     pago_obligatorio = db.Column(db.Boolean, nullable=False, default=False)
     Empleado_id_empleado = db.Column(db.Integer, db.ForeignKey('empleado.id_empleado'), nullable=False)
+    fecha_creacion = db.Column(db.DateTime, nullable=False)
     
-    # ❗ Aquí está tu clave foránea (asegúrate de que el nombre sea correcto)
     TipoNomina_id_tipo_nomina = db.Column(db.Integer, db.ForeignKey('tipo_nomina.id_tipo_nomina'), nullable=False)
     
-    # Relaciones
+    # Relationships
     empleado = db.relationship('Empleado', back_populates='nominas')
     registros_asistencia = db.relationship('RegistroAsistencia', back_populates='nomina_relacion')
     
-    # ❗ Corrección: Definimos la relación que se va a popular
-    tipo_nomina_relacion = db.relationship('TipoNomina', back_populates='nominas', lazy=True)
+    # This is the correct relationship to use `back_populates`
+    tipo_nomina_relacion = db.relationship('TipoNomina', back_populates='nominas_relacionadas', lazy=True)
 
     def __repr__(self):
         return f'<Nomina {self.id_nomina} del Empleado {self.Empleado_id_empleado}>'

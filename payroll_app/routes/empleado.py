@@ -1,7 +1,8 @@
 import re
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from werkzeug.security import generate_password_hash
-from payroll_app.models import db, Usuario, Rol, Empleado, Puesto, RegistroAsistencia, Nomina
+# ❗❗❗ Importa el modelo TipoNomina ❗❗❗
+from payroll_app.models import db, Usuario, Rol, Empleado, Puesto, RegistroAsistencia, Nomina, TipoNomina
 from datetime import datetime
 
 
@@ -12,6 +13,8 @@ empleado_bp = Blueprint('empleado', __name__, template_folder='templates')
 def crear_empleado():
     roles = Rol.query.all()
     puestos = Puesto.query.all()
+    # ❗❗❗ Obtener todos los tipos de nómina de la base de datos ❗❗❗
+    tipos_nomina = TipoNomina.query.all()
 
     if request.method == 'POST':
         # Obtener y validar todos los datos al inicio del bloque POST
@@ -23,7 +26,6 @@ def crear_empleado():
         # Validaciones con expresiones regulares
         email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         phone_regex = r'^[0-9]{8}$'
-        # CORRECCIÓN: Expresión regular mejorada para permitir el punto y otros símbolos comunes
         password_regex = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+-.,/])[A-Za-z\d!@#$%^&*()_+-.,/]{8,}$'
         
         if Usuario.query.filter_by(username=username).first():
@@ -54,7 +56,9 @@ def crear_empleado():
 
             fecha_ingreso = datetime.strptime(request.form['fecha_ingreso'], '%Y-%m-%d').date()
             
-            # ❗ CORRECCIÓN: Asigna el objeto 'nuevo_usuario' directamente. SQLAlchemy manejará la relación.
+            # ❗❗❗ Obtener el ID del tipo de nómina del formulario ❗❗❗
+            tipo_nomina_id = request.form['tipo_nomina_id']
+            
             nuevo_empleado = Empleado(
                 nombre=request.form['nombre'],
                 apellido_primero=request.form['apellido_primero'],
@@ -67,12 +71,12 @@ def crear_empleado():
                 salario_base=float(request.form['salario_base']),
                 estado_empleado=True,
                 Puesto_id_puesto=request.form['puesto_id'],
+                # ❗❗❗ Asignar el ID del tipo de nómina al nuevo empleado ❗❗❗
+                TipoNomina_id_tipo_nomina=tipo_nomina_id,
                 usuario=nuevo_usuario 
             )
             
-            # Agrega solo el objeto 'nuevo_empleado' a la sesión.
             db.session.add(nuevo_empleado)
-            
             db.session.commit()
             
             flash('Empleado creado exitosamente.', 'success')
@@ -81,8 +85,11 @@ def crear_empleado():
         except Exception as e:
             db.session.rollback()
             flash(f'Error al crear el empleado: {str(e)}', 'danger')
-            
-    return render_template('crear_empleado.html', puestos=puestos, roles=roles)
+            # ❗❗❗ En caso de error, volver a pasar todos los datos al template ❗❗❗
+            return render_template('crear_empleado.html', puestos=puestos, roles=roles, tipos_nomina=tipos_nomina)
+    
+    # ❗❗❗ Pasar el argumento 'tipos_nomina' al template en la petición GET ❗❗❗
+    return render_template('crear_empleado.html', puestos=puestos, roles=roles, tipos_nomina=tipos_nomina)
 
 #---------------------------------------------------------------------------------
 
@@ -91,6 +98,8 @@ def editar_empleado(id):
     empleado = Empleado.query.get_or_404(id)
     roles = Rol.query.all()
     puestos = Puesto.query.all()
+    # ❗❗❗ Obtener los tipos de nómina para el formulario de edición ❗❗❗
+    tipos_nomina = TipoNomina.query.all()
 
     if request.method == 'POST':
         try:
@@ -101,7 +110,6 @@ def editar_empleado(id):
             
             email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
             phone_regex = r'^[0-9]{8}$'
-            # ❗ CORRECCIÓN: Expresión regular mejorada para permitir el punto y otros símbolos comunes
             password_regex = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+-.,/])[A-Za-z\d!@#$%^&*()_+-.,/]{8,}$'
             
             if not re.match(email_regex, correo):
@@ -112,7 +120,6 @@ def editar_empleado(id):
                 flash('El número de teléfono debe contener exactamente 8 dígitos.', 'danger')
                 return redirect(url_for('empleado.editar_empleado', id=id))
             
-            # ❗ CORRECCIÓN: El return está dentro del if para que solo redirija si la contraseña falla
             if password:
                 if not re.match(password_regex, password):
                     flash('La nueva contraseña no cumple con los requisitos: <br>- Mínimo 8 caracteres.<br>- Al menos una mayúscula.<br>- Al menos una minúscula.<br>- Al menos un número.<br>- Al menos un símbolo.', 'danger')
@@ -130,6 +137,8 @@ def editar_empleado(id):
             empleado.fecha_salida = datetime.strptime(request.form['fecha_salida'], '%Y-%m-%d').date() if request.form['fecha_salida'] else None
             empleado.estado_empleado = request.form.get('estado_empleado') == 'on'
             empleado.Puesto_id_puesto = request.form['puesto_id']
+            # ❗❗❗ Actualizar el tipo de nómina del empleado ❗❗❗
+            empleado.TipoNomina_id_tipo_nomina = request.form['tipo_nomina_id']
 
             usuario = Usuario.query.get_or_404(empleado.Usuario_id_usuario)
             usuario.username = request.form['username']
@@ -146,8 +155,12 @@ def editar_empleado(id):
         except Exception as e:
             db.session.rollback()
             flash(f'Ocurrió un error al actualizar el empleado: {str(e)}', 'danger')
+            # ❗❗❗ En caso de error, volver a pasar todos los datos al template ❗❗❗
+            return render_template('editar_empleado.html', empleado=empleado, roles=roles, puestos=puestos, tipos_nomina=tipos_nomina)
 
-    return render_template('editar_empleado.html', empleado=empleado, roles=roles, puestos=puestos)
+    # ❗❗❗ Pasar el argumento 'tipos_nomina' al template en la petición GET ❗❗❗
+    return render_template('editar_empleado.html', empleado=empleado, roles=roles, puestos=puestos, tipos_nomina=tipos_nomina)
+
 
 #---------------------------------------------------------------------------------
 
