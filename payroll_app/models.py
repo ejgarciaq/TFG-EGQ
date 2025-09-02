@@ -1,3 +1,4 @@
+from datetime import datetime
 from payroll_app import db
 from flask_login import UserMixin
 
@@ -165,11 +166,11 @@ class RegistroAsistencia(db.Model):
         return f'<RegistroAsistencia {self.id_registro_asistencia}>'
     
     # En payroll_app/models.py
-
+"""
 class HistoricoNomina(db.Model):
-    """
+
     Modelo para la tabla que almacena el historial de nóminas pagadas.
-    """
+ 
     __tablename__ = 'historico_nomina'
     id_historico = db.Column(db.Integer, primary_key=True)
     fecha_historial = db.Column(db.Date, nullable=False)
@@ -190,7 +191,7 @@ class HistoricoNomina(db.Model):
 
     def __repr__(self):
         return f'<HistoricoNomina {self.id_historico} para Nomina {self.Nomina_id_nomina}>'
-    
+    """    
 class Aguinaldo(db.Model):
     """
     Modelo para la tabla que almacena el cálculo y el registro del aguinaldo.
@@ -224,19 +225,37 @@ class Tipo_AP(db.Model):
 class Accion_Personal(db.Model):
     """
     Modelo para la tabla que registra las acciones de personal.
+    Incluye los campos necesarios para solicitudes de vacaciones, incapacidades, etc.
     """
     __tablename__ = 'accion_personal'
-    id_accion = db.Column(db.Integer, primary_key=True)
-    fecha_accion = db.Column(db.Date, nullable=False)
-    detalles = db.Column(db.Text, nullable=True)
-
-    # Claves foráneas para relacionar con el empleado y el tipo de acción
+    
+    # 🔑 Clave principal
+    id_accion_personal = db.Column(db.Integer, primary_key=True)
+    
+    # 🔗 Claves foráneas
     Empleado_id_empleado = db.Column(db.Integer, db.ForeignKey('empleado.id_empleado'), nullable=False)
-    Tipo_AP_id_tipo_ap = db.Column(db.Integer, db.ForeignKey('tipo_ap.id_tipo_ap'), nullable=False)
-
-    # Relaciones para acceder a los objetos Empleado y Tipo_AP
+    Tipo_Ap_id_tipo_ap = db.Column(db.Integer, db.ForeignKey('tipo_ap.id_tipo_ap'), nullable=False)
+    
+    # Campos para registrar la solicitud
+    fecha_accion = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+    detalles = db.Column(db.Text, nullable=True)
+    
+    # Campos específicos para solicitudes de tiempo
+    cantidad_dia = db.Column(db.Integer, nullable=True)
+    fecha_inicio = db.Column(db.Date, nullable=True)
+    fecha_fin = db.Column(db.Date, nullable=True)
+    
+    # ⚙️ Campos para el flujo de aprobación
+    estado_ap = db.Column(db.Integer, nullable=False, default=1)  # 1=Pendiente, 2=Aprobado, 3=Rechazado
+    id_aprobador = db.Column(db.Integer, nullable=True) # ID del usuario que aprueba
+    fecha_aprobacion = db.Column(db.DateTime, nullable=True)
+    
+    # 📎 Campo para documentos adjuntos
+    documento_adjunto = db.Column(db.Text, nullable=True) # Guarda la ruta o URL del archivo
+    
+    # Relaciones de SQLAlchemy
     empleado = db.relationship('Empleado', backref='acciones_personales', lazy=True)
     tipo_ap = db.relationship('Tipo_AP', backref='acciones_personales', lazy=True)
 
     def __repr__(self):
-        return f'<Accion_Personal {self.id_accion} para Empleado {self.Empleado_id_empleado}>'
+        return f'<Accion_Personal {self.id_accion_personal} Tipo: {self.Tipo_Ap_id_tipo_ap}>'

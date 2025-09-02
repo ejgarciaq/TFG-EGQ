@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import func
-from payroll_app.models import db, RegistroAsistencia, Feriado, Empleado, Nomina, TipoNomina
+from payroll_app.models import db, RegistroAsistencia, Feriado, Empleado, Nomina, TipoNomina, Tipo_AP, Accion_Personal
 from datetime import datetime, date, time, timedelta
 
 # El nombre del blueprint es 'registro_asistencia'
@@ -279,3 +279,93 @@ def listar_nominas():
         flash(f'Ocurrió un error al cargar las nóminas: {str(e)}', 'danger')
         tipos_nomina = TipoNomina.query.all()
         return render_template('generar_nomina.html', nominas=[], tipos_nomina=tipos_nomina)
+    
+
+@registro_asistencia_bp.route('/accion_personal', methods=['GET', 'POST'])
+@login_required
+def accion_personal():
+    # Fetch all employees and action types for the dropdowns
+    empleados = Empleado.query.all()
+    tipos_ap = Tipo_AP.query.all()
+
+    if request.method == 'POST':
+        try:
+            # Get data from the form
+            empleado_id = request.form.get('empleado_id')
+            tipo_ap_id = request.form.get('tipo_ap_id')
+            fecha_accion_str = request.form.get('fecha_accion')
+            detalles = request.form.get('detalles')
+
+            # Validate input
+            if not all([empleado_id, tipo_ap_id, fecha_accion_str]):
+                flash('Todos los campos son obligatorios.', 'danger')
+                return render_template('accion_personal.html', empleados=empleados, tipos_ap=tipos_ap)
+            
+            # Convert date string to a date object
+            fecha_accion = datetime.strptime(fecha_accion_str, '%Y-%m-%d').date()
+
+            # Create a new personal action object
+            nueva_ap = Accion_Personal(
+                Empleado_id_empleado=empleado_id,
+                Tipo_AP_id_tipo_ap=tipo_ap_id,
+                fecha_accion=fecha_accion,
+                detalles=detalles
+            )
+            db.session.add(nueva_ap)
+            db.session.commit()
+            
+            flash('Acción de personal registrada exitosamente.', 'success')
+            return redirect(url_for('registro_asistencia.accion_personal'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ocurrió un error al registrar la acción de personal: {str(e)}', 'danger')
+
+    # For both GET and POST (after processing), render the template
+    acciones_personales = Accion_Personal.query.order_by(Accion_Personal.fecha_accion.desc()).all()
+    return render_template('accion_personal.html', empleados=empleados, tipos_ap=tipos_ap, acciones_personales=acciones_personales)
+
+@registro_asistencia_bp.route('/aprobar_accion/<int:ap_id>', methods=['POST'])
+@login_required
+def aprobar_accion(ap_id):
+    # Obtiene la acción de personal por su ID
+    ap = Accion_Personal.query.get_or_404(ap_id)
+    
+    # Aquí, deberías tener una lógica para verificar si el usuario tiene permisos
+    # Este es un ejemplo simple, asumiendo un rol de 'aprobador'
+    if current_user.rol == 'aprobador':
+        ap.estado_ap = 2  # 2 = 'Aprobado'
+        ap.id_aprobador = current_user.id_usuario  # Registra quién aprobó
+        ap.fecha_aprobacion = datetime.utcnow()
+        
+        try:
+            db.session.commit()
+            flash('Acción de personal aprobada.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al aprobar la acción: {str(e)}', 'danger')
+    else:
+        flash('No tienes permiso para aprobar acciones de personal.', 'danger')
+        
+    return redirect(url_for('registro_asistencia.accion_personal'))
+
+@registro_asistencia_bp.route('/rechazar_accion/<int:ap_id>', methods=['POST'])
+@login_required
+def rechazar_accion(ap_id):
+    ap = Accion_Personal.query.get_or_404(ap_id)
+    
+    # Asume la misma verificación de permisos
+    if current_user.rol == 'aprobador':
+        ap.estado_ap = 3  # 3 = 'Rechazado'
+        ap.id_aprobador = current_user.id_usuario
+        ap.fecha_aprobacion = datetime.utcnow()
+        
+        try:
+            db.session.commit()
+            flash('Acción de personal rechazada.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al rechazar la acción: {str(e)}', 'danger')
+    else:
+        flash('No tienes permiso para rechazar acciones de personal.', 'danger')
+        
+    return redirect(url_for('registro_asistencia.accion_personal'))
