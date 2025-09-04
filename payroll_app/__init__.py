@@ -1,40 +1,52 @@
-from flask import Flask
+from flask import Flask, redirect, url_for
 from payroll_app.config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_login import LoginManager
 
-db = SQLAlchemy()  # Inicializa la instancia de SQLAlchemy
-
-migrate = Migrate()  # Inicializa la instancia de Flask-Migrate
-
+db = SQLAlchemy()
+migrate = Migrate()
+login_manager = LoginManager()
 
 def create_app():
-    app = Flask(__name__) # Crea una instancia de la aplicación Flask
-    app.config.from_object(Config)  # Carga la configuración desde el objeto Config
-    # Importate: Agrega un secreto para que la sesión funcione
-    app.config['SECRET_KEY'] = 'f9ddc90157c588ce310b85c62fe82b7e76c94a87'  # Cambia esto por una clave secreta segura
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    app.config['SECRET_KEY'] = 'f9ddc90157c588ce310b85c62fe82b7e76c94a87'
 
-    db.init_app(app)  # Inicializa la instancia de SQLAlchemy con la aplicación
-    migrate.init_app(app, db)  # Inicializa Migrate con la app y la db
+    db.init_app(app)
+    migrate.init_app(app, db)
+    login_manager.init_app(app)
 
-    # Agrega el proceso de contexto de la aplicación
-    @app.context_processor
-    def inject_user():
-        from flask import session
-        username = session.get('username')
-        return dict(username=username)
+    # configuración de Flask-Login
+    login_manager.login_view = 'auth.login'
+    login_manager.login_message = 'Por favor, inicia sesión para acceder a esta página.'
+    login_manager.login_message_category = 'warning'
 
-    # Importar los modelos para que SQLAlchemy los reconozca
-    from . import models
+    from .models import Usuario
+    @login_manager.user_loader
+    def load_user(user_id):
+        # Esto se importará más tarde para evitar la importación circular
+        from .models import Usuario 
+        return Usuario.query.get(int(user_id))
+    
+    # Importar y registrar blueprints
     from .routes.login import login_bp
     from .routes.empleado import empleado_bp
     from .routes.rol import rol_bp
     from .routes.puesto import puesto_bp
-    
-    # Registra el blueprint de login
-    app.register_blueprint(login_bp, url_prefix='/auth')  # Registra el blueprint de rutas
-    app.register_blueprint(empleado_bp, url_prefix='/auth/empleados')  # Registra el blueprint de rutas
-    app.register_blueprint(rol_bp, url_prefix='/auth/roles')  # Registra el blueprint de rutas
-    app.register_blueprint(puesto_bp, url_prefix='/auth/puestos')  # Registra el blueprint de rutas
+    from .routes.registro_asistencia import registro_asistencia_bp
+    from .routes.feriado import feriado_bp
 
-    return app  # Devuelve la instancia de la aplicación Flask
+    app.register_blueprint(login_bp, url_prefix='/auth')
+    app.register_blueprint(empleado_bp, url_prefix='/auth/empleados')
+    app.register_blueprint(rol_bp, url_prefix='/auth/roles')
+    app.register_blueprint(puesto_bp, url_prefix='/auth/puestos')
+    app.register_blueprint(registro_asistencia_bp, url_prefix='/auth/registro_asistencia')
+    app.register_blueprint(feriado_bp, url_prefix='/auth/feriados')
+
+    @app.route('/')
+    def index():
+        return redirect(url_for('auth.login'))
+
+
+    return app

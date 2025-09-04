@@ -22,22 +22,24 @@
                      <a class="nav-link dropdown-item" href="{{ url_for('auth.base') }}">Inicio</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link dropdown-item" href="#"  >Nómina</a>
+                   <a class="nav-link dropdown-item" href="{{ url_for('registro_asistencia.ver_asistencia') }}" >Asistencia</a>
+                <li class="nav-item">
+                    <a class="nav-link dropdown-item" href="{{ url_for('registro_asistencia.generar_nomina') }}"  >Nómina</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link dropdown-item" href="#">Horas Extras</a>
+                    <a class="nav-link dropdown-item" href="{{ url_for('registro_asistencia.accion_personal') }}">Acción de Personal</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link dropdown-item" href="#">Incapacidades</a>
+                    <a class="nav-link dropdown-item disabled" href="#"  >Incapacidades</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link dropdown-item" href="#">Liquidación</a>
+                    <a class="nav-link dropdown-item disabled" href="#"  >Liquidación</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link dropdown-item" href="#">Aguinaldo</a>
+                    <a class="nav-link dropdown-item disabled" href="#"  >Aguinaldo</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link dropdown-item" href="#">Vacaciones</a>
+                    <a class="nav-link dropdown-item disabled" href="#"  >Vacaciones</a>
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="dropdownMenuButton" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -51,6 +53,12 @@
                         </li>
                         <li>
                             <a class="dropdown-item" href="{{ url_for('puesto.listar_puestos') }}">Puesto</a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('feriado.listar_feriados') }}">Feriado</a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('registro_asistencia.listar_asistencia') }}">Asistencia</a>
                         </li>
                     </ul>
                 </li>
@@ -66,29 +74,29 @@
         </nav>
 
         <!-- Contenido principal -->
-<div class="flex-grow-1 body-3">
-    <div class="md-12">
-        <h5>Bienvenido, {{ username }}!</h5>
-        <hr class="border border-primary">
-    </div>
-    
-    <div class="flashes">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message|safe }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
+    <div class="flex-grow-1 body-3">
+        <div class="md-12">
+            <h5>Bienvenido,{% if current_user.is_authenticated %} {{ current_user.empleado.nombre }}  {% endif %}</h5>
+            <hr class="border border-primary">
+        </div>
+        
+        <div class="flashes">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message|safe }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
 
-    <div class="d-flex md-12" style="z-index: 1;">
-        {% block content %}{% endblock %}
+        <div class="d-flex md-12" style="z-index: 1;">
+            {% block content %}{% endblock %}
+        </div>
     </div>
-</div>
 </div>
 
     </div>
@@ -102,11 +110,5 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script> 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('Bootstrap JS cargado correctamente');
-        });
-        </script>
-
 </body>
 </html>

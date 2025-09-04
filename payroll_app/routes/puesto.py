@@ -1,13 +1,15 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from payroll_app.models import Puesto
 from payroll_app import db
+from flask_login import login_required
 
 puesto_bp = Blueprint('puesto', __name__)
 
 @puesto_bp.route('/puestos')
 def listar_puestos():
     """Muestra una lista de todos los puestos."""
-    puestos = Puesto.query.all()
+    # ❗❗❗ CORRECCIÓN: Ordenar los puestos por su ID de forma ascendente ❗❗❗
+    puestos = Puesto.query.order_by(Puesto.id_puesto.asc()).all()
     return render_template('listar_puestos.html', puestos=puestos)
 
 @puesto_bp.route('/puestos/crear', methods=['GET', 'POST'])

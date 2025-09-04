@@ -95,3 +95,16 @@ nav {
     z-index: 9999;
     width: 300px;
 }   
+
+/* Estilo para la página de registro de asistencia */
+.reloj {
+    text-align: center;
+    font-size: 15em;
+    margin-bottom: 5px;
+}
+
+.fecha {
+    text-align: center;
+    font-size: 5em;
+    margin-bottom: 20px;
+}
