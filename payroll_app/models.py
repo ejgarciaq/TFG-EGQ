@@ -229,10 +229,10 @@ class Accion_Personal(db.Model):
     """
     __tablename__ = 'accion_personal'
     
-    # 🔑 Clave principal
-    id_accion_personal = db.Column(db.Integer, primary_key=True)
+    #  Clave principal
+    id_accion = db.Column(db.Integer, primary_key=True)
     
-    # 🔗 Claves foráneas
+    #  Claves foráneas
     Empleado_id_empleado = db.Column(db.Integer, db.ForeignKey('empleado.id_empleado'), nullable=False)
     Tipo_Ap_id_tipo_ap = db.Column(db.Integer, db.ForeignKey('tipo_ap.id_tipo_ap'), nullable=False)
     
@@ -245,12 +245,12 @@ class Accion_Personal(db.Model):
     fecha_inicio = db.Column(db.Date, nullable=True)
     fecha_fin = db.Column(db.Date, nullable=True)
     
-    # ⚙️ Campos para el flujo de aprobación
+    #  Campos para el flujo de aprobación
     estado_ap = db.Column(db.Integer, nullable=False, default=1)  # 1=Pendiente, 2=Aprobado, 3=Rechazado
     id_aprobador = db.Column(db.Integer, nullable=True) # ID del usuario que aprueba
     fecha_aprobacion = db.Column(db.DateTime, nullable=True)
     
-    # 📎 Campo para documentos adjuntos
+    #  Campo para documentos adjuntos
     documento_adjunto = db.Column(db.Text, nullable=True) # Guarda la ruta o URL del archivo
     
     # Relaciones de SQLAlchemy
@@ -258,4 +258,4 @@ class Accion_Personal(db.Model):
     tipo_ap = db.relationship('Tipo_AP', backref='acciones_personales', lazy=True)
 
     def __repr__(self):
-        return f'<Accion_Personal {self.id_accion_personal} Tipo: {self.Tipo_Ap_id_tipo_ap}>'
+        return f'<Accion_Personal {self.id_accion} Tipo: {self.Tipo_Ap_id_tipo_ap}>'

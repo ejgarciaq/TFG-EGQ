@@ -3,9 +3,26 @@ from flask_login import current_user, login_required
 from sqlalchemy import func
 from payroll_app.models import db, RegistroAsistencia, Feriado, Empleado, Nomina, TipoNomina, Tipo_AP, Accion_Personal
 from datetime import datetime, date, time, timedelta
+import os
+from werkzeug.utils import secure_filename # Importar para nombres de archivo seguros
+
 
 # El nombre del blueprint es 'registro_asistencia'
 registro_asistencia_bp = Blueprint('registro_asistencia', __name__)
+
+# Configuración de la carpeta de subida de documentos
+UPLOAD_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static', 'uploads'))
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+# Extensiones de archivo permitidas
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx'}
+
+def allowed_file(filename):
+    """Función para validar la extensión del archivo."""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 @registro_asistencia_bp.route('/asistencia', methods=['GET'])
 @login_required 
@@ -307,7 +324,7 @@ def accion_personal():
             # Create a new personal action object
             nueva_ap = Accion_Personal(
                 Empleado_id_empleado=empleado_id,
-                Tipo_AP_id_tipo_ap=tipo_ap_id,
+                Tipo_Ap_id_tipo_ap=tipo_ap_id,
                 fecha_accion=fecha_accion,
                 detalles=detalles
             )
@@ -324,38 +341,83 @@ def accion_personal():
     acciones_personales = Accion_Personal.query.order_by(Accion_Personal.fecha_accion.desc()).all()
     return render_template('accion_personal.html', empleados=empleados, tipos_ap=tipos_ap, acciones_personales=acciones_personales)
 
+#accion de personal
+
+# Configuración de la carpeta de subida de documentos
+UPLOAD_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static', 'uploads'))
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+# Extensiones de archivo permitidas
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf', 'doc', 'docx', 'xlsx', 'txt'}
+
+def allowed_file(filename):
+    """Función para validar la extensión del archivo."""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+
+
+
 @registro_asistencia_bp.route('/aprobar_accion/<int:ap_id>', methods=['POST'])
 @login_required
 def aprobar_accion(ap_id):
-    # Obtiene la acción de personal por su ID
+    """
+    Aprueba una acción de personal y actualiza el estado del empleado
+    si la acción es de tipo Incapacidad o Vacaciones.
+    """
     ap = Accion_Personal.query.get_or_404(ap_id)
     
-    # Aquí, deberías tener una lógica para verificar si el usuario tiene permisos
-    # Este es un ejemplo simple, asumiendo un rol de 'aprobador'
-    if current_user.rol == 'aprobador':
-        ap.estado_ap = 2  # 2 = 'Aprobado'
-        ap.id_aprobador = current_user.id_usuario  # Registra quién aprobó
-        ap.fecha_aprobacion = datetime.utcnow()
-        
-        try:
-            db.session.commit()
-            flash('Acción de personal aprobada.', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error al aprobar la acción: {str(e)}', 'danger')
-    else:
+    # ❗ Validar permisos de aprobación
+    # Es crucial que solo los usuarios autorizados puedan aprobar acciones.
+    if current_user.rol.tipo_rol not in ['gestor', 'admin']: # Ajusta los roles según tu lógica
         flash('No tienes permiso para aprobar acciones de personal.', 'danger')
+        print(f"El rol del usuario actual es: '{current_user.rol}'")
+        return redirect(url_for('registro_asistencia.accion_personal'))
+    
+    # Prevenir que se aprueben acciones ya procesadas
+    if ap.estado_ap != 1: # 1 = Pendiente
+        flash('Esta acción ya ha sido procesada.', 'warning')
+        return redirect(url_for('registro_asistencia.accion_personal'))
+
+    try:
+        ap.estado_ap = 1  # 2 = 'Aprobado'
+        ap.id_aprobador = current_user.id_usuario
+        ap.fecha_aprobacion = datetime.utcnow()
+
+        # Obtener los IDs de Vacaciones (6) e Incapacidad (5) desde el modelo o base de datos
+        VACACIONES_ID = 6
+        INCAPACIDAD_ID = 5
+
+        # ❗ Lógica para actualizar el estado del empleado
+        if ap.Tipo_Ap_id_tipo_ap in [VACACIONES_ID, INCAPACIDAD_ID]:
+            empleado = Empleado.query.get(ap.Empleado_id_empleado)
+            if empleado:
+                empleado.estado = 2  # 2 = 'Inactivo Temporalmente'
+                # ❗❗ Esta línea es crucial para que los cambios se guarden
+                db.session.add(empleado) 
+                flash(f'El estado del empleado {empleado.nombre_completo} ha sido actualizado a "Inactivo Temporalmente".', 'info')
         
+        db.session.commit()
+        flash('Acción de personal aprobada y registrada exitosamente.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Ocurrió un error al aprobar la acción: {str(e)}', 'danger')
+    
     return redirect(url_for('registro_asistencia.accion_personal'))
+
+
 
 @registro_asistencia_bp.route('/rechazar_accion/<int:ap_id>', methods=['POST'])
 @login_required
 def rechazar_accion(ap_id):
     ap = Accion_Personal.query.get_or_404(ap_id)
     
-    # Asume la misma verificación de permisos
-    if current_user.rol == 'aprobador':
-        ap.estado_ap = 3  # 3 = 'Rechazado'
+    # Check if the user's role is in a list of allowed roles
+    if current_user.rol.tipo_rol in ['gestor', 'admin']:
+        ap.estado_ap = 0  # 3 = 'Rechazado'
         ap.id_aprobador = current_user.id_usuario
         ap.fecha_aprobacion = datetime.utcnow()
         
@@ -367,5 +429,5 @@ def rechazar_accion(ap_id):
             flash(f'Error al rechazar la acción: {str(e)}', 'danger')
     else:
         flash('No tienes permiso para rechazar acciones de personal.', 'danger')
-        
+    
     return redirect(url_for('registro_asistencia.accion_personal'))
