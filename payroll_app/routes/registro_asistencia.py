@@ -298,50 +298,8 @@ def listar_nominas():
         return render_template('generar_nomina.html', nominas=[], tipos_nomina=tipos_nomina)
     
 
-@registro_asistencia_bp.route('/accion_personal', methods=['GET', 'POST'])
-@login_required
-def accion_personal():
-    # Fetch all employees and action types for the dropdowns
-    empleados = Empleado.query.all()
-    tipos_ap = Tipo_AP.query.all()
 
-    if request.method == 'POST':
-        try:
-            # Get data from the form
-            empleado_id = request.form.get('empleado_id')
-            tipo_ap_id = request.form.get('tipo_ap_id')
-            fecha_accion_str = request.form.get('fecha_accion')
-            detalles = request.form.get('detalles')
 
-            # Validate input
-            if not all([empleado_id, tipo_ap_id, fecha_accion_str]):
-                flash('Todos los campos son obligatorios.', 'danger')
-                return render_template('accion_personal.html', empleados=empleados, tipos_ap=tipos_ap)
-            
-            # Convert date string to a date object
-            fecha_accion = datetime.strptime(fecha_accion_str, '%Y-%m-%d').date()
-
-            # Create a new personal action object
-            nueva_ap = Accion_Personal(
-                Empleado_id_empleado=empleado_id,
-                Tipo_Ap_id_tipo_ap=tipo_ap_id,
-                fecha_accion=fecha_accion,
-                detalles=detalles
-            )
-            db.session.add(nueva_ap)
-            db.session.commit()
-            
-            flash('Acción de personal registrada exitosamente.', 'success')
-            return redirect(url_for('registro_asistencia.accion_personal'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Ocurrió un error al registrar la acción de personal: {str(e)}', 'danger')
-
-    # For both GET and POST (after processing), render the template
-    acciones_personales = Accion_Personal.query.order_by(Accion_Personal.fecha_accion.desc()).all()
-    return render_template('accion_personal.html', empleados=empleados, tipos_ap=tipos_ap, acciones_personales=acciones_personales)
-
-#accion de personal
 
 # Configuración de la carpeta de subida de documentos
 UPLOAD_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static', 'uploads'))
@@ -355,48 +313,95 @@ def allowed_file(filename):
     """Función para validar la extensión del archivo."""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    
 
-
-
+@registro_asistencia_bp.route('/accion_personal', methods=['GET', 'POST'])
+@login_required
+def accion_personal():
+    empleados = Empleado.query.all()
+    tipos_ap = Tipo_AP.query.all()
+    
+    if request.method == 'POST':
+        try:
+            empleado_id = request.form.get('empleado_id')
+            tipo_ap_id = request.form.get('tipo_ap_id')
+            fecha_accion_str = request.form.get('fecha_accion')
+            detalles = request.form.get('detalles')
+            
+            # Convierte 'cantidad_dia' a None si está vacío
+            cantidad_dia_str = request.form.get('cantidad_dia')
+            cantidad_dia = int(cantidad_dia_str) if cantidad_dia_str else None
+            
+            # Convierte las fechas a objetos datetime si existen
+            fecha_inicio_str = request.form.get('fecha_inicio')
+            fecha_fin_str = request.form.get('fecha_fin')
+            fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d') if fecha_inicio_str else None
+            fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d') if fecha_fin_str else None
+            
+            # Lógica para manejar el archivo adjunto (sin cambios)
+            file = request.files.get('documento_adjunto')
+            filename = None
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file_path = os.path.join(UPLOAD_FOLDER, filename)
+                try:
+                    file.save(file_path)
+                except Exception as e:
+                    flash(f'Error al guardar el archivo: {str(e)}', 'danger')
+                    return redirect(url_for('registro_asistencia.accion_personal'))
+            
+            # Crea el nuevo registro, incluyendo el nombre del archivo
+            nueva_ap = Accion_Personal(
+                Empleado_id_empleado=empleado_id,
+                Tipo_Ap_id_tipo_ap=tipo_ap_id,
+                fecha_accion=datetime.strptime(fecha_accion_str, '%Y-%m-%d'),
+                detalles=detalles,
+                fecha_inicio=fecha_inicio,
+                fecha_fin=fecha_fin,
+                cantidad_dia=cantidad_dia, # ¡CORREGIDO!
+                documento_adjunto=filename,
+                estado_ap=1
+            )
+            
+            db.session.add(nueva_ap)
+            db.session.commit()
+            flash('Acción de personal registrada exitosamente.', 'success')
+            return redirect(url_for('registro_asistencia.accion_personal'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ocurrió un error al registrar la acción de personal: {str(e)}', 'danger')
+    
+    acciones_personales = Accion_Personal.query.order_by(Accion_Personal.fecha_accion.desc()).all()
+    return render_template('accion_personal.html', empleados=empleados, tipos_ap=tipos_ap, acciones_personales=acciones_personales)
 
 
 @registro_asistencia_bp.route('/aprobar_accion/<int:ap_id>', methods=['POST'])
 @login_required
 def aprobar_accion(ap_id):
-    """
-    Aprueba una acción de personal y actualiza el estado del empleado
-    si la acción es de tipo Incapacidad o Vacaciones.
-    """
     ap = Accion_Personal.query.get_or_404(ap_id)
     
-    # ❗ Validar permisos de aprobación
-    # Es crucial que solo los usuarios autorizados puedan aprobar acciones.
-    if current_user.rol.tipo_rol not in ['gestor', 'admin']: # Ajusta los roles según tu lógica
+    if current_user.rol.tipo_rol not in ['gestor', 'admin']:
         flash('No tienes permiso para aprobar acciones de personal.', 'danger')
-        print(f"El rol del usuario actual es: '{current_user.rol}'")
         return redirect(url_for('registro_asistencia.accion_personal'))
     
-    # Prevenir que se aprueben acciones ya procesadas
-    if ap.estado_ap != 1: # 1 = Pendiente
+    if ap.estado_ap != 1:
         flash('Esta acción ya ha sido procesada.', 'warning')
         return redirect(url_for('registro_asistencia.accion_personal'))
 
     try:
-        ap.estado_ap = 1  # 2 = 'Aprobado'
+        ap.estado_ap = 2  # ¡CORREGIDO! 2 = 'Aprobado'
         ap.id_aprobador = current_user.id_usuario
         ap.fecha_aprobacion = datetime.utcnow()
 
-        # Obtener los IDs de Vacaciones (6) e Incapacidad (5) desde el modelo o base de datos
         VACACIONES_ID = 6
         INCAPACIDAD_ID = 5
 
-        # ❗ Lógica para actualizar el estado del empleado
         if ap.Tipo_Ap_id_tipo_ap in [VACACIONES_ID, INCAPACIDAD_ID]:
             empleado = Empleado.query.get(ap.Empleado_id_empleado)
             if empleado:
-                empleado.estado = 2  # 2 = 'Inactivo Temporalmente'
-                # ❗❗ Esta línea es crucial para que los cambios se guarden
-                db.session.add(empleado) 
+                empleado.estado = 2  # 'Inactivo Temporalmente'
+                db.session.add(empleado)
                 flash(f'El estado del empleado {empleado.nombre_completo} ha sido actualizado a "Inactivo Temporalmente".', 'info')
         
         db.session.commit()
@@ -415,9 +420,8 @@ def aprobar_accion(ap_id):
 def rechazar_accion(ap_id):
     ap = Accion_Personal.query.get_or_404(ap_id)
     
-    # Check if the user's role is in a list of allowed roles
     if current_user.rol.tipo_rol in ['gestor', 'admin']:
-        ap.estado_ap = 0  # 3 = 'Rechazado'
+        ap.estado_ap = 3  # ¡CORREGIDO! 3 = 'Rechazado'
         ap.id_aprobador = current_user.id_usuario
         ap.fecha_aprobacion = datetime.utcnow()
         
