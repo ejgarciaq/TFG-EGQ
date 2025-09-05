@@ -36,6 +36,7 @@ def create_app():
     from .routes.puesto import puesto_bp
     from .routes.registro_asistencia import registro_asistencia_bp
     from .routes.feriado import feriado_bp
+    from .routes.accion_personal import accion_personal_bp
 
     app.register_blueprint(login_bp, url_prefix='/auth')
     app.register_blueprint(empleado_bp, url_prefix='/auth/empleados')
@@ -43,6 +44,7 @@ def create_app():
     app.register_blueprint(puesto_bp, url_prefix='/auth/puestos')
     app.register_blueprint(registro_asistencia_bp, url_prefix='/auth/registro_asistencia')
     app.register_blueprint(feriado_bp, url_prefix='/auth/feriados')
+    app.register_blueprint(accion_personal_bp, url_prefix='/auth/accion_personal')
 
     @app.route('/')
     def index():

@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container mt-5">
     <h2>Registro de Acciones de Personal</h2>
-    <form method="POST" action="{{ url_for('registro_asistencia.accion_personal') }}" enctype="multipart/form-data">
+    <form method="POST" action="{{ url_for('accion_personal_bp.accion_personal') }}" enctype="multipart/form-data">
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label for="empleado_id" class="form-label">Empleado</label>
@@ -103,10 +103,10 @@
                 <td>
                     {% if ap.estado_ap == 1 %}
                         <div class="d-flex gap-2">
-                            <form method="POST" action="{{ url_for('registro_asistencia.aprobar_accion', ap_id=ap.id_accion) }}">
+                            <form method="POST" action="{{ url_for('accion_personal_bp.aprobar_accion', ap_id=ap.id_accion) }}">
                                 <button type="submit" class="btn btn-success btn-sm">Aprobar</button>
                             </form>
-                            <form method="POST" action="{{ url_for('registro_asistencia.rechazar_accion', ap_id=ap.id_accion) }}">
+                            <form method="POST" action="{{ url_for('accion_personal_bp.rechazar_accion', ap_id=ap.id_accion) }}">
                                 <button type="submit" class="btn btn-danger btn-sm">Rechazar</button>
                             </form>
                         </div>
@@ -124,7 +124,6 @@
     </table>
 </div>
 
-
-
+<script src="{{ url_for('static', filename='js/accion_personal.js') }}"></script>
 
 {% endblock %}
