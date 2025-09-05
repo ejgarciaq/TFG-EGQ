@@ -62,3 +62,64 @@ document.addEventListener('DOMContentLoaded', () => {
         formAsistencia.submit();
     });
 });
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const fechaInicioInput = document.getElementById('fecha_inicio');
+    const fechaFinInput = document.getElementById('fecha_fin');
+    const cantidadDiasInput = document.getElementById('cantidad_dia');
+    
+    // Los IDs de los tipos de acción
+    const VACACIONES_ID = 6;
+    const INCAPACIDAD_ID = 5;
+
+    // Lee los datos del atributo del div
+    const vacationIncapacityFields = document.getElementById('vacation_incapacity_fields');
+    const diasFestivos = JSON.parse(vacationIncapacityFields.dataset.diasFestivos);
+
+    function isHoliday(date) {
+        const dateString = date.toISOString().slice(0, 10);
+        return diasFestivos.includes(dateString);
+    }
+
+    function calculateBusinessDays() {
+        // Asegura una zona horaria consistente para la fecha de inicio y fin
+        const fechaInicio = new Date(fechaInicioInput.value + 'T00:00:00');
+        const fechaFin = new Date(fechaFinInput.value + 'T00:00:00');
+            
+        if (!fechaInicioInput.value || !fechaFinInput.value) {
+            cantidadDiasInput.value = '';
+            return;
+        }
+
+        let diasLaborables = 0;
+        for (let d = new Date(fechaInicioInput.value + 'T00:00:00'); d <= fechaFin; d.setDate(d.getDate() + 1)) {
+            const diaDeLaSemana = d.getDay(); // 0 = Domingo, 6 = Sábado
+            if (diaDeLaSemana !== 0 && !isHoliday(d)) { // <-- ¡para agregar sabados! if (diaDeLaSemana !== 0 && diaDeLaSemana !== 6 && !isHoliday(d))
+                diasLaborables++;
+            }
+        }
+        cantidadDiasInput.value = diasLaborables;
+    }
+
+    // Agrega un listener para cuando el usuario cambie las fechas
+    fechaInicioInput.addEventListener('change', calculateBusinessDays);
+    fechaFinInput.addEventListener('change', calculateBusinessDays);
+
+    // Lógica para mostrar/ocultar los campos según el tipo de acción
+    const tipoApSelect = document.getElementById('tipo_ap_id');
+
+    function toggleFieldsAndCalculate() {
+        const selectedId = parseInt(tipoApSelect.value);
+        if (selectedId === VACACIONES_ID || selectedId === INCAPACIDAD_ID) {
+            vacationIncapacityFields.style.display = 'block';
+            calculateBusinessDays();
+        } else {
+            vacationIncapacityFields.style.display = 'none';
+            cantidadDiasInput.value = '';
+        }
+    }
+        
+    tipoApSelect.addEventListener('change', toggleFieldsAndCalculate);
+    toggleFieldsAndCalculate();
+});

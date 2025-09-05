@@ -320,25 +320,32 @@ def allowed_file(filename):
 def accion_personal():
     empleados = Empleado.query.all()
     tipos_ap = Tipo_AP.query.all()
+    acciones_personales = Accion_Personal.query.order_by(Accion_Personal.fecha_accion.desc()).all()
+
+    # Obtener los días festivos de la base de datos y formatearlos
+    dias_feriados = [f.fecha_feriado.strftime('%Y-%m-%d') for f in Feriado.query.all()]
     
+    # Manejo de la petición POST
     if request.method == 'POST':
+        # ... (Tu código de manejo de formulario) ...
+        # (Este código no necesita cambios, ya que la lógica del cálculo
+        # se hará en el cliente con JavaScript)
+        # ...
         try:
+            # Get data from the form
             empleado_id = request.form.get('empleado_id')
             tipo_ap_id = request.form.get('tipo_ap_id')
             fecha_accion_str = request.form.get('fecha_accion')
             detalles = request.form.get('detalles')
             
-            # Convierte 'cantidad_dia' a None si está vacío
             cantidad_dia_str = request.form.get('cantidad_dia')
             cantidad_dia = int(cantidad_dia_str) if cantidad_dia_str else None
             
-            # Convierte las fechas a objetos datetime si existen
             fecha_inicio_str = request.form.get('fecha_inicio')
             fecha_fin_str = request.form.get('fecha_fin')
             fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d') if fecha_inicio_str else None
             fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d') if fecha_fin_str else None
             
-            # Lógica para manejar el archivo adjunto (sin cambios)
             file = request.files.get('documento_adjunto')
             filename = None
             if file and allowed_file(file.filename):
@@ -350,7 +357,6 @@ def accion_personal():
                     flash(f'Error al guardar el archivo: {str(e)}', 'danger')
                     return redirect(url_for('registro_asistencia.accion_personal'))
             
-            # Crea el nuevo registro, incluyendo el nombre del archivo
             nueva_ap = Accion_Personal(
                 Empleado_id_empleado=empleado_id,
                 Tipo_Ap_id_tipo_ap=tipo_ap_id,
@@ -358,7 +364,7 @@ def accion_personal():
                 detalles=detalles,
                 fecha_inicio=fecha_inicio,
                 fecha_fin=fecha_fin,
-                cantidad_dia=cantidad_dia, # ¡CORREGIDO!
+                cantidad_dia=cantidad_dia,
                 documento_adjunto=filename,
                 estado_ap=1
             )
@@ -371,9 +377,14 @@ def accion_personal():
         except Exception as e:
             db.session.rollback()
             flash(f'Ocurrió un error al registrar la acción de personal: {str(e)}', 'danger')
-    
-    acciones_personales = Accion_Personal.query.order_by(Accion_Personal.fecha_accion.desc()).all()
-    return render_template('accion_personal.html', empleados=empleados, tipos_ap=tipos_ap, acciones_personales=acciones_personales)
+
+
+    # Pasar la lista de días festivos a la plantilla
+    return render_template('accion_personal.html', 
+                            empleados=empleados, 
+                            tipos_ap=tipos_ap, 
+                            acciones_personales=acciones_personales,
+                            dias_feriados=dias_feriados)
 
 
 @registro_asistencia_bp.route('/aprobar_accion/<int:ap_id>', methods=['POST'])

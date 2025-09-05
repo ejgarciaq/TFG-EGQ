@@ -30,10 +30,10 @@
             <input type="date" class="form-control" id="fecha_accion" name="fecha_accion" required>
         </div>
         
-        <div id="vacation_incapacity_fields" style="display: none;">
+        <div id="vacation_incapacity_fields" style="display: none;" data-dias-festivos='{{ dias_feriados | tojson }}'>
             <div class="mb-3">
-                <label for="cantidad_dia" class="form-label">Cantidad de Días</label>
-                <input type="number" class="form-control" id="cantidad_dia" name="cantidad_dia">
+                <label for="cantidad_dia" class="form-label" disabled >Cantidad de Días</label>
+                <input type="number" class="form-control" id="cantidad_dia" name="cantidad_dia" readonly>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -124,28 +124,7 @@
     </table>
 </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const tipoApSelect = document.getElementById('tipo_ap_id');
-        const vacaIncapFields = document.getElementById('vacation_incapacity_fields');
-        
-        // Define los IDs de "Vacaciones" (6) e "Incapacidad" (5) de tu tabla tipo_ap
-        // Asegúrate de que estos IDs coincidan con los que uses en la base de datos
-        const VACACIONES_ID = 6;
-        const INCAPACIDAD_ID = 5;
 
-        function toggleFields() {
-            const selectedId = parseInt(tipoApSelect.value);
-            if (selectedId === VACACIONES_ID || selectedId === INCAPACIDAD_ID) {
-                vacaIncapFields.style.display = 'block';
-            } else {
-                vacaIncapFields.style.display = 'none';
-            }
-        }
-        
-        tipoApSelect.addEventListener('change', toggleFields);
-        // Llama a la función al cargar la página para el caso de un refresh con valor seleccionado
-        toggleFields();
-    });
-</script>
+
+
 {% endblock %}
