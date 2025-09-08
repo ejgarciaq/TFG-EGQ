@@ -1,3 +1,6 @@
+import os
+import logging
+from logging.handlers import RotatingFileHandler
 from flask import Flask, redirect, url_for
 from payroll_app.config import Config
 from flask_sqlalchemy import SQLAlchemy
@@ -12,21 +15,30 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     app.config['SECRET_KEY'] = 'f9ddc90157c588ce310b85c62fe82b7e76c94a87'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
 
-    # configuración de Flask-Login
+    # Configuración de Flask-Login
     login_manager.login_view = 'auth.login'
     login_manager.login_message = 'Por favor, inicia sesión para acceder a esta página.'
     login_manager.login_message_category = 'warning'
 
+    # ❗ Configuración del logging para la aplicación principal
+    if not app.debug and not app.testing:
+        if not os.path.exists('logs'):
+            os.mkdir('logs')
+        file_handler = RotatingFileHandler('logs/payroll_app.log', maxBytes=10240, backupCount=10)
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
+        file_handler.setLevel(logging.INFO)
+        app.logger.addHandler(file_handler)
+
     from .models import Usuario
     @login_manager.user_loader
     def load_user(user_id):
-        # Esto se importará más tarde para evitar la importación circular
-        from .models import Usuario 
         return Usuario.query.get(int(user_id))
     
     # Importar y registrar blueprints
@@ -49,6 +61,5 @@ def create_app():
     @app.route('/')
     def index():
         return redirect(url_for('auth.login'))
-
 
     return app

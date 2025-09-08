@@ -10,7 +10,6 @@ login_bp = Blueprint('auth', __name__)
 MAX_INTENTOS_FALLIDOS = 5
 TIEMPO_BLOQUEO_MINUTOS = 10
 
-
 @login_bp.route('/')
 def home():
     """Redirige la ruta principal a la página de login."""
@@ -80,6 +79,12 @@ def base():
     
 @login_bp.route('/logout')
 def logout():
-    logout_user()
-    flash('Has cerrado sesión correctamente.', 'success')
-    return redirect(url_for('auth.login'))
+    try:
+        logout_user()
+        flash('Has cerrado sesión correctamente.', 'success')
+        return redirect(url_for('auth.login'))
+    except Exception as e:
+        # ❗ Aquí se guarda el error en el log de tu aplicación
+        login_bp.logger.error(f'Error al cerrar la sesión: {e}', exc_info=True)
+        flash('Ocurrió un error inesperado al cerrar la sesión. Por favor, inténtelo de nuevo.', 'danger')
+        return redirect(url_for('auth.base'))
