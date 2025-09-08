@@ -32,7 +32,7 @@ def login():
             flash('Inicio de sesión exitoso.', 'success')
             return redirect(url_for('auth.base'))
         else:
-            flash('Usuario o contraseña incorrectos.', 'danger')
+            flash('Nombre de usuario o contraseña incorrecta. \nPor favor, inténtelo de nuevo', 'danger')
             
     return render_template('index.html')
     
