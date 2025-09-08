@@ -31,7 +31,7 @@ class Usuario(db.Model, UserMixin):
 
     intentos_fallidos = db.Column(db.Integer, default=0, nullable=False)
     fecha_ultimo_intento = db.Column(db.DateTime, nullable=True)
-    vacaciones_disponibles = db.Column(db.Integer, default=0, nullable=False)
+
 
     def get_id(self):
         return str(self.id_usuario)
@@ -69,6 +69,7 @@ class Empleado(db.Model):
     Usuario_id_usuario = db.Column(db.Integer, db.ForeignKey('usuario.id_usuario'), unique=True, nullable=False)
     usuario = db.relationship('Usuario', back_populates='empleado')
     puesto = db.relationship('Puesto', back_populates='empleados')
+    vacaciones_disponibles = db.Column(db.Integer, default=0, nullable=False)
     # ❗ relación: Un empleado puede tener muchas nóminas
     nominas = db.relationship('Nomina', back_populates='empleado')
     registros_asistencia = db.relationship('RegistroAsistencia', backref='empleado', lazy=True)

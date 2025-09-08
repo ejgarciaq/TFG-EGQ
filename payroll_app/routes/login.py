@@ -8,7 +8,7 @@ login_bp = Blueprint('auth', __name__)
 
 # ❗ Definir el límite de intentos y el tiempo de bloqueo
 MAX_INTENTOS_FALLIDOS = 5
-TIEMPO_BLOQUEO_MINUTOS = 15
+TIEMPO_BLOQUEO_MINUTOS = 10
 
 
 @login_bp.route('/')
@@ -28,7 +28,7 @@ def login():
         password = request.form.get('password')
     
         if not username or not password:
-            flash('Por favor, completa todos los campos', 'danger')
+            flash('Por favor, completa todos los campos', 'warning')
             return render_template('index.html')
         
         usuario = Usuario.query.filter_by(username=username).first()
@@ -41,10 +41,10 @@ def login():
                     usuario.estado_usuario = True
                     usuario.intentos_fallidos = 0
                     db.session.commit()
-                    flash('Su cuenta ha sido desbloqueada. Por favor, intente iniciar sesión de nuevo.', 'success')
+                    flash('Su cuenta ha sido desbloqueada. Por favor, intente iniciar sesión de nuevo.', 'warning')
                     return render_template('index.html')
                 else:
-                    flash('Su cuenta se encuentra temporalmente bloqueada debido a demasiados intentos fallidos. Por favor, inténtelo de nuevo más tarde.', 'danger')
+                    flash('Su cuenta se encuentra temporalmente bloqueada debido a demasiados intentos fallidos. Por favor, inténtelo de nuevo más tarde.', 'warning')
                     return render_template('index.html')
                     
             if check_password_hash(usuario.password, password):
@@ -64,11 +64,11 @@ def login():
                 if usuario.intentos_fallidos >= MAX_INTENTOS_FALLIDOS:
                     usuario.estado_usuario = False
                     db.session.commit()
-                    flash(f'Se ha excedido el número de intentos. Su cuenta ha sido bloqueada por {TIEMPO_BLOQUEO_MINUTOS} minutos.', 'danger')
+                    flash(f'Se ha excedido el número de intentos. Su cuenta ha sido bloqueada por {TIEMPO_BLOQUEO_MINUTOS} minutos.', 'warning')
                 else:
-                    flash('Nombre de usuario o contraseña incorrecta. Por favor, inténtelo de nuevo.', 'danger')
+                    flash('Nombre de usuario o contraseña incorrecta. Por favor, inténtelo de nuevo.', 'warning')
         else:
-            flash('Nombre de usuario o contraseña incorrecta. Por favor, inténtelo de nuevo.', 'danger')
+            flash('Nombre de usuario o contraseña incorrecta. Por favor, inténtelo de nuevo.', 'warning')
             
     return render_template('index.html')
 
