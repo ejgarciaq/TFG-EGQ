@@ -89,7 +89,7 @@ nav {
 /* Estilo para mensajes flash */
 .flashes {
     position: fixed;
-    top: 20px;
+    top: 0px;
     text-align: center;
     left: 50%;
     transform: translateX(-50%);

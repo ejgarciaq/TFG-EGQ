@@ -25,8 +25,13 @@ class Usuario(db.Model, UserMixin):
     password = db.Column(db.String(255), nullable=False)
     estado_usuario = db.Column(db.Boolean, nullable=False)
     Rol_id_rol = db.Column(db.Integer, db.ForeignKey('rol.id_rol'), nullable=False)
+
     rol = db.relationship('Rol', back_populates='usuarios')
     empleado = db.relationship('Empleado', back_populates='usuario', uselist=False)
+
+    intentos_fallidos = db.Column(db.Integer, default=0, nullable=False)
+    fecha_ultimo_intento = db.Column(db.DateTime, nullable=True)
+    vacaciones_disponibles = db.Column(db.Integer, default=0, nullable=False)
 
     def get_id(self):
         return str(self.id_usuario)
