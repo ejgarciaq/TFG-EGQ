@@ -7,24 +7,32 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from payroll_app.models import Empleado, Usuario, db
 from flask_login import login_user, logout_user, login_required, current_user
 
+# Crea un Blueprint para las rutas de autenticación.
 login_bp = Blueprint('auth', __name__)
 
-# Define la zona horaria local
+# Define la zona horaria local de Costa Rica para manejar fechas y horas correctamente.
 ZONA_HORARIA_LOCAL = pytz.timezone('America/Costa_Rica')
 
-# Definir el límite de intentos y el tiempo de bloqueo
+# Definir el límite de intentos y el tiempo de bloqueo de la cuenta.
 MAX_INTENTOS_FALLIDOS = 5
 TIEMPO_BLOQUEO_MINUTOS = 15
+
+#-----------------------------------------------------------------------------------
+# RUTAS DE AUTENTICACIÓN
+#-----------------------------------------------------------------------------------
 
 @login_bp.route('/')
 def home():
     """Redirige la ruta principal a la página de login."""
+    # Si el usuario ya está autenticado, lo envía a la página base.
     if current_user.is_authenticated:
         return redirect(url_for('auth.base'))
+    # Si no, lo redirige a la página de inicio de sesión.
     return redirect(url_for('auth.login'))
 
 @login_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    # Si el usuario ya está autenticado, evita que acceda al formulario de login.
     if current_user.is_authenticated:
         return redirect(url_for('auth.base'))
 
@@ -32,17 +40,19 @@ def login():
         try:
             username = request.form.get('username')
             password = request.form.get('password')
-            
+            # Valida que los campos de usuario y contraseña no estén vacíos.
             if not username or not password:
                 flash('Por favor, completa todos los campos', 'danger')
                 return render_template('index.html')
-            
+            # Busca el usuario en la base de datos por el nombre de usuario.
             usuario = Usuario.query.filter_by(username=username).first()
             
             if usuario:
                 ahora = datetime.now(ZONA_HORARIA_LOCAL)
                 
-                # Lógica de desbloqueo temporal: si la cuenta está inactiva y ha pasado el tiempo de bloqueo
+                # Lógica de desbloqueo temporal:
+                # Si la cuenta está inactiva (bloqueada) y ha pasado el tiempo de bloqueo,
+                # la desbloquea y reinicia el contador de intentos.
                 if not usuario.estado_usuario:
                     tiempo_transcurrido = ahora - usuario.fecha_ultimo_intento
                     if tiempo_transcurrido.total_seconds() >= TIEMPO_BLOQUEO_MINUTOS * 60:
@@ -54,26 +64,30 @@ def login():
                     else:
                         flash('Su cuenta se encuentra temporalmente bloqueada debido a demasiados intentos fallidos. Por favor, inténtelo de nuevo más tarde.', 'danger')
                         return render_template('index.html')
-                        
+                # Verifica la contraseña con la función de hash.
                 if check_password_hash(usuario.password, password):
-                    # Inicio de sesión exitoso: restablecer intentos
+                    # Inicio de sesión exitoso:
+                    # - Resetea el contador de intentos fallidos.
+                    # - Inicia la sesión de usuario con Flask-Login.
                     usuario.intentos_fallidos = 0
                     usuario.fecha_ultimo_intento = ahora
                     db.session.commit()
                     login_user(usuario) 
                     flash('Inicio de sesión exitoso.', 'success')
                     
-                    # Nuevo: Redirección condicional para el cambio de contraseña
+                    # Redirección condicional: si el cambio de contraseña es requerido,
+                    # lo envía a la página de cambio de contraseña.
                     if usuario.cambio_password_requerido:
                         return redirect(url_for('auth.cambiar_contrasena'))
                     else:
                         return redirect(url_for('auth.base'))
                 else:
-                    # Intento de sesión fallido
+                    # Contraseña incorrecta:
+                    # - Incrementa el contador de intentos fallidos y actualiza la fecha.
                     usuario.intentos_fallidos += 1
                     usuario.fecha_ultimo_intento = ahora
                     db.session.commit()
-                    
+                    # Si el número de intentos excede el límite, bloquea la cuenta.
                     if usuario.intentos_fallidos >= MAX_INTENTOS_FALLIDOS:
                         usuario.estado_usuario = False
                         db.session.commit()
@@ -81,9 +95,11 @@ def login():
                     else:
                         flash('Nombre de usuario o contraseña incorrecta. Por favor, inténtelo de nuevo.', 'danger')
             else:
+                # Usuario no encontrado.
                 flash('Nombre de usuario o contraseña incorrecta. Por favor, inténtelo de nuevo.', 'danger')
         
         except Exception as e:
+            # Captura y registra cualquier error inesperado para su posterior análisis.
             current_app.logger.error(f'Error en la función de login: {e}', exc_info=True)
             flash('Ocurrió un error inesperado. Por favor, intente de nuevo más tarde.', 'danger')
             return render_template('index.html')
@@ -91,14 +107,16 @@ def login():
     return render_template('index.html')
     
 @login_bp.route('/base')
-@login_required
+@login_required # Decorador que asegura que solo los usuarios autenticados pueden acceder a esta ruta.
 def base():
+    """Ruta para la página principal de la aplicación, solo accesible para usuarios autenticados."""
     return render_template('base.html')
     
 @login_bp.route('/logout')
 def logout():
+    """Cierra la sesión del usuario actual."""
     try:
-        logout_user()
+        logout_user() # Función de Flask-Login para cerrar la sesión.
         flash('Has cerrado sesión correctamente.', 'success')
         return redirect(url_for('auth.login'))
     except Exception as e:
