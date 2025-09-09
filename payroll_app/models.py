@@ -31,6 +31,7 @@ class Usuario(db.Model, UserMixin):
 
     intentos_fallidos = db.Column(db.Integer, default=0, nullable=False)
     fecha_ultimo_intento = db.Column(db.DateTime, nullable=True)
+    cambio_password_requerido = db.Column(db.Boolean, default=False, nullable=False)
 
 
     def get_id(self):

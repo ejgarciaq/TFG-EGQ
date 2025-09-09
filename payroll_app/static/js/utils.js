@@ -123,3 +123,4 @@ document.addEventListener('DOMContentLoaded', function() {
     tipoApSelect.addEventListener('change', toggleFieldsAndCalculate);
     toggleFieldsAndCalculate();
 });
+

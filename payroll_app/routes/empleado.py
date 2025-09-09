@@ -1,9 +1,10 @@
 import re
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from werkzeug.security import generate_password_hash
-# ❗❗❗ Importa el modelo TipoNomina ❗❗❗
 from payroll_app.models import db, Usuario, Rol, Empleado, Puesto, RegistroAsistencia, Nomina, TipoNomina
 from datetime import datetime
+from flask_login import login_required, current_user
+
 
 
 # Se crea un objeto Blueprint llamado 'empleado', que permite modularizar la aplicación Flask.
@@ -98,19 +99,23 @@ def editar_empleado(id):
     empleado = Empleado.query.get_or_404(id)
     roles = Rol.query.all()
     puestos = Puesto.query.all()
-    # ❗❗❗ Obtener los tipos de nómina para el formulario de edición ❗❗❗
     tipos_nomina = TipoNomina.query.all()
 
     if request.method == 'POST':
         try:
+            # ✅ Validaciones de campos requeridos
+            required_fields = ['username', 'nombre', 'apellido_primero', 'cedula', 'correo', 'telefono', 'salario_base', 'fecha_ingreso', 'puesto_id', 'tipo_nomina_id', 'rol_id']
+            for field in required_fields:
+                if not request.form.get(field):
+                    flash(f'El campo "{field}" es obligatorio. Por favor, complétalo.', 'danger')
+                    return redirect(url_for('empleado.editar_empleado', id=id))
+
             # Obtener datos y validarlos
             correo = request.form['correo']
             telefono = request.form['telefono']
-            password = request.form.get('password')
             
             email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
             phone_regex = r'^[0-9]{8}$'
-            password_regex = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+-.,/])[A-Za-z\d!@#$%^&*()_+-.,/]{8,}$'
             
             if not re.match(email_regex, correo):
                 flash('El formato del correo electrónico no es válido.', 'danger')
@@ -120,12 +125,7 @@ def editar_empleado(id):
                 flash('El número de teléfono debe contener exactamente 8 dígitos.', 'danger')
                 return redirect(url_for('empleado.editar_empleado', id=id))
             
-            if password:
-                if not re.match(password_regex, password):
-                    flash('La nueva contraseña no cumple con los requisitos: <br>- Mínimo 8 caracteres.<br>- Al menos una mayúscula.<br>- Al menos una minúscula.<br>- Al menos un número.<br>- Al menos un símbolo.', 'danger')
-                    return redirect(url_for('empleado.editar_empleado', id=id))
-            
-            # Actualizar datos si las validaciones pasan
+            # Actualizar datos
             empleado.nombre = request.form['nombre']
             empleado.apellido_primero = request.form['apellido_primero']
             empleado.apellido_segundo = request.form.get('apellido_segundo')
@@ -133,20 +133,22 @@ def editar_empleado(id):
             empleado.correo = correo
             empleado.telefono = telefono
             empleado.salario_base = float(request.form['salario_base'])
+            
             empleado.fecha_ingreso = datetime.strptime(request.form['fecha_ingreso'], '%Y-%m-%d').date()
-            empleado.fecha_salida = datetime.strptime(request.form['fecha_salida'], '%Y-%m-%d').date() if request.form['fecha_salida'] else None
+            fecha_salida_str = request.form.get('fecha_salida')
+            if fecha_salida_str:
+                empleado.fecha_salida = datetime.strptime(fecha_salida_str, '%Y-%m-%d').date()
+            else:
+                empleado.fecha_salida = None
+                
             empleado.estado_empleado = request.form.get('estado_empleado') == 'on'
             empleado.Puesto_id_puesto = request.form['puesto_id']
-            # ❗❗❗ Actualizar el tipo de nómina del empleado ❗❗❗
             empleado.TipoNomina_id_tipo_nomina = request.form['tipo_nomina_id']
 
             usuario = Usuario.query.get_or_404(empleado.Usuario_id_usuario)
             usuario.username = request.form['username']
             usuario.Rol_id_rol = request.form['rol_id']
             usuario.estado_usuario = request.form.get('estado_usuario') == 'on'
-
-            if password:
-                usuario.password = generate_password_hash(password)
             
             db.session.commit()
             flash('Empleado actualizado exitosamente.', 'success')
@@ -155,10 +157,8 @@ def editar_empleado(id):
         except Exception as e:
             db.session.rollback()
             flash(f'Ocurrió un error al actualizar el empleado: {str(e)}', 'danger')
-            # ❗❗❗ En caso de error, volver a pasar todos los datos al template ❗❗❗
             return render_template('editar_empleado.html', empleado=empleado, roles=roles, puestos=puestos, tipos_nomina=tipos_nomina)
 
-    # ❗❗❗ Pasar el argumento 'tipos_nomina' al template en la petición GET ❗❗❗
     return render_template('editar_empleado.html', empleado=empleado, roles=roles, puestos=puestos, tipos_nomina=tipos_nomina)
 
 

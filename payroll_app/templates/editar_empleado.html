@@ -3,19 +3,16 @@
 {% block title %}Editar Empleado{% endblock %}
 
 {% block content %}
-<div class="container"  >
+<div class="container">
     <h4 class="text-center">Editar Empleado</h4>
+
     <form method="POST" action="{{ url_for('empleado.editar_empleado', id=empleado.id_empleado) }}">
         <fieldset class="shadow border p-2 mb-0 rounded border-primary">
             <legend class="float-none w-auto px-1 fs-5">Datos de Usuario</legend>
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <label for="username" class="form-label">Nombre de Usuario</label>
-                        <input type="text" class="form-control" id="username" name="username" value="{{ empleado.usuario.username }}" required>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="password" class="form-label">Nueva Contraseña (Dejar en blanco para no cambiar)</label>
-                        <input type="password" class="form-control" id="password" name="password">
+                        <input type="text" class="form-control" id="username" name="username" value="{{ empleado.usuario.username }}" required readonly>
                     </div>
                     <div class="col-md-4 mb-3">
                         <label for="rol_id" class="form-label">Rol</label>
@@ -27,10 +24,10 @@
                                 {% endfor %}
                             </select>
                     </div>
-                </div>
-                <div class="col-md-3 ms-1 form-check">
-                        <input type="checkbox" class="form-check-input" id="estado_usuario" name="estado_usuario" {% if empleado.usuario.estado_usuario %}checked{% endif %}>
-                    <label class="form-check-label" for="estado_usuario">Estado del Usuario</label>
+                    <div class="col-md-3 ms-1 form-check">
+                            <input type="checkbox" class="form-check-input" id="estado_usuario" name="estado_usuario" {% if empleado.usuario.estado_usuario %}checked{% endif %}>
+                        <label class="form-check-label" for="estado_usuario">Estado del Usuario</label>
+                    </div>
                 </div>
         </fieldset>      
 
@@ -124,5 +121,22 @@
            <a href="{{ url_for('empleado.listar_empleado') }}" class="btn btn-secondary">Cancelar</a>
         </div>
     </form>
+    
+    <div class="mt-4">
+        <form id="reset-password-form" method="POST" action="{{ url_for('auth.restablecer_contrasena_admin') }}">
+            <input type="hidden" name="username" value="{{ empleado.usuario.username }}">
+            <button type="submit" class="btn btn-warning">Restablecer Contraseña (Admin)</button>
+        </form>
+    </div>
 </div>
+
+<script>
+    document.getElementById('reset-password-form').onsubmit = function(event) {
+        var username = "{{ empleado.usuario.username }}";
+        var confirmacion = confirm("¿Está seguro de que desea restablecer la contraseña para el usuario '" + username + "'? Se generará una nueva contraseña temporal.");
+        if (!confirmacion) {
+            event.preventDefault();
+        }
+    };
+</script>
 {% endblock %}
