@@ -24,6 +24,11 @@
                                 {% endfor %}
                             </select>
                     </div>
+                        {% if temp_password %}
+                            <div class="alert alert-info mt-3">
+                                <strong>¡Importante!</strong> La nueva clave temporal es: <strong>{{ temp_password }}</strong>
+                            </div>
+                            {% endif %}
                     <div class="col-md-3 ms-1 form-check">
                             <input type="checkbox" class="form-check-input" id="estado_usuario" name="estado_usuario" {% if empleado.usuario.estado_usuario %}checked{% endif %}>
                         <label class="form-check-label" for="estado_usuario">Estado del Usuario</label>
