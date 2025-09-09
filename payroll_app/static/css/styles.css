@@ -118,21 +118,28 @@ nav {
     padding: 0;
 }
 
-/* Estilo para los mensajes flash (alertas).
-    - `position: fixed` y `z-index` los mantienen visibles en la parte superior.
-    - `transform: translateX(-50%)` los centra horizontalmente de manera perfecta.
-*/
+/* Estilos para los mensajes flash */
 .flashes {
     position: fixed;
-    top: 0px;
+    top: 0;
     text-align: center;
     left: 50%;
     transform: translateX(-50%);
     z-index: 9999;
     width: 80%;
+    max-width: 600px;
     white-space: pre-line;
+    /* ✅ Añadido: box-shadow para que el mensaje resalte */
+    /*box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    /* ✅ Añadido: padding para separar el texto de los bordes */
+    padding: 10px;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
 }
-
+/* ✅ Nuevo: Regla para evitar que el contenido se superponga */
+body:has(.flashes) main {
+    padding-top: 100px; /* Ajusta este valor según la altura de tus flashes */
+}
 /* Estilo para el reloj digital en la página de asistencia.
 */
 .reloj {

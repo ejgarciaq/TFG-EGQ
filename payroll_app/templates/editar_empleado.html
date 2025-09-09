@@ -6,14 +6,6 @@
 <div class="container">
     <h4 class="text-center">Editar Empleado</h4>
     
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-
     <form method="POST" action="{{ url_for('empleado.editar_empleado', id=empleado.id_empleado) }}">
         <fieldset class="shadow border p-2 mb-0 rounded border-primary">
             <legend class="float-none w-auto px-1 fs-5">Datos de Usuario</legend>

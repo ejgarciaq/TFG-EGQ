@@ -1,6 +1,7 @@
 import pytz
 import secrets
 import string
+import re
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
@@ -16,6 +17,36 @@ ZONA_HORARIA_LOCAL = pytz.timezone('America/Costa_Rica')
 # Definir el límite de intentos y el tiempo de bloqueo de la cuenta.
 MAX_INTENTOS_FALLIDOS = 5
 TIEMPO_BLOQUEO_MINUTOS = 15
+
+
+
+# Aquí se validan los requisitos de la contraseña
+def validar_complejidad_password(password):
+    """    
+    Requisitos:
+    - Mínimo 8 caracteres de longitud.
+    - Al menos una letra mayúscula.
+    - Al menos una letra minúscula.
+    - Al menos un número.
+    - Al menos un carácter especial (@$!%*?&).
+    """
+    # 1. Mínimo 8 caracteres
+    if len(password) < 8:
+        return False, 'La contraseña debe tener al menos 8 caracteres.'
+    # 2. Al menos una letra mayúscula
+    if not re.search(r"[A-Z]", password):
+        return False, 'La contraseña debe contener al menos una letra mayúscula.'
+    # 3. Al menos una letra minúscula
+    if not re.search(r"[a-z]", password):
+        return False, 'La contraseña debe contener al menos una letra minúscula.'
+    # 4. Al menos un dígito
+    if not re.search(r"[0-9]", password):
+        return False, 'La contraseña debe contener al menos un número.'
+    # 5. Al menos un carácter especial
+    if not re.search(r"[@$!%*?&]", password):
+        return False, 'La contraseña debe contener al menos uno de los siguientes caracteres especiales: @$!%*?&.'
+    
+    return True, ''
 
 #-----------------------------------------------------------------------------------
 # RUTAS DE AUTENTICACIÓN
@@ -194,6 +225,12 @@ def cambiar_contrasena():
         # Valida que los campos no estén vacíos y que las contraseñas coincidan.
         if not nueva_contrasena or not confirmar_contrasena:
             flash('Por favor, completa todos los campos.', 'danger')
+            return render_template('cambiar_contrasena.html')
+
+        # Aquí se realiza la nueva validación de complejidad
+        es_valida, mensaje = validar_complejidad_password(nueva_contrasena)
+        if not es_valida:
+            flash(mensaje, 'danger')
             return render_template('cambiar_contrasena.html')
 
         if nueva_contrasena != confirmar_contrasena:
