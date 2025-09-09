@@ -121,7 +121,7 @@ def logout():
         return redirect(url_for('auth.login'))
     except Exception as e:
         current_app.logger.error(f'Error al cerrar la sesión: {e}', exc_info=True)
-        flash('Ocurrió un error inesperado al cerrar la sesión. Por favor, inténtelo de nuevo.', 'danger')
+        flash('Ocurrió un error inesperado al cerrar la sesión.\nPor favor, inténtelo de nuevo.', 'danger')
         return redirect(url_for('auth.base'))
 
 @login_bp.route('/olvido_contrasena', methods=['GET'])
@@ -132,57 +132,66 @@ def olvido_contrasena():
 @login_bp.route('/admin/restablecer_contrasena', methods=['POST']) # ✅ Cambiar a solo POST
 @login_required
 def restablecer_contrasena_admin():
+    """ Ruta para que un administrador restablezca la contraseña de otro usuario."""
+    # Verifica si el usuario actual tiene el rol de 'admin'. Si no, lo redirige.
     if not current_user.rol.tipo_rol == 'admin':
         flash('No tiene permisos para acceder a esta página.', 'danger')
         return redirect(url_for('auth.base'))
 
     username = request.form.get('username')
     
-    # ✅ Verificar si el campo de usuario está presente
+    # Valida que se haya proporcionado un nombre de usuario.
     if not username:
         flash('No se ha proporcionado un nombre de usuario.', 'danger')
-        return redirect(url_for('empleado.listar_empleado')) # Redirigir a una página segura si no hay usuario
+        # Redirige a una página segura si falta el dato.
+        return redirect(url_for('empleado.listar_empleado'))
         
     usuario = Usuario.query.filter_by(username=username).first()
 
-    # ✅ Obtener el ID del empleado antes de redirigir
+    # Obtiene el ID del empleado asociado para poder redirigir correctamente.
     empleado = Empleado.query.filter_by(Usuario_id_usuario=usuario.id_usuario).first()
     if not empleado:
         flash('Empleado no encontrado para el usuario especificado.', 'danger')
         return redirect(url_for('empleado.listar_empleado'))
-
+    # Si no se encuentra el usuario, muestra un mensaje y redirige.
     if not usuario:
         flash(f'No se encontró ningún usuario con el nombre "{username}".', 'danger')
         return redirect(url_for('empleado.editar_empleado', id=empleado.id_empleado))
 
     try:
+        # Genera una contraseña temporal segura y aleatoria.
         alphabet = string.ascii_letters + string.digits + string.punctuation
         temp_password = ''.join(secrets.choice(alphabet) for i in range(8))
-        
+        # Hashea la nueva contraseña y marca la cuenta para que el usuario la cambie.
         usuario.password = generate_password_hash(temp_password)
         usuario.cambio_password_requerido = True
         db.session.commit()
-        
+        # Muestra la contraseña temporal en un mensaje flash para que el administrador la comunique.
         flash(f'La contraseña para el usuario "{username}" ha sido restablecida. La nueva clave temporal es: {temp_password}', 'success')
         
     except Exception as e:
         current_app.logger.error(f'Error al restablecer la contraseña del usuario {username}: {e}', exc_info=True)
         flash('Ocurrió un error al restablecer la contraseña. Contacta a soporte.', 'danger')
     
-    # ✅ Redirigir de vuelta a la página de edición del empleado
+    # Redirigir de vuelta a la página de edición del empleado
     return redirect(url_for('empleado.editar_empleado', id=empleado.id_empleado))
 
 @login_bp.route('/cambiar_contrasena', methods=['GET', 'POST'])
 @login_required
 def cambiar_contrasena():
-    # Si el cambio no es requerido, redirigir a la página principal
+    """
+    Permite a un usuario cambiar su contraseña temporal por una nueva.
+    Esta ruta está protegida y solo se puede acceder si el usuario tiene el flag
+    `cambio_password_requerido` en True.
+    """
+    # Redirige si el cambio de contraseña no es requerido.
     if not current_user.cambio_password_requerido:
         return redirect(url_for('auth.base'))
         
     if request.method == 'POST':
         nueva_contrasena = request.form.get('nueva_contrasena')
         confirmar_contrasena = request.form.get('confirmar_contrasena')
-        
+        # Valida que los campos no estén vacíos y que las contraseñas coincidan.
         if not nueva_contrasena or not confirmar_contrasena:
             flash('Por favor, completa todos los campos.', 'danger')
             return render_template('cambiar_contrasena.html')
@@ -192,6 +201,7 @@ def cambiar_contrasena():
             return render_template('cambiar_contrasena.html')
 
         try:
+            # Hashea y guarda la nueva contraseña, y desactiva el flag de cambio requerido.
             current_user.password = generate_password_hash(nueva_contrasena)
             current_user.cambio_password_requerido = False
             db.session.commit()

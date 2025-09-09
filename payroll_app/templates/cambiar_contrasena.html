@@ -1,28 +1,71 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Cambiar Contraseña</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Cambiar Contraseña {% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
-<body>
-    <h1>Cambiar Contraseña</h1>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+  </head>
+  <body class="bg-light">
+    <div class="container mt-5">
+      <div class="row justify-content-center">
+        <div class="col-md-6">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h2 class="card-title text-center mb-4">Cambiar Contraseña</h2>
 
-    <p>Su contraseña temporal ha sido utilizada. Por favor, cree una nueva contraseña para continuar.</p>
-    <form method="POST">
-        <label for="nueva_contrasena">Nueva Contraseña:</label>
-        <input type="password" id="nueva_contrasena" name="nueva_contrasena" required>
-        <br>
-        <label for="confirmar_contrasena">Confirmar Contraseña:</label>
-        <input type="password" id="confirmar_contrasena" name="confirmar_contrasena" required>
-        <br>
-        <button type="submit">Cambiar Contraseña</button>
+              {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                  {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                      {{ message }}
+                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                  {% endfor %}
+                {% endif %}
+              {% endwith %}
+
+              <p class="text-muted">
+                Su contraseña temporal ha sido utilizada. Por favor, cree una nueva contraseña para continuar.
+              </p>
+
+              <form method="POST">
+                <div class="mb-3">
+                  <label for="nueva_contrasena" class="form-label">Nueva Contraseña:</label>
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="nueva_contrasena"
+                    name="nueva_contrasena"
+                    required
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label for="confirmar_contrasena" class="form-label">Confirmar Contraseña:</label>
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="confirmar_contrasena"
+                    name="confirmar_contrasena"
+                    required
+                  />
+                </div>
+
+                <div class="d-grid">
+                  <button type="submit" class="btn btn-primary">Cambiar Contraseña</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     </form>
-</body>
+        <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/utils.js') }}"></script> 
+  </body>
 </html>

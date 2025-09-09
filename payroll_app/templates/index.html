@@ -23,11 +23,8 @@
                 <div class="text-center">
                     <img src="{{ url_for('static', filename='/img/logo.webp') }}" alt="Logo" class="img-fluid">
                 </div>
-
-
                 <fieldset class="shadow border p-2 rounded border-primary mt-4">
                     <legend class="float-none w-auto px-1 fs-4 text-center">Inicia Sesión</legend>
-
                     <form action="/auth/login" method="POST" class="form">
                         <div class="mb-3 text-center">
                             <input type="text" id="username" name="username" class="form-control" placeholder="Usuario" required>
@@ -45,11 +42,7 @@
                             </div>
                         </div>
                     </form>  
-
                 </fieldset>
-
-
-        
         </div>
     </div>
         <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
