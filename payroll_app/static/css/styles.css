@@ -1,92 +1,127 @@
+/*
+    -----------------------------------------------------------------------------------
+    HOJA DE ESTILOS PRINCIPAL
+    -----------------------------------------------------------------------------------
+    Este archivo CSS organiza los estilos de la aplicación de nómina.
+    Las reglas están agrupadas por su propósito para facilitar la lectura y el mantenimiento.
+*/
+
+
+/* ===================================================================================
+   ESTILOS BASE Y GENERALES
+   - Estos estilos aplican a toda la página para un reseteo básico y consistencia.
+   =================================================================================== */
 body {
-    margin: 0px;
-    padding: 0px;
-}
-
-.button_menu {
-    text-align: left;
-    padding-left: 15px; /* Espacio entre el borde izquierdo y el texto */
-}
-
-.body-login {
-  
-    margin-top:10%;
+    margin: 0;
     padding: 0;
-
 }
 
+/* Alinea el contenido principal de la aplicación, dejando espacio para el menú lateral.
+    - `margin-left` desplaza el contenido para que no se superponga con el menú fijo.
+*/
 .body-3 {
     margin-left: 170px;
     padding: 20px;
 }
 
-.dropdown-menu {
-  z-index: 1050; /* valor recomendado por Bootstrap */
-}
 
+/* ===================================================================================
+   ESTILOS PARA MENÚ LATERAL Y NAVEGACIÓN
+   - Reglas específicas para el diseño y comportamiento del menú de navegación.
+   =================================================================================== */
 
-/* Estilo para el menú lateral */
-
-/* Habilitar scroll vertical en el menú lateral */
-
+/* Contenedor del menú de navegación.
+    - `position: fixed` lo mantiene visible y fijo en la pantalla.
+    - `height: 100vh` asegura que ocupe la altura completa de la ventana del navegador.
+    - `width` y `padding` definen sus dimensiones.
+    - `z-index` lo coloca por encima de la mayoría de los elementos.
+*/
 nav {
-    position: fixed; /* Asegura que el menú permanezca fijo */
-    width: 160px; /* Mantén el ancho del menú */
-    box-sizing: border-box; /* Asegura que el padding no afecte el tamaño total */
-    z-index: 1050; /* Asegura que el menú lateral esté por encima del contenido principal */
-    height: 100vh; position: fixed; 
+    position: fixed;
+    height: 100vh;
+    width: 160px;
+    box-sizing: border-box;
+    z-index: 1050;
 }
 
-/* Estilo para submenús */
+/* Alinea el texto de los botones del menú.
+    - Útil para los botones que no son desplegables.
+*/
+.button_menu {
+    text-align: left;
+    padding-left: 15px;
+}
+
+/* Estilo para los enlaces de navegación del menú.
+    - Define el color predeterminado del texto.
+*/
+.nav-link {
+    color: #000;
+}
+
+/* Resalta el enlace de navegación que está activo.
+    - Esto se usa para indicar en qué página se encuentra el usuario.
+*/
+.nav-link.active {
+    color: #ffc107;
+    font-weight: bold;
+}
+
+
+/* ===================================================================================
+   ESTILOS PARA SUBMENÚS DESPLEGABLES
+   - Estas reglas manejan el comportamiento y la apariencia de los submenús.
+   =================================================================================== */
+
+/* Posiciona los submenús para que aparezcan al lado del elemento padre.
+    - `position: relative` es crucial para que el submenú se posicione correctamente.
+*/
 .dropdown-submenu {
     position: relative;
 }
 
-.dropdown-submenu .dropdown-menu {
-    top: 0;
-    left: 100%; /* Posiciona el submenú a la derecha del menú principal */
-    margin-top: -1px;
-    display: none; /* Oculta el submenú por defecto */
-    z-index: 9999; /* Asegura que el submenú esté por encima de todos los elementos */
-    position: absolute; /* Asegura que el submenú esté correctamente posicionado */
-    background-color: #fff; /* Asegura que el fondo sea visible */
-    border: 1px solid #ddd; /* Opcional: agrega un borde para diferenciarlo */
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Agrega una sombra para mayor visibilidad */
-}
-
-.dropdown-submenu:hover .dropdown-menu {
-    display: block; /* Muestra el submenú al pasar el mouse */
-}
-
-/* Estilo para enlaces del menú lateral */
-.nav-link {
-    color: #000;}
-.nav-link.active {
-    color: #ffc107; /* Color amarillo para el enlace activo */
-    font-weight: bold; /* Resalta el texto del enlace activo */
-
-}
-
-/* Posiciona el submenú a la derecha */
-.dropdown-submenu {
-  position: relative;
-}
-
+/* Estilo por defecto para el menú desplegable (el que se oculta).
+    - `top: 0` y `left: 100%` lo colocan a la derecha del elemento padre.
+    - `display: none` lo oculta por defecto.
+    - `z-index` asegura que se muestre por encima de otros elementos.
+*/
 .dropdown-submenu > .dropdown-menu {
-  top: 0;
-  left: 100%;
-  margin-left: 0.1rem;
-  margin-top: -0.5rem;
-  display: none;
-  position: absolute;
+    position: absolute;
+    top: 0;
+    left: 100%;
+    margin-left: 0.1rem;
+    margin-top: -0.5rem;
+    display: none;
+    z-index: 9999;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Mostrar el submenú al pasar el mouse */
+/* Muestra el submenú cuando el usuario pasa el cursor sobre el elemento padre.
+*/
 .dropdown-submenu:hover > .dropdown-menu {
-  display: block;
+    display: block;
 }
 
-/* Estilo para mensajes flash */
+
+/* ===================================================================================
+   ESTILOS ESPECÍFICOS DE VISTAS
+   - Estilos para elementos únicos en páginas específicas de la aplicación.
+   =================================================================================== */
+
+/* Estilo para la página de login.
+    - `margin-top` centra el formulario verticalmente.
+*/
+.body-login {
+    margin-top: 10%;
+    padding: 0;
+}
+
+/* Estilo para los mensajes flash (alertas).
+    - `position: fixed` y `z-index` los mantienen visibles en la parte superior.
+    - `transform: translateX(-50%)` los centra horizontalmente de manera perfecta.
+*/
 .flashes {
     position: fixed;
     top: 0px;
@@ -96,15 +131,18 @@ nav {
     z-index: 9999;
     width: 80%;
     white-space: pre-line;
-}   
+}
 
-/* Estilo para la página de registro de asistencia */
+/* Estilo para el reloj digital en la página de asistencia.
+*/
 .reloj {
     text-align: center;
     font-size: 15em;
     margin-bottom: 5px;
 }
 
+/* Estilo para la fecha en la página de asistencia.
+*/
 .fecha {
     text-align: center;
     font-size: 5em;
