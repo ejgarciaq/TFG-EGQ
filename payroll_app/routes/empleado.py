@@ -23,13 +23,14 @@ from payroll_app.models import (
 )
 from datetime import datetime
 from flask_login import login_required, current_user
-
+from payroll_app.routes.decorators import permiso_requerido
 
 # Se crea un objeto Blueprint llamado 'empleado', que permite modularizar la aplicación Flask.
 empleado_bp = Blueprint("empleado", __name__, template_folder="templates")
 
-
 @empleado_bp.route("/crear_empleado", methods=["GET", "POST"])
+@permiso_requerido('crear_empleado')
+@login_required
 def crear_empleado():
     roles = Rol.query.all()
     puestos = Puesto.query.all()
@@ -128,13 +129,11 @@ def crear_empleado():
         "crear_empleado.html", puestos=puestos, roles=roles, tipos_nomina=tipos_nomina
     )
 
-
 # ---------------------------------------------------------------------------------
 
-
 @empleado_bp.route("/editar_empleado/<int:id>", methods=["GET", "POST"])
-# @login_required
-# @roles_required('Administrador')
+@permiso_requerido('editar_empleado')
+@login_required
 def editar_empleado(id):
     empleado = Empleado.query.get_or_404(id)
     roles = Rol.query.all()
@@ -142,7 +141,7 @@ def editar_empleado(id):
     tipos_nomina = TipoNomina.query.all()
 
     if request.method == "POST":
-        # ✅ Identifica la acción a realizar
+        #  Identifica la acción a realizar
         action = request.form.get("action")
 
         if action == "guardar_cambios":
@@ -268,17 +267,20 @@ def editar_empleado(id):
         tipos_nomina=tipos_nomina,
     )
 
-
 # ---------------------------------------------------------------------------------
 
-
 @empleado_bp.route("/listar_empleado")
+@permiso_requerido('listar_empleados')
+@login_required
 def listar_empleado():
     empleados = Empleado.query.all()
     return render_template("listar_empleado.html", empleados=empleados)
 
+# -------------------------------------------------------------------------------
 
 @empleado_bp.route("/eliminar_empleado/<int:id>", methods=["POST"])
+@permiso_requerido('eliminar_empleado')
+@login_required
 def eliminar_empleado(id):
     empleado = Empleado.query.get_or_404(id)
     usuario = Usuario.query.get_or_404(empleado.Usuario_id_usuario)

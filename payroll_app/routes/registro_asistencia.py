@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import current_user, login_required
+from payroll_app.routes.decorators import permiso_requerido
 from sqlalchemy import func
 from payroll_app.models import db, RegistroAsistencia, Feriado, Empleado, Nomina, TipoNomina, Tipo_AP, Accion_Personal
 from datetime import datetime, date, time, timedelta
@@ -23,11 +24,14 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
+# Ver asistencia pantalla control de marcas ----------------------------------------------------
 @registro_asistencia_bp.route('/asistencia', methods=['GET'])
-@login_required 
+@login_required
 def ver_asistencia():
     return render_template('registro_asistencia.html')
+
+
+# registrar asistencia -------------------------------
 
 @registro_asistencia_bp.route('/asistencia/registrar', methods=['POST'])
 @login_required 
@@ -134,6 +138,7 @@ def registrar_asistencia():
 
 # listar registros
 @registro_asistencia_bp.route('/listar_asistencia')
+@permiso_requerido('listar_asistencia')
 @login_required
 def listar_asistencia():
     # Obtener todos los registros de asistencia ordenados por fecha
@@ -142,6 +147,7 @@ def listar_asistencia():
 
 # Editar registro de asistencia
 @registro_asistencia_bp.route('/editar/<int:registro_id>', methods=['GET', 'POST'])
+@permiso_requerido('editar_asistencia')
 @login_required
 def editar_asistencia(registro_id):
     registro = RegistroAsistencia.query.get_or_404(registro_id)
@@ -212,6 +218,7 @@ def editar_asistencia(registro_id):
 
 #Eliminar registro
 @registro_asistencia_bp.route('/eliminar/<int:registro_id>', methods=['POST'])
+@permiso_requerido('eliminar_asistencia')
 @login_required
 def eliminar_asistencia(registro_id):
     registro = RegistroAsistencia.query.get_or_404(registro_id)
@@ -230,6 +237,7 @@ def eliminar_asistencia(registro_id):
 # -------------------------  Generar Planilla Planilla 
 
 @registro_asistencia_bp.route('/generar_nomina', methods=['GET', 'POST'])
+@permiso_requerido('generar_nomina')
 @login_required
 def generar_nomina():
     """Muestra el formulario, la lista de nóminas, y procesa la generación."""
@@ -285,6 +293,7 @@ def generar_nomina():
     return render_template('generar_nomina.html', nominas=nominas, tipos_nomina=tipos_nomina)
         
 @registro_asistencia_bp.route('/listar_nominas')
+@permiso_requerido('listar_nominas')
 @login_required
 def listar_nominas():
     """Muestra una lista de todas las nóminas generadas."""

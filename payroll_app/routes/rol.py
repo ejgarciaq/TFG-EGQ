@@ -1,14 +1,13 @@
-# payroll_app/routes/rol.py
-
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from payroll_app.routes.decorators import permiso_requerido, admin_required # ✅ Importa el nuevo decorador
 from payroll_app.models import db, Rol, Permiso, Usuario # ✅ Asegúrate de importar Permiso
-from flask_login import current_user
+from flask_login import current_user, login_required
 
 rol_bp = Blueprint('rol', __name__, url_prefix='/roles')
 
 @rol_bp.route('/')
-@permiso_requerido('listar_roles') # ✅ Protege la ruta con un permiso específico
+@permiso_requerido('listar_roles') # Protege la ruta con un permiso específico
+@login_required
 def listar_roles():
     """
     Muestra una lista de todos los roles existentes.
@@ -18,7 +17,8 @@ def listar_roles():
     return render_template('listar_roles.html', roles=roles)
 
 @rol_bp.route('/crear', methods=['GET', 'POST'])
-#@permiso_requerido('crear_rol') # ✅ Protege la ruta con el permiso 'crear_rol'
+@permiso_requerido('crear_rol') # Protege la ruta con el permiso 'crear_rol'
+@login_required
 def crear_rol():
     """
     Muestra el formulario para crear un nuevo rol y lo procesa.
@@ -52,7 +52,8 @@ def crear_rol():
     return render_template('crear_rol.html', permisos=permisos)
 
 @rol_bp.route('/editar/<int:id>', methods=['GET', 'POST'])
-@permiso_requerido('editar_rol') # ✅ Protege la ruta con el permiso 'editar_rol'
+@permiso_requerido('editar_rol') # Protege la ruta con el permiso 'editar_rol'
+@login_required
 def editar_rol(id):
     """
     Muestra el formulario para editar un rol y procesa la actualización.
@@ -71,9 +72,9 @@ def editar_rol(id):
         rol_a_editar.tipo_rol = tipo_rol
         rol_a_editar.descripcion_rol = descripcion_rol
         
-        # ✅ Primero, limpia los permisos existentes del rol.
+        # Primero, limpia los permisos existentes del rol.
         rol_a_editar.permisos.clear()
-        # ✅ Luego, agrega los permisos seleccionados.
+        # Luego, agrega los permisos seleccionados.
         for permiso_id in permisos_seleccionados_ids:
             permiso = Permiso.query.get(permiso_id)
             if permiso:
@@ -92,7 +93,8 @@ def editar_rol(id):
     return render_template('editar_rol.html', rol=rol_a_editar, permisos=permisos)
 
 @rol_bp.route('/eliminar/<int:id>', methods=['POST'])
-#@permiso_requerido('eliminar_rol') # ✅ Protege la ruta con el permiso 'eliminar_rol'
+@permiso_requerido('eliminar_rol') # Protege la ruta con el permiso 'eliminar_rol'
+@login_required
 def eliminar_rol(id):
     """
     Elimina un rol de la base de datos.

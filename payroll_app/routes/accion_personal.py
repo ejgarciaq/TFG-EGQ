@@ -6,6 +6,8 @@ from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
 
+from payroll_app.routes.decorators import permiso_requerido
+
 # El nombre del blueprint es 'accion_personal_bp'
 accion_personal_bp = Blueprint('accion_personal_bp', __name__)
 
@@ -21,7 +23,9 @@ def allowed_file(filename):
     """Función para validar la extensión del archivo."""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# accion_personal ------------------------------------------------------------------------------------------
 @accion_personal_bp.route('/accion_personal', methods=['GET', 'POST'])
+@permiso_requerido('listar_accion_personal')
 @login_required
 def accion_personal():
     empleados = Empleado.query.all()
@@ -83,15 +87,16 @@ def accion_personal():
                             acciones_personales=acciones_personales,
                             dias_feriados=dias_feriados)
 
-
+# aprobar_accion --------------------------------------------------------------------------------------------------------------
 @accion_personal_bp.route('/aprobar_accion/<int:ap_id>', methods=['POST'])
+@permiso_requerido('aprobar_acciones_personales')
 @login_required
 def aprobar_accion(ap_id):
+    """
+    Aprueba una acción de personal si el usuario tiene el permiso requerido.
+    El decorador 'permiso_requerido' se encarga de la validación.
+    """
     ap = Accion_Personal.query.get_or_404(ap_id)
-    
-    if current_user.rol.tipo_rol not in ['gestor', 'admin']:
-        flash('No tienes permiso para aprobar acciones de personal.', 'danger')
-        return redirect(url_for('accion_personal_bp.accion_personal'))
     
     if ap.estado_ap != 1:
         flash('Esta acción ya ha sido procesada.', 'warning')
@@ -121,23 +126,27 @@ def aprobar_accion(ap_id):
     
     return redirect(url_for('accion_personal_bp.accion_personal'))
 
+# Rechacar accion de personal ----------------------------------------------------------
+
 @accion_personal_bp.route('/rechazar_accion/<int:ap_id>', methods=['POST'])
+@permiso_requerido('rechazar_acciones_personales')
 @login_required
 def rechazar_accion(ap_id):
+    """
+    Rechaza una acción de personal si el usuario tiene el permiso requerido.
+    """
     ap = Accion_Personal.query.get_or_404(ap_id)
     
-    if current_user.rol.tipo_rol in ['gestor', 'admin']:
-        ap.estado_ap = 3 
-        ap.id_aprobador = current_user.id_usuario
-        ap.fecha_aprobacion = datetime.utcnow()
-        
-        try:
-            db.session.commit()
-            flash('Acción de personal rechazada.', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error al rechazar la acción: {str(e)}', 'danger')
-    else:
-        flash('No tienes permiso para rechazar acciones de personal.', 'danger')
+    # ✅ Lógica de rechazo simplificada, ya que el decorador garantiza el permiso.
+    ap.estado_ap = 3
+    ap.id_aprobador = current_user.id_usuario
+    ap.fecha_aprobacion = datetime.utcnow()
     
+    try:
+        db.session.commit()
+        flash('Acción de personal rechazada.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al rechazar la acción: {str(e)}', 'danger')
+
     return redirect(url_for('accion_personal_bp.accion_personal'))
