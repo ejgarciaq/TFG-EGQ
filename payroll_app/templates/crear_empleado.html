@@ -14,8 +14,11 @@
                         <input type="text" class="form-control" id="username" name="username" required>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label for="password" class="form-label">Contraseña</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
+                        <label for="password" class="form-label">Contraseña Temporal</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="password" name="password" readonly>
+                            <button class="btn btn-outline-secondary" type="button" id="generatePasswordBtn">Generar</button>
+                        </div>
                     </div>
                     <div class="col-md-4 mb-3">
                         <label for="rol_id" class="form-label">Rol</label>

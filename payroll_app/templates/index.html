@@ -8,25 +8,23 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flashes">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
     <div class="d-flex justify-content-center align-items-center body-login ">
         <div class="row w-50">
             <div class="col-md-6 col-lg-4 mx-auto">
                 <div class="text-center">
                     <img src="{{ url_for('static', filename='/img/logo.webp') }}" alt="Logo" class="img-fluid">
                 </div>
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        <div class="flashes">
-                            {% for category, message in messages %}
-                                <div class="alert-info alert {{ category }}">{{ message }}</div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                {% endwith %}
-
                 <fieldset class="shadow border p-2 rounded border-primary mt-4">
                     <legend class="float-none w-auto px-1 fs-4 text-center">Inicia Sesión</legend>
-
                     <form action="/auth/login" method="POST" class="form">
                         <div class="mb-3 text-center">
                             <input type="text" id="username" name="username" class="form-control" placeholder="Usuario" required>
@@ -35,7 +33,7 @@
                             <input type="password" id="password" name="password" class="form-control" placeholder="Contraseña" required>
                         </div>
                         <div class="mb-3 text-center">
-                            <button type="submit" class="btn btn-primary w-100 text-center">Iniciar Sesión</button>
+                            <button type="submit" class="btn btn-primary w-100 text-center">Ingresar</button>
                         </div>
                         <div class="mb-3">
                             <div class="form-check from-check-inline">
@@ -43,12 +41,11 @@
                                 <label class="form-check-label" for="showPassword">Mostrar Contraseña</label>
                             </div>
                         </div>
+                        <p class="text-center mt-3">
+                            <a href="{{ url_for('auth.olvido_contrasena') }}" class="text-decoration-none">¿Olvidó su contraseña?</a>
+                        </p>
                     </form>  
-
                 </fieldset>
-
-
-        
         </div>
     </div>
         <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>

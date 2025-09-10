@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Cambiar Contraseña {% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h2 class="card-title text-center mb-4">Cambiar Contraseña</h2>
+
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <p class="text-muted">
+                            Su contraseña temporal ha sido utilizada. Por favor, cree una nueva contraseña para continuar.
+                        </p>
+
+                        <div class="password-requirements mt-3">
+                            <p class="mb-1">La contraseña debe cumplir con los siguientes requisitos:</p>
+                            <ul class="list-unstyled">
+                                <li id="length-req" class="text-danger"><i class="fas fa-times-circle"></i> Mínimo 8 caracteres.</li>
+                                <li id="uppercase-req" class="text-danger"><i class="fas fa-times-circle"></i> Al menos una mayúscula.</li>
+                                <li id="lowercase-req" class="text-danger"><i class="fas fa-times-circle"></i> Al menos una minúscula.</li>
+                                <li id="number-req" class="text-danger"><i class="fas fa-times-circle"></i> Al menos un número.</li>
+                                <li id="symbol-req" class="text-danger"><i class="fas fa-times-circle"></i> Al menos un carácter especial (@$!%*?&).</li>
+                            </ul>
+                        </div>
+
+                        <form method="POST">
+                            <div class="mb-3">
+                                <label for="nueva_contrasena" class="form-label">Nueva Contraseña:</label>
+                                <input
+                                    type="password"
+                                    class="form-control"
+                                    id="nueva_contrasena"
+                                    name="nueva_contrasena"
+                                    required
+                                />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="confirmar_contrasena" class="form-label">Confirmar Contraseña:</label>
+                                <input
+                                    type="password"
+                                    class="form-control"
+                                    id="confirmar_contrasena"
+                                    name="confirmar_contrasena"
+                                    required
+                                />
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">Cambiar Contraseña</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script> 
+</body>
+</html>
