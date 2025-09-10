@@ -6,12 +6,34 @@ from flask_login import UserMixin
 # Este archivo define la estructura de las tablas de la base de datos
 # a través de los modelos de SQLAlchemy, facilitando la interacción con la misma.
 
-# --- Roles ---
+# --- Tabla de unión para la relación muchos a muchos entre Rol y Permiso ---
+# Esta tabla es necesaria para que un Rol pueda tener múltiples Permisos, y un
+# Permiso pueda estar asociado a múltiples Roles, sin repetir datos.
+rol_permiso = db.Table('rol_permiso',
+    db.Column('id_rol', db.Integer, db.ForeignKey('rol.id_rol'), primary_key=True),
+    db.Column('id_permiso', db.Integer, db.ForeignKey('permiso.id_permiso'), primary_key=True)
+)
 
+# --- Permisos ---
+class Permiso(db.Model):
+    """
+    Modelo para la tabla 'permiso'.
+    Almacena los permisos granulares del sistema (ej. 'ver_nomina', 'editar_empleado').
+    """
+    __tablename__ = 'permiso'
+    id_permiso = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(50), unique=True, nullable=False)
+    descripcion = db.Column(db.String(255))
+    
+    def __repr__(self):
+        return f'<Permiso {self.nombre}>'
+
+# --- Roles ---
 class Rol(db.Model):
     """
     Modelo para la tabla 'rol'.
     Almacena los roles de usuario (ej. 'Administrador', 'Empleado').
+    Ahora incluye una relación con los permisos a través de la tabla de unión.
     """
     __tablename__ = 'rol'
     id_rol = db.Column(db.Integer, primary_key=True)
@@ -19,11 +41,17 @@ class Rol(db.Model):
     descripcion_rol = db.Column(db.String(255), nullable=True)
     usuarios = db.relationship('Usuario', back_populates='rol')
     
+    # Relación muchos a muchos con el modelo Permiso.
+    # 'secondary' indica la tabla de unión que se usará.
+    # 'lazy' define cómo se cargan los datos. 'subquery' carga los permisos en una sola consulta.
+    # 'backref' crea una relación inversa en el modelo Permiso.
+    permisos = db.relationship('Permiso', secondary=rol_permiso, lazy='subquery',
+                               backref=db.backref('roles', lazy=True))
+    
     def __repr__(self):
         return f'<Rol {self.tipo_rol}>'
     
 # --- Usuarios ---
-
 class Usuario(db.Model, UserMixin):
     """
     Modelo para la tabla 'usuario'.
@@ -35,13 +63,14 @@ class Usuario(db.Model, UserMixin):
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     estado_usuario = db.Column(db.Boolean, nullable=False)
+    # Llave foránea que relaciona un Usuario con un Rol.
     Rol_id_rol = db.Column(db.Integer, db.ForeignKey('rol.id_rol'), nullable=False)
     
-    # ✅ Relaciones bidireccionales
+    # Relaciones bidireccionales con Rol y Empleado para facilitar la navegación.
     rol = db.relationship('Rol', back_populates='usuarios')
     empleado = db.relationship('Empleado', back_populates='usuario', uselist=False)
     
-    # Campos de seguridad
+    # Campos de seguridad para el control de acceso
     intentos_fallidos = db.Column(db.Integer, default=0, nullable=False)
     fecha_ultimo_intento = db.Column(db.DateTime, nullable=True)
     cambio_password_requerido = db.Column(db.Boolean, default=False, nullable=False)
@@ -54,7 +83,6 @@ class Usuario(db.Model, UserMixin):
         return f'<Usuario {self.username}>'
     
 # --- Puesto ---
-    
 class Puesto(db.Model):
     """
     Modelo para la tabla 'puesto'.
@@ -69,7 +97,6 @@ class Puesto(db.Model):
         return f'<Puesto {self.tipo_puesto}>'
     
 # --- Empleados ---
-    
 class Empleado(db.Model):
     """
     Modelo para la tabla 'empleado'.
@@ -92,7 +119,7 @@ class Empleado(db.Model):
     fecha_salida = db.Column(db.Date, nullable=True)
     estado_empleado = db.Column(db.Boolean, nullable=False)
     
-    # Claves foráneas
+    # Claves foráneas que conectan Empleado a otras tablas.
     Puesto_id_puesto = db.Column(db.Integer, db.ForeignKey('puesto.id_puesto'), nullable=False)
     TipoNomina_id_tipo_nomina = db.Column(db.Integer, db.ForeignKey('tipo_nomina.id_tipo_nomina'), nullable=False)
     Usuario_id_usuario = db.Column(db.Integer, db.ForeignKey('usuario.id_usuario'), unique=True, nullable=False)
@@ -100,7 +127,7 @@ class Empleado(db.Model):
     # Control de vacaciones
     vacaciones_disponibles = db.Column(db.Integer, default=0, nullable=False)
     
-    # Relaciones
+    # Relaciones que facilitan la consulta de datos relacionados.
     usuario = db.relationship('Usuario', back_populates='empleado')
     puesto = db.relationship('Puesto', back_populates='empleados')
     nominas = db.relationship('Nomina', back_populates='empleado')
@@ -118,7 +145,6 @@ class Empleado(db.Model):
         return f'<Empleado {self.nombre} {self.apellido_primero}>'
     
 # --- Feriados ---
-
 class Feriado(db.Model):
     """
     Modelo para la tabla 'feriado'.
@@ -135,7 +161,6 @@ class Feriado(db.Model):
         return f'<Feriado {self.fecha_feriado}>'
 
 # --- Tipo de nomina ---
-
 class TipoNomina(db.Model):
     """
     Modelo para la tabla 'tipo_nomina'.
@@ -151,7 +176,6 @@ class TipoNomina(db.Model):
         return f'<TipoNomina {self.nombre_tipo}>'
 
 # --- Nomina ---
-
 class Nomina(db.Model):
     """
     Modelo para la tabla 'nomina'.
@@ -176,7 +200,6 @@ class Nomina(db.Model):
         return f'<Nomina {self.id_nomina} del Empleado {self.Empleado_id_empleado}>'
     
 # --- Registro de Asistencia ---
-    
 class RegistroAsistencia(db.Model):
     """
     Modelo para la tabla 'registro_asistencia'.
@@ -231,7 +254,6 @@ class Tipo_AP(db.Model):
         return f'<Tipo_AP {self.nombre_tipo}>'
     
 # --- Acción de Personal ---
-    
 class Accion_Personal(db.Model):
     """
     Modelo para la tabla que registra las acciones de personal.

@@ -33,7 +33,7 @@ empleado_bp = Blueprint("empleado", __name__, template_folder="templates")
 def crear_empleado():
     roles = Rol.query.all()
     puestos = Puesto.query.all()
-    # ❗❗❗ Obtener todos los tipos de nómina de la base de datos ❗❗❗
+    #  Obtener todos los tipos de nómina de la base de datos
     tipos_nomina = TipoNomina.query.all()
 
     if request.method == "POST":

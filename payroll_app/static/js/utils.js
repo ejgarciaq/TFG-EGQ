@@ -183,75 +183,37 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Gerera la clave al crear el nuevo usuario
-document.addEventListener('DOMContentLoaded', function() {
+// Lógica para generar contraseña temporal
+const passwordInput = document.getElementById('password');
+const generatePasswordBtn = document.getElementById('generatePasswordBtn');
 
-    // Lógica para generar contraseña temporal (para 'Crear' y 'Editar' empleado)
-    const passwordInput = document.getElementById('password');
-    const generatePasswordBtn = document.getElementById('generatePasswordBtn');
+if (passwordInput && generatePasswordBtn) {
 
-    if (passwordInput && generatePasswordBtn) {
-        function generatePassword() {
-            // ✅ Conjunto de caracteres fáciles de leer: excluye 0, O, 1, l, I, etc.
-            const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%&*";
-            let password = "";
+    function generatePassword() {
+        const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%&*";
+        
+        // Función interna para validar la complejidad
+        const isValid = (password) => {
+            const hasLength = password.length >= 8;
+            const hasUppercase = /[A-Z]/.test(password);
+            const hasLowercase = /[a-z]/.test(password);
+            const hasNumber = /[0-9]/.test(password);
+            const hasSymbol = /[@$!%*?&]/.test(password);
+            return hasLength && hasUppercase && hasLowercase && hasNumber && hasSymbol;
+        };
+
+        let password = "";
+        do {
+            password = ""; // Reinicia la contraseña si no es válida
             for (let i = 0; i < 12; i++) {
                 password += chars.charAt(Math.floor(Math.random() * chars.length));
             }
-            return password;
-        }
-
-        generatePasswordBtn.addEventListener('click', () => {
-            passwordInput.value = generatePassword();
-        });
+        } while (!isValid(password)); // Repite hasta que la contraseña sea válida
+        
+        return password;
     }
 
-    // Lógica para la validación de requisitos en tiempo real (para 'Cambiar Contraseña')
-    const nuevaContrasenaInput = document.getElementById('nueva_contrasena');
-    const lengthReq = document.getElementById('length-req');
-    const uppercaseReq = document.getElementById('uppercase-req');
-    const lowercaseReq = document.getElementById('lowercase-req');
-    const numberReq = document.getElementById('number-req');
-    const symbolReq = document.getElementById('symbol-req');
-
-    if (nuevaContrasenaInput && lengthReq) {
-        nuevaContrasenaInput.addEventListener('keyup', function() {
-            const password = nuevaContrasenaInput.value;
-
-            // Validar la longitud (mínimo 8 caracteres)
-            const isLengthValid = password.length >= 8;
-            updateRequirement(lengthReq, isLengthValid);
-
-            // Validar mayúscula
-            const isUppercaseValid = /[A-Z]/.test(password);
-            updateRequirement(uppercaseReq, isUppercaseValid);
-
-            // Validar minúscula
-            const isLowercaseValid = /[a-z]/.test(password);
-            updateRequirement(lowercaseReq, isLowercaseValid);
-
-            // Validar número
-            const isNumberValid = /[0-9]/.test(password);
-            updateRequirement(numberReq, isNumberValid);
-
-            // Validar símbolo
-            const isSymbolValid = /[@$!%*?&]/.test(password);
-            updateRequirement(symbolReq, isSymbolValid);
-        });
-
-        function updateRequirement(element, isValid) {
-            const icon = element.querySelector('i');
-            if (isValid) {
-                element.classList.remove('text-danger');
-                element.classList.add('text-success');
-                icon.classList.remove('fa-times-circle');
-                icon.classList.add('fa-check-circle');
-            } else {
-                element.classList.remove('text-success');
-                element.classList.add('text-danger');
-                icon.classList.remove('fa-check-circle');
-                icon.classList.add('fa-times-circle');
-            }
-        }
-    }
-});
+    generatePasswordBtn.addEventListener('click', () => {
+        passwordInput.value = generatePassword();
+    });
+}

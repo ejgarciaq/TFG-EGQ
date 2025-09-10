@@ -119,6 +119,17 @@ nav {
 }
 
 /* Estilos para los mensajes flash */
+@keyframes slideDownIn {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 .flashes {
     position: fixed;
     top: 0;
