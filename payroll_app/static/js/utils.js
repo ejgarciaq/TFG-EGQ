@@ -217,3 +217,4 @@ if (passwordInput && generatePasswordBtn) {
         passwordInput.value = generatePassword();
     });
 }
+

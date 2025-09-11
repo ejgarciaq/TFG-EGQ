@@ -1,4 +1,6 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+
+{% block title %}Crear Empleado{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
@@ -19,7 +21,7 @@
                 <select class="form-control" id="tipo_ap_id" name="tipo_ap_id" required>
                     <option value="">Seleccione un tipo de acción...</option>
                     {% for tipo in tipos_ap %}
-                    <option value="{{ tipo.id_tipo_ap }}">{{ tipo.nombre_tipo }}</option>
+                    <option value="{{ tipo.id_tipo_ap }}" data-nombre-tipo="{{ tipo.nombre_tipo }}">{{ tipo.nombre_tipo }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -32,7 +34,7 @@
         
         <div id="vacation_incapacity_fields" style="display: none;" data-dias-festivos='{{ dias_feriados | tojson }}'>
             <div class="mb-3">
-                <label for="cantidad_dia" class="form-label" disabled >Cantidad de Días</label>
+                <label for="cantidad_dia" class="form-label">Cantidad de Días</label>
                 <input type="number" class="form-control" id="cantidad_dia" name="cantidad_dia" readonly>
             </div>
             <div class="row">
@@ -57,73 +59,9 @@
         </div>
 
         <button type="submit" class="btn btn-primary">Registrar Acción</button>
+        <a href="{{ url_for('accion_personal_bp.ver_historial_apu') }}" class="btn btn-primary">
+            Ver mi Historial de Acciones
+    </a>
     </form>
-
-    <hr class="my-5">
-
-    <h3>Historial de Acciones de Personal</h3>
-    <table class="table table-striped mt-3">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Empleado</th>
-                <th>Tipo de Acción</th>
-                <th>Fecha</th>
-                <th>Periodo</th>
-                <th>Detalles</th>
-                <th>Estado</th>
-                <th>Acciones</th> </tr>
-        </thead>
-        <tbody>
-            {% for ap in acciones_personales %}
-            <tr>
-                <td>{{ ap.id_accion }}</td>
-                <td>{{ ap.empleado.nombre_completo }}</td>
-                <td>{{ ap.tipo_ap.nombre_tipo }}</td>
-                <td>{{ ap.fecha_accion.strftime('%Y-%m-%d') }}</td>
-                <td>
-                    {% if ap.fecha_inicio and ap.fecha_fin %}
-                        {{ ap.fecha_inicio.strftime('%Y-%m-%d') }} a {{ ap.fecha_fin.strftime('%Y-%m-%d') }} ({{ ap.cantidad_dia }} días)
-                    {% else %}
-                        N/A
-                    {% endif %}
-                </td>
-                <td>{{ ap.detalles if ap.detalles else 'N/A' }}</td>
-                <td>
-                    {% if ap.estado_ap == 1 %}
-                        Pendiente
-                    {% elif ap.estado_ap == 2 %}
-                        Aprobado
-                    {% elif ap.estado_ap == 3 %}
-                        Rechazado
-                    {% else %}
-                        Desconocido
-                    {% endif %}
-                </td>
-                <td>
-                    {% if ap.estado_ap == 1 %}
-                        <div class="d-flex gap-2">
-                            <form method="POST" action="{{ url_for('accion_personal_bp.aprobar_accion', ap_id=ap.id_accion) }}">
-                                <button type="submit" class="btn btn-success btn-sm">Aprobar</button>
-                            </form>
-                            <form method="POST" action="{{ url_for('accion_personal_bp.rechazar_accion', ap_id=ap.id_accion) }}">
-                                <button type="submit" class="btn btn-danger btn-sm">Rechazar</button>
-                            </form>
-                        </div>
-                    {% else %}
-                        <span class="text-muted">N/A</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="8" class="text-center">No hay acciones de personal registradas.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
 </div>
-
-<script src="{{ url_for('static', filename='js/accion_personal.js') }}"></script>
-
 {% endblock %}

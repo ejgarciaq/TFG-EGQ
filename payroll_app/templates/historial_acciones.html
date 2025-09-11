@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h3 class="text-center">Acciones de Personal</h3>
+    <table class="table table-striped mt-3">
+        <thead>
+            <tr class="text-center">
+                <th>ID</th>
+                <th>Empleado</th>
+                <th>Tipo de Acción</th>
+                <th>Fecha</th>
+                <th>Periodo</th>
+                <th>Detalles</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ap in pagination.items %}
+            <tr>
+                <td>{{ ap.id_accion }}</td>
+                <td>{{ ap.empleado.nombre_completo }}</td>
+                <td>{{ ap.tipo_ap.nombre_tipo }}</td>
+                <td>{{ ap.fecha_accion.strftime('%Y-%m-%d') }}</td>
+                <td>
+                    {% if ap.fecha_inicio and ap.fecha_fin %}
+                        {{ ap.fecha_inicio.strftime('%Y-%m-%d') }} a {{ ap.fecha_fin.strftime('%Y-%m-%d') }} ({{ ap.cantidad_dia }} días)
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td>{{ ap.detalles if ap.detalles else 'N/A' }}</td>
+                <td>
+                    {% if ap.estado_ap == 1 %}
+                        Pendiente
+                    {% elif ap.estado_ap == 2 %}
+                        Aprobado
+                    {% elif ap.estado_ap == 3 %}
+                        Rechazado
+                    {% else %}
+                        Desconocido
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="d-flex gap-2">
+                        {% if ap.estado_ap == 1 %}
+                            <form method="POST" action="{{ url_for('accion_personal_bp.aprobar_accion', ap_id=ap.id_accion) }}">
+                                <button type="submit" class="btn btn-success btn-sm">Aprobar</button>
+                            </form>
+                            <form method="POST" action="{{ url_for('accion_personal_bp.rechazar_accion', ap_id=ap.id_accion) }}">
+                                <button type="submit" class="btn btn-danger btn-sm">Rechazar</button>
+                            </form>
+                        {% endif %}
+                        
+                        <form method="POST" action="{{ url_for('accion_personal_bp.eliminar_accion', ap_id=ap.id_accion) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('¿Estás seguro de que deseas eliminar esta acción de personal? Esta acción es irreversible.');">
+                                Eliminar
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="text-center">No hay acciones de personal registradas.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="d-flex justify-content-center ">
+        <nav aria-label="Page navigation">
+            <ul class="pagination">
+                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('accion_personal_bp.ver_historial', page=pagination.prev_num) }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+
+                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('accion_personal_bp.ver_historial', page=page_num) }}">{{ page_num }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('accion_personal_bp.ver_historial', page=pagination.next_num) }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+<script src="{{ url_for('static', filename='js/accion_personal.js') }}"></script>
+{% endblock %}

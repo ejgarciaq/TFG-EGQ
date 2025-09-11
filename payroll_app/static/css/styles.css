@@ -39,7 +39,7 @@ body {
 nav {
     position: fixed;
     height: 100vh;
-    width: 160px;
+    width: 180px;
     box-sizing: border-box;
     z-index: 1050;
 }
@@ -166,3 +166,4 @@ body:has(.flashes) main {
     font-size: 5em;
     margin-bottom: 20px;
 }
+

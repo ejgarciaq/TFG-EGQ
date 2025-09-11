@@ -15,7 +15,7 @@
                 <img src="{{ url_for('static', filename='/img/logo.webp') }}" alt="Logo de la Aplicación" class="img-fluid">
             </div>
             <hr class="border border-primary">
-            <h4 class="text-center">Menú</h4>
+            <h5 class="text-center">Gestión<br>Talento Humano</h5>
             <hr class="border border-primary">
             <ul class="nav flex-column menu">
                 <li class="nav-item">
@@ -25,9 +25,8 @@
                    <a class="nav-link dropdown-item" href="{{ url_for('registro_asistencia.ver_asistencia') }}" >Asistencia</a>
                 <li class="nav-item">
                     <a class="nav-link dropdown-item" href="{{ url_for('registro_asistencia.generar_nomina') }}"  >Nómina</a>
-                </li>
-                    <a class="nav-link dropdown-item" href="{{ url_for('accion_personal_bp.accion_personal') }}">Acción de Personal</a> 
-                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('accion_personal_bp.accion_personal') }}">Acción de Personal</a>                </li>
                 <li class="nav-item">
                     <a class="nav-link dropdown-item disabled" href="#"  >Incapacidades</a>
                 </li>
@@ -42,7 +41,7 @@
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="dropdownMenuButton" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Mantenimiento
+                        Administrativo RH
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
                         <li class="dropdown-submenu dropend">
@@ -58,6 +57,9 @@
                         </li>
                         <li>
                             <a class="dropdown-item" href="{{ url_for('registro_asistencia.listar_asistencia') }}">Asistencia</a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="">Acciones de personal</a>
                         </li>
                     </ul>
                 </li>
