@@ -142,6 +142,8 @@ def login():
 def base():
     """Ruta para la página principal de la aplicación, solo accesible para usuarios autenticados."""
     return render_template('base.html')
+
+# Cerrar sesión ----------------------------------------------------------------------
     
 @login_bp.route('/logout')
 def logout():

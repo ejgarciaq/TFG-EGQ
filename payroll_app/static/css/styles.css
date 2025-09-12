@@ -37,7 +37,7 @@ body {
     - `z-index` lo coloca por encima de la mayoría de los elementos.
 */
 nav {
-    position: fixed;
+    position: absolute;
     height: 100vh;
     width: 180px;
     box-sizing: border-box;
@@ -66,6 +66,7 @@ nav {
     color: #ffc107;
     font-weight: bold;
 }
+
 
 
 /* ===================================================================================

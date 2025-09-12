@@ -14,7 +14,7 @@ def rol_requerido(rol):
             if not current_user.is_authenticated:
                 # Si el usuario no está autenticado, lo redirige a la página de inicio de sesión.
                 flash("Por favor, inicie sesión para acceder a esta página.", "info")
-                return redirect(url_for('login.login'))
+                return redirect(url_for('auth.login'))
             
             # ✅ Verifica si el rol del usuario actual coincide con el rol requerido.
             if current_user.rol.tipo_rol != rol:
@@ -38,7 +38,7 @@ def permiso_requerido(permiso_nombre):
             if not current_user.is_authenticated:
                 # Si no está autenticado, lo redirige al login
                 flash("Por favor, inicie sesión para acceder a esta página.", "info")
-                return redirect(url_for('login.login'))
+                return redirect(url_for('auth.login'))
             
             # ✅ Verifica si el rol del usuario tiene el permiso requerido.
             # Se comprueba si el usuario tiene un rol asignado y si alguno de los permisos

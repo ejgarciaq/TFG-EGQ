@@ -131,7 +131,7 @@ def accion_personal():
 # historial usuario de acciones de personal ----------------------------------------------------------------
 
 @accion_personal_bp.route('/ver_historial', methods=['GET'])
-#@permiso_requerido('ver_historial_acciones')
+@permiso_requerido('listar_accion_personal')
 @login_required
 def ver_historial_apu():
     page = request.args.get('page', 1, type=int)
@@ -147,54 +147,33 @@ def ver_historial_apu():
             query = query.filter_by(Empleado_id_empleado=-1) # No resultados
 
     # Paginar los resultados
-    pagination = db.paginate(query, page=page, per_page=10, error_out=False)
+    pagination = db.paginate(query, page=page, per_page=15, error_out=False)
     
     # Renderizar la plantilla del historial, pasando la paginación
     return render_template('historial_apu.html', pagination=pagination)
 
+# aprobacion de accesos administrativos-------------------------------------------------------
+@accion_personal_bp.route('/historial')
+@login_required
+@permiso_requerido('admin_accion_personal')
+def acciones_administrativas():
+    """
+    Muestra el historial de acciones de personal con paginación
+    """
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    
+    paginated_acciones = Accion_Personal.query.order_by(Accion_Personal.fecha_accion.desc()).paginate(
+        page=page, 
+        per_page=per_page, 
+        error_out=False
+    )
+    
+    return render_template('historial_acciones.html', 
+                            pagination=paginated_acciones)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# aprobar_accion Apebación--------------------------------------------------------------------------------------------------------------
+# aprobar_accion --------------------------------------------------------------------------------------------------------------
 @accion_personal_bp.route('/aprobar_accion/<int:ap_id>', methods=['POST'])
 @permiso_requerido('aprobar_acciones_personales')
 @login_required
@@ -231,7 +210,7 @@ def aprobar_accion(ap_id):
         db.session.rollback()
         flash(f'Ocurrió un error al aprobar la acción: {str(e)}', 'danger')
     
-    return redirect(url_for('accion_personal_bp.accion_personal'))
+    return redirect(url_for('accion_personal_bp.acciones_administrativas'))
 
 # Rechazar accion de personal ----------------------------------------------------------
 @accion_personal_bp.route('/rechazar_accion/<int:ap_id>', methods=['POST'])
@@ -254,9 +233,10 @@ def rechazar_accion(ap_id):
         db.session.rollback()
         flash(f'Error al rechazar la acción: {str(e)}', 'danger')
 
-    return redirect(url_for('accion_personal_bp.accion_personal'))
+    return redirect(url_for('accion_personal_bp.acciones_administrativas'))
 
-# eliminar accion de personal
+# eliminar accion de personal -----------------------------------------------
+
 @accion_personal_bp.route('/eliminar_accion/<int:ap_id>', methods=['POST'])
 @login_required
 @permiso_requerido('eliminar_accion_personal')
@@ -275,26 +255,8 @@ def eliminar_accion(ap_id):
         db.session.rollback()
         flash(f'Ocurrió un error al eliminar la acción: {str(e)}', 'danger')
         
-    return redirect(url_for('accion_personal_bp.accion_personal'))
+    return redirect(url_for('accion_personal_bp.acciones_administrativas'))
 
-# Nueva ruta para el historial
-@accion_personal_bp.route('/historial')
-@login_required
-#@permiso_requerido('ver_historial_acciones')
-def ver_historial():
-    """
-    Muestra el historial de acciones de personal con paginación
-    """
-    page = request.args.get('page', 1, type=int)
-    per_page = 10
-    
-    paginated_acciones = Accion_Personal.query.order_by(Accion_Personal.fecha_accion.desc()).paginate(
-        page=page, 
-        per_page=per_page, 
-        error_out=False
-    )
-    
-    return render_template('historial_acciones.html', 
-                            pagination=paginated_acciones)
+
 
 
