@@ -10,7 +10,7 @@
 <body>
     <div class="d-flex">
         <!-- Navbar lateral -->
-    <nav class="bg-light p-2 menu-vertical">
+    <nav class="bg-light p-2 menu-vertical d-flex flex-column">
         <div class=" justify-content-center mx-auto mb-3">
             <img src="{{ url_for('static', filename='/img/logo.webp') }}" alt="Logo de la Aplicación" class="img-fluid">
         </div>
@@ -70,10 +70,10 @@
             </li>
         </ul>
 
-        <hr class="border border-primary">
+
 
         <ul class="nav flex-column mt-auto">
-
+        <hr class="border border-primary">
             {% if current_user.empleado %}
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('empleado.ver_perfil_empleado', empleado_id=current_user.empleado.id_empleado) }}">Mi perfil</a>
@@ -83,7 +83,6 @@
                     <a class="nav-link disabled" href="#">Mi perfil</a>
                 </li>
             {% endif %}
-
             <li class="nav-item">
                 <a class="nav-link text-dark" href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
             </li>
