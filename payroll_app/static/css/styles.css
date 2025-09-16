@@ -39,7 +39,7 @@ body {
 nav {
     position: absolute;
     height: 100vh;
-    width: 180px;
+    width: 185px;
     box-sizing: border-box;
     z-index: 1050;
 }

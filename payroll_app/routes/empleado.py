@@ -279,6 +279,37 @@ def editar_empleado(id):
         tipos_nomina=tipos_nomina,
     )
 
+# --------------------------------------------------------------------------------
+
+@empleado_bp.route("/ver_perfil_empleado/<int:empleado_id>", methods=["GET"])
+@login_required
+def ver_perfil_empleado(empleado_id):
+    try:
+        usuario_actual = current_user
+        
+        # Obtener el empleado asociado al usuario actual
+        empleado_actual = Empleado.query.filter_by(Usuario_id_usuario=usuario_actual.id_usuario).first()
+        
+        # Obtener el perfil del empleado que se desea ver (o 404 si no existe)
+        empleado_perfil = Empleado.query.get_or_404(empleado_id)
+        
+        # Lógica de seguridad para verificar permisos (RNF-SE-009)
+        # La corrección se hace aquí, usando "or []"
+        es_admin = usuario_actual.rol.tipo_rol == 'administrador'
+        
+        # Si el usuario NO es un administrador Y el perfil solicitado no es el suyo, se deniega el acceso
+        if not es_admin and empleado_perfil.id_empleado != empleado_actual.id_empleado:
+            flash("Acceso denegado. No tiene los permisos necesarios para ver esta información.", "danger")
+            return redirect(url_for("empleado.listar_empleado"))
+            
+        return render_template("ver_perfil_empleado.html", empleado=empleado_perfil)
+    
+    except Exception as e:
+        logging.error(f"Error al cargar el perfil del empleado {empleado_id}: {str(e)}")
+        
+        flash("Error al cargar el perfil. Por favor, inténtelo de nuevo.", "danger")
+        return redirect(url_for("empleado.listar_empleado"))
+
 # ---------------------------------------------------------------------------------
 
 @empleado_bp.route("/listar_empleado")

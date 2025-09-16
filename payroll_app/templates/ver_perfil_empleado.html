@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="text-center">Perfil de Empleado</h3>
+        {% if current_user.rol.tipo_rol == 'administrador' %}
+        <a href="{{ url_for('empleado.listar_empleado') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver a la lista
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="card shadow-sm border border-primary">
+        <div class="card-body">
+            <h5 class="card-title">Datos Personales y Laborales</h5>
+            <hr class="border-primary">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <p><strong>Nombre Completo:</strong> {{ empleado.nombre }} {{ empleado.apellido_primero }} {{ empleado.apellido_segundo }}</p>
+                    <p><strong>Cédula:</strong> {{ empleado.cedula }}</p>
+                    <p><strong>Correo Electrónico:</strong> {{ empleado.correo }}</p>
+                    <p><strong>Teléfono:</strong> {{ empleado.telefono }}</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <p><strong>Puesto:</strong> {{ empleado.puesto.nombre_puesto }}</p>
+                    <p><strong>Salario Base:</strong> ₡{{ "{:,.2f}".format(empleado.salario_base) }}</p>
+                    <p><strong>Fecha de Ingreso:</strong> {{ empleado.fecha_ingreso.strftime('%d/%m/%Y') }}</p>
+                    {% if empleado.fecha_salida %}
+                    <p><strong>Fecha de Salida:</strong> {{ empleado.fecha_salida.strftime('%d/%m/%Y') }}</p>
+                    {% endif %}
+                    <p><strong>Estado:</strong>
+                        {% if empleado.estado_empleado %}
+                            <span class="badge bg-success">Activo</span>
+                        {% else %}
+                            <span class="badge bg-danger">Inactivo</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <h5 class="card-title mt-4">Datos de Usuario del Sistema</h5>
+            <hr class="border-primary">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <p><strong>Nombre de Usuario:</strong> {{ empleado.usuario.username }}</p>
+                    <p><strong>Rol:</strong> {{ empleado.usuario.rol.tipo_rol }}</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <p><strong>Estado del Usuario:</strong>
+                        {% if empleado.usuario.estado_usuario %}
+                            <span class="badge bg-success">Activo</span>
+                        {% else %}
+                            <span class="badge bg-danger">Inactivo</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}

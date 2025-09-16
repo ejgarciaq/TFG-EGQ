@@ -27,19 +27,10 @@
             <li class="nav-item {% if request.endpoint == 'registro_asistencia.ver_asistencia' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('registro_asistencia.ver_asistencia') }}">Asistencia</a>
             </li>
-            
+
             <li class="nav-item {% if request.endpoint == 'registro_asistencia.generar_nomina' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('registro_asistencia.generar_nomina') }}">Nómina</a>
             </li>
-
-            <li class="nav-item {% if request.endpoint == 'accion_personal_bp.accion_personal' %}active{% endif %}">
-                <a class="nav-link" href="{{ url_for('accion_personal_bp.accion_personal') }}">Acción Personal</a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link disabled" href="#">Incapacidades</a>
-            </li>
-
             <li class="nav-item">
                 <a class="nav-link disabled" href="#">Liquidación</a>
             </li>
@@ -80,8 +71,19 @@
         </ul>
 
         <hr class="border border-primary">
+
         <ul class="nav flex-column mt-auto">
-            <li><hr class="dropdown-divider bg-primary"></li>
+
+            {% if current_user.empleado %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('empleado.ver_perfil_empleado', empleado_id=current_user.empleado.id_empleado) }}">Mi perfil</a>
+                </li>
+            {% else %}
+                <li class="nav-item">
+                    <a class="nav-link disabled" href="#">Mi perfil</a>
+                </li>
+            {% endif %}
+
             <li class="nav-item">
                 <a class="nav-link text-dark" href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
             </li>
