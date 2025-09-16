@@ -44,6 +44,13 @@ nav {
     z-index: 1050;
 }
 
+.nav-link.active {
+    background-color: #007bff; /* Color de fondo azul para el resaltado */
+    color: white; /* Color del texto blanco para mejor contraste */
+    border-radius: 5px; /* Bordes redondeados */
+}
+
+
 /* Alinea el texto de los botones del menú.
     - Útil para los botones que no son desplegables.
 */
@@ -62,12 +69,16 @@ nav {
 /* Resalta el enlace de navegación que está activo.
     - Esto se usa para indicar en qué página se encuentra el usuario.
 */
-.nav-link.active {
-    color: #ffc107;
+.nav-link:hover,
+.nav-link:focus {
+    color: #ffc107 !important;
     font-weight: bold;
 }
-
-
+/* Opcional: Estilo para los enlaces de los submenús activos */
+.nav-item.active {
+    background-color: #0056b3; /* Un tono de azul más oscuro para los submenús */
+    color: white;
+}
 
 /* ===================================================================================
    ESTILOS PARA SUBMENÚS DESPLEGABLES
@@ -105,6 +116,11 @@ nav {
     display: block;
 }
 
+/* Opcional: Estilo para los enlaces de los submenús activos */
+.dropdown-item.active {
+    background-color: #0056b3; /* Un tono de azul más oscuro para los submenús */
+    color: white;
+}
 
 /* ===================================================================================
    ESTILOS ESPECÍFICOS DE VISTAS

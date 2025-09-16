@@ -10,70 +10,83 @@
 <body>
     <div class="d-flex">
         <!-- Navbar lateral -->
-        <nav class="bg-light p-2 menu-vertical">
-            <div class=" justify-content-center mx-auto mb-3">
-                <img src="{{ url_for('static', filename='/img/logo.webp') }}" alt="Logo de la Aplicación" class="img-fluid">
-            </div>
-            <hr class="border border-primary">
-            <h5 class="text-center">Gestión<br>Talento Humano</h5>
-            <hr class="border border-primary">
-            <ul class="nav flex-column menu">
-                <li class="nav-item">
-                     <a class="nav-link dropdown-item" href="{{ url_for('auth.base') }}">Inicio</a>
-                </li>
-                <li class="nav-item">
-                   <a class="nav-link dropdown-item" href="{{ url_for('registro_asistencia.ver_asistencia') }}" >Asistencia</a>
-                <li class="nav-item">
-                    <a class="nav-link dropdown-item" href="{{ url_for('registro_asistencia.generar_nomina') }}"  >Nómina</a>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('accion_personal_bp.accion_personal') }}">Acción de Personal</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link dropdown-item disabled" href="#"  >Incapacidades</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link dropdown-item disabled" href="#"  >Liquidación</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link dropdown-item disabled" href="#"  >Aguinaldo</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link dropdown-item disabled" href="#"  >Vacaciones</a>
-                </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="dropdownMenuButton" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Administrativo RH
-                    </a>
-                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                        <li class="dropdown-submenu dropend">
-                            <a class="nav-link dropdown-item" href="{{ url_for('empleado.listar_empleado') }}">Empleado</a> 
-                        <li>
-                            <a class="dropdown-item" href="{{ url_for('rol.listar_roles') }}">Rol</a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ url_for('puesto.listar_puestos') }}">Puesto</a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ url_for('feriado.listar_feriados') }}">Feriado</a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ url_for('registro_asistencia.listar_asistencia') }}">Asistencia</a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ url_for('accion_personal_bp.acciones_administrativas') }}">Historial de Acciones</a>
-                        </li>
-                    </ul>
-                </li>
-            </ul>
-            <hr class="border border-primary">
-            <!-- Contenedor para los últimos elementos -->
-            <ul class="nav flex-column mt-auto">
-                <li><hr class="dropdown-divider bg-primary"></li>
-                <li class="nav-item">
-                    <a class="nav-link dropdown-item text-dark" href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
-                </li>
-            </ul>
-        </nav>
+    <nav class="bg-light p-2 menu-vertical">
+        <div class=" justify-content-center mx-auto mb-3">
+            <img src="{{ url_for('static', filename='/img/logo.webp') }}" alt="Logo de la Aplicación" class="img-fluid">
+        </div>
+
+        <hr class="border border-primary">
+        <h5 class="text-center">Gestión<br>Talento Humano</h5>
+        <hr class="border border-primary">
+
+        <ul class="nav flex-column menu">
+            <li class="nav-item {% if request.endpoint == 'auth.base' %}active{% endif %}">
+                <a class="nav-link" href="{{ url_for('auth.base') }}">Inicio</a>
+            </li>
+
+            <li class="nav-item {% if request.endpoint == 'registro_asistencia.ver_asistencia' %}active{% endif %}">
+                <a class="nav-link" href="{{ url_for('registro_asistencia.ver_asistencia') }}">Asistencia</a>
+            </li>
+            
+            <li class="nav-item {% if request.endpoint == 'registro_asistencia.generar_nomina' %}active{% endif %}">
+                <a class="nav-link" href="{{ url_for('registro_asistencia.generar_nomina') }}">Nómina</a>
+            </li>
+
+            <li class="nav-item {% if request.endpoint == 'accion_personal_bp.accion_personal' %}active{% endif %}">
+                <a class="nav-link" href="{{ url_for('accion_personal_bp.accion_personal') }}">Acción Personal</a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link disabled" href="#">Incapacidades</a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link disabled" href="#">Liquidación</a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link disabled" href="#">Aguinaldo</a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link disabled" href="#">Vacaciones</a>
+            </li>
+
+            <li class="nav-item dropdown {% if 'empleado' in request.endpoint or 'rol' in request.endpoint or 'puesto' in request.endpoint or 'feriado' in request.endpoint or 'registro_asistencia.listar_asistencia' in request.endpoint or 'accion_personal_bp.acciones_administrativas' in request.endpoint %}active{% endif %}">
+                <a class="nav-link dropdown-toggle" href="#" id="dropdownMenuButton" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Administrativo RH
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    <li>
+                        <a class="dropdown-item {% if request.endpoint == 'empleado.listar_empleado' %}active{% endif %}" href="{{ url_for('empleado.listar_empleado') }}">Empleado</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item {% if request.endpoint == 'rol.listar_roles' %}active{% endif %}" href="{{ url_for('rol.listar_roles') }}">Rol</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item {% if request.endpoint == 'puesto.listar_puestos' %}active{% endif %}" href="{{ url_for('puesto.listar_puestos') }}">Puesto</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item {% if request.endpoint == 'feriado.listar_feriados' %}active{% endif %}" href="{{ url_for('feriado.listar_feriados') }}">Feriado</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item {% if request.endpoint == 'registro_asistencia.listar_asistencia' %}active{% endif %}" href="{{ url_for('registro_asistencia.listar_asistencia') }}">Asistencia</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item {% if request.endpoint == 'accion_personal_bp.acciones_administrativas' %}active{% endif %}" href="{{ url_for('accion_personal_bp.acciones_administrativas') }}">Historial de Acciones</a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+
+        <hr class="border border-primary">
+        <ul class="nav flex-column mt-auto">
+            <li><hr class="dropdown-divider bg-primary"></li>
+            <li class="nav-item">
+                <a class="nav-link text-dark" href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
+            </li>
+        </ul>
+    </nav>
 
         <!-- Contenido principal -->
     <div class="flex-grow-1 body-3">
