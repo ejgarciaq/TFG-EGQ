@@ -4,64 +4,71 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h2>Registro de Acciones de Personal</h2>
-    <form method="POST" action="{{ url_for('accion_personal_bp.accion_personal') }}" enctype="multipart/form-data">
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label for="empleado_id" class="form-label">Empleado</label>
-                <select class="form-control" id="empleado_id" name="empleado_id" required>
-                    <option value="">Seleccione un empleado...</option>
-                    {% for empleado in empleados %}
-                    <option value="{{ empleado.id_empleado }}">{{ empleado.nombre_completo }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-6 mb-3">
-                <label for="tipo_ap_id" class="form-label">Tipo de Acción</label>
-                <select class="form-control" id="tipo_ap_id" name="tipo_ap_id" required>
-                    <option value="">Seleccione un tipo de acción...</option>
-                    {% for tipo in tipos_ap %}
-                    <option value="{{ tipo.id_tipo_ap }}" data-nombre-tipo="{{ tipo.nombre_tipo }}">{{ tipo.nombre_tipo }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div>
-        
-        <div class="mb-3">
-            <label for="fecha_accion" class="form-label">Fecha de la Acción</label>
-            <input type="date" class="form-control" id="fecha_accion" name="fecha_accion" required>
-        </div>
-        
-        <div id="vacation_incapacity_fields" style="display: none;" data-dias-festivos='{{ dias_feriados | tojson }}'>
-            <div class="mb-3">
-                <label for="cantidad_dia" class="form-label">Cantidad de Días</label>
-                <input type="number" class="form-control" id="cantidad_dia" name="cantidad_dia" readonly>
-            </div>
+
+    <fieldset class="shadow border p-2 mb-0 rounded border-primary">
+        <legend class="float-none w-auto px-1 fs-5">Acciones de Personal</legend>
+
+        <form method="POST" action="{{ url_for('accion_personal_bp.accion_personal') }}" enctype="multipart/form-data">
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label for="fecha_inicio" class="form-label">Fecha de Inicio</label>
-                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio">
+                    <label for="empleado_id" class="form-label">Empleado</label>
+                    <select class="form-control select2" id="empleado_id" name="empleado_id" required>
+                        <option value="">Seleccione un empleado...</option>
+                        {% for empleado in empleados %}
+                        <option value="{{ empleado.id_empleado }}">{{ empleado.nombre_completo }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
+
                 <div class="col-md-6 mb-3">
-                    <label for="fecha_fin" class="form-label">Fecha de Fin</label>
-                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin">
+                    <label for="tipo_ap_id" class="form-label">Tipo de Acción</label>
+                    <select class="form-control select2" id="tipo_ap_id" name="tipo_ap_id" required>
+                        <option value="">Seleccione un tipo de acción...</option>
+                        {% for tipo in tipos_ap %}
+                        <option value="{{ tipo.id_tipo_ap }}" data-nombre-tipo="{{ tipo.nombre_tipo }}">{{ tipo.nombre_tipo }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
-        </div>
+            
+            <div class="mb-3">
+                <label for="fecha_accion" class="form-label">Fecha de la Acción</label>
+                <input type="date" class="form-control" id="fecha_accion" name="fecha_accion" required>
+            </div>
+            
+            <div id="vacation_incapacity_fields" style="display: none;" data-dias-festivos='{{ dias_feriados | tojson }}'>
+                <div class="mb-3">
+                    <label for="cantidad_dia" class="form-label">Cantidad de Días</label>
+                    <input type="number" class="form-control" id="cantidad_dia" name="cantidad_dia" readonly>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="fecha_inicio" class="form-label">Fecha de Inicio</label>
+                        <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="fecha_fin" class="form-label">Fecha de Fin</label>
+                        <input type="date" class="form-control" id="fecha_fin" name="fecha_fin">
+                    </div>
+                </div>
+            </div>
 
-        <div class="mb-3">
-            <label for="detalles" class="form-label">Detalles (Opcional)</label>
-            <textarea class="form-control" id="detalles" name="detalles" rows="3"></textarea>
-        </div>
-        <div class="mb-3">
-            <label for="documento_adjunto" class="form-label">Documento Adjunto (Opcional)</label>
-            <input type="file" class="form-control" id="documento_adjunto" name="documento_adjunto">
-        </div>
+            <div class="mb-3">
+                <label for="detalles" class="form-label">Detalles (Opcional)</label>
+                <textarea class="form-control" id="detalles" name="detalles" rows="3"></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="documento_adjunto" class="form-label">Documento Adjunto (Opcional)</label>
+                <input type="file" class="form-control" id="documento_adjunto" name="documento_adjunto">
+            </div>
 
-        <button type="submit" class="btn btn-primary">Registrar Acción</button>
-        <a href="{{ url_for('accion_personal_bp.ver_historial_apu') }}" class="btn btn-primary">
-            Ver mi Historial de Acciones
-    </a>
-    </form>
+            <button type="submit" class="btn btn-primary">Registrar Acción</button>
+            <a href="{{ url_for('accion_personal_bp.ver_historial_apu') }}" class="btn btn-primary">
+                Ver mi Historial de Acciones
+            </a>
+        </form>
+
+    </fieldset>
+
 </div>
 {% endblock %}

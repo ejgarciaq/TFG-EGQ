@@ -65,73 +65,69 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+// fechas de vacaciones 
 document.addEventListener("DOMContentLoaded", function () {
-  const fechaInicioInput = document.getElementById("fecha_inicio");
-  const fechaFinInput = document.getElementById("fecha_fin");
-  const cantidadDiasInput = document.getElementById("cantidad_dia");
+    const tipoApSelect = document.getElementById("tipo_ap_id"); // Obtiene el campo de Tipo de Acción
+    const vacationIncapacityFields = document.getElementById("vacation_incapacity_fields");
 
-  // Los IDs de los tipos de acción
-  const VACACIONES_ID = 6;
-  const INCAPACIDAD_ID = 5;
+    const fechaInicioInput = document.getElementById("fecha_inicio");
+    const fechaFinInput = document.getElementById("fecha_fin");
+    const cantidadDiasInput = document.getElementById("cantidad_dia");
 
-  // Lee los datos del atributo del div
-  const vacationIncapacityFields = document.getElementById(
-    "vacation_incapacity_fields"
-  );
-  const diasFestivos = JSON.parse(
-    vacationIncapacityFields.dataset.diasFestivos
-  );
+    const VACACIONES_ID = 6;
+    const INCAPACIDAD_ID = 5;
 
-  function isHoliday(date) {
-    const dateString = date.toISOString().slice(0, 10);
-    return diasFestivos.includes(dateString);
-  }
+    const diasFestivos = JSON.parse(vacationIncapacityFields.dataset.diasFestivos);
 
-  function calculateBusinessDays() {
-    // Asegura una zona horaria consistente para la fecha de inicio y fin
-    const fechaInicio = new Date(fechaInicioInput.value + "T00:00:00");
-    const fechaFin = new Date(fechaFinInput.value + "T00:00:00");
-
-    if (!fechaInicioInput.value || !fechaFinInput.value) {
-      cantidadDiasInput.value = "";
-      return;
+    function isHoliday(date) {
+        const dateString = date.toISOString().slice(0, 10);
+        return diasFestivos.includes(dateString);
     }
 
-    let diasLaborables = 0;
-    for (
-      let d = new Date(fechaInicioInput.value + "T00:00:00");
-      d <= fechaFin;
-      d.setDate(d.getDate() + 1)
-    ) {
-      const diaDeLaSemana = d.getDay(); // 0 = Domingo, 6 = Sábado
-      if (diaDeLaSemana !== 0 && !isHoliday(d)) {
-        // <-- ¡para agregar sabados! if (diaDeLaSemana !== 0 && diaDeLaSemana !== 6 && !isHoliday(d))
-        diasLaborables++;
-      }
+    function calculateBusinessDays() {
+        const fechaInicio = new Date(fechaInicioInput.value + "T00:00:00");
+        const fechaFin = new Date(fechaFinInput.value + "T00:00:00");
+
+        if (!fechaInicioInput.value || !fechaFinInput.value) {
+            cantidadDiasInput.value = "";
+            return;
+        }
+
+        let diasLaborables = 0;
+        for (
+            let d = new Date(fechaInicioInput.value + "T00:00:00");
+            d <= fechaFin;
+            d.setDate(d.getDate() + 1)
+        ) {
+            const diaDeLaSemana = d.getDay(); // 0 = Domingo, 6 = Sábado
+            if (diaDeLaSemana !== 0 && !isHoliday(d)) {
+                diasLaborables++;
+            }
+        }
+        cantidadDiasInput.value = diasLaborables;
     }
-    cantidadDiasInput.value = diasLaborables;
-  }
 
-  // Agrega un listener para cuando el usuario cambie las fechas
-  fechaInicioInput.addEventListener("change", calculateBusinessDays);
-  fechaFinInput.addEventListener("change", calculateBusinessDays);
+    // NUEVA LÓGICA: Detección de cambio en el campo de Tipo de Acción
+    $(tipoApSelect).on('change', function() {
+        const selectedValue = $(this).val();
+        if (selectedValue == VACACIONES_ID || selectedValue == INCAPACIDAD_ID) {
+            vacationIncapacityFields.style.display = "block";
+            fechaInicioInput.required = true;
+            fechaFinInput.required = true;
+        } else {
+            vacationIncapacityFields.style.display = "none";
+            fechaInicioInput.required = false;
+            fechaFinInput.required = false;
+            // Opcional: Limpiar los campos cuando no se necesitan
+            fechaInicioInput.value = '';
+            fechaFinInput.value = '';
+            cantidadDiasInput.value = '';
+        }
+    });
 
-  // Lógica para mostrar/ocultar los campos según el tipo de acción
-  const tipoApSelect = document.getElementById("tipo_ap_id");
-
-  function toggleFieldsAndCalculate() {
-    const selectedId = parseInt(tipoApSelect.value);
-    if (selectedId === VACACIONES_ID || selectedId === INCAPACIDAD_ID) {
-      vacationIncapacityFields.style.display = "block";
-      calculateBusinessDays();
-    } else {
-      vacationIncapacityFields.style.display = "none";
-      cantidadDiasInput.value = "";
-    }
-  }
-
-  tipoApSelect.addEventListener("change", toggleFieldsAndCalculate);
-  toggleFieldsAndCalculate();
+    // NUEVA LÓGICA: Detección de cambio en las fechas para el cálculo
+    $(fechaInicioInput).on('change', calculateBusinessDays);
+    $(fechaFinInput).on('change', calculateBusinessDays);
 });
 
 // Validacion de requisitos de contraseña
@@ -218,3 +214,12 @@ if (passwordInput && generatePasswordBtn) {
     });
 }
 
+// Select2 para los formularios
+$(document).ready(function() {
+    // Inicialización de Select2 en el campo de empleados
+    $('.select2').select2({
+        placeholder: "Buscar y seleccionaro...",
+        allowClear: true,
+        theme: "bootstrap-5"
+    });
+});

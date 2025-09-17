@@ -20,10 +20,9 @@ body {
     - `margin-left` desplaza el contenido para que no se superponga con el menú fijo.
 */
 .body-3 {
-    margin-left: 170px;
+    margin-left: 180px;
     padding: 20px;
 }
-
 
 /* ===================================================================================
    ESTILOS PARA MENÚ LATERAL Y NAVEGACIÓN
