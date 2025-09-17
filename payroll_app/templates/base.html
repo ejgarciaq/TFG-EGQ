@@ -31,16 +31,13 @@
             <li class="nav-item {% if request.endpoint == 'registro_asistencia.generar_nomina' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('registro_asistencia.generar_nomina') }}">Nómina</a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link disabled" href="#">Liquidación</a>
+            
+            <li class="nav-item {% if request.endpoint == 'accion_personal_bp.accion_personal' %}active{% endif %}">
+                <a class="nav-link" href="{{ url_for('accion_personal_bp.accion_personal') }}">Acción de Personal</a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link disabled" href="#">Aguinaldo</a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link disabled" href="#">Vacaciones</a>
+                <a class="nav-link disabled" href="#">disponible</a>
             </li>
 
             <li class="nav-item dropdown {% if 'empleado' in request.endpoint or 'rol' in request.endpoint or 'puesto' in request.endpoint or 'feriado' in request.endpoint or 'registro_asistencia.listar_asistencia' in request.endpoint or 'accion_personal_bp.acciones_administrativas' in request.endpoint %}active{% endif %}">
