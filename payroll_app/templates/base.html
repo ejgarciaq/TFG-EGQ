@@ -67,8 +67,6 @@
             </li>
         </ul>
 
-
-
         <ul class="nav flex-column mt-auto">
         <hr class="border border-primary">
             {% if current_user.empleado %}
@@ -87,6 +85,7 @@
     </nav>
 
         <!-- Contenido principal -->
+         
     <div class="flex-grow-1 body-3">
         <div class="md-12">
             <h5>Bienvenido,{% if current_user.is_authenticated %} {{ current_user.empleado.nombre }}  {% endif %}</h5>
