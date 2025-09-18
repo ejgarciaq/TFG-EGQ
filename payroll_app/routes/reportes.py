@@ -14,7 +14,13 @@ reportes_bp = Blueprint('reportes_bp', __name__)
 def mostrar_pagina_reporte():
     """Renderiza la página del formulario para generar reportes."""
     empleados = Empleado.query.all()
-    return render_template('rp_asistencia.html', empleados=empleados)
+    return render_template(
+        'rp_asistencia.html',
+        empleados=empleados,
+        empleado_id_seleccionado='todos',
+        fecha_inicio_seleccionada='',
+        fecha_fin_seleccionada=''
+    )
 
 
 @reportes_bp.route('/reportes/generar', methods=['POST'])
@@ -130,13 +136,21 @@ def generar_reporte():
             )
         
         else:
-            return render_template('rp_generado.html', reporte=df.to_html(classes='table table-striped'))
-
+            empleados = Empleado.query.all()
+            return render_template(
+                'rp_asistencia.html',
+                empleados=empleados,
+                reporte_html=df.to_html(classes='table table-striped'),
+                empleado_id_seleccionado=empleado_id,
+                fecha_inicio_seleccionada=fecha_inicio_str,
+                fecha_fin_seleccionada=fecha_fin_str
+            )
     except ValueError:
         flash('Formato de fecha inválido. Por favor, seleccione fechas del calendario.', 'danger')
         return redirect(url_for('reportes_bp.mostrar_pagina_reporte'))
     
-#    except Exception:
-#        flash('Ocurrió un error técnico al generar el reporte. Por favor, inténtelo de nuevo.', 'danger')
-#        return redirect(url_for('reportes_bp.mostrar_pagina_reporte'))
+    except Exception as e:
+        print(f"Error al generar el reporte: {e}")
+        flash('Ocurrió un error técnico al generar el reporte. Por favor, inténtelo de nuevo.', 'danger')
+        return redirect(url_for('reportes_bp.mostrar_pagina_reporte'))
 
