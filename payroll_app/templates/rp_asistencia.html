@@ -44,15 +44,40 @@
         </div>
     </div>
 
-    {% if reporte_html %}
-        <hr class="my-4">
-        <div class="container mt-4">
-            <link rel="stylesheet" href="{{ url_for('static', filename='css/reporte_asistencia.css') }}">
-            <h2 class="text-center mb-4">Reporte de Asistencia</h2>
-            <div class="table-responsive">
-                {{ reporte_html | safe }}
-            </div>
+{% if reporte_html %}
+    <hr class="my-4">
+    <div class="container mt-4">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/reporte_asistencia.css') }}">
+        <h2 class="text-center mb-4">Reporte de Asistencia</h2>
+        <div class="table-responsive">
+            {{ reporte_html | safe }}
         </div>
-    {% endif %}
+
+        {% if paginated_records and paginated_records.pages > 1 %}
+            <nav aria-label="Navegación de páginas" class="d-flex justify-content-center mt-3">
+                <ul class="pagination">
+                    <li class="page-item {% if not paginated_records.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('reportes_bp.generar_reporte', page=paginated_records.prev_num) }}" tabindex="-1" aria-disabled="true">Anterior</a>
+                    </li>
+                    
+                    {% for p in paginated_records.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                        {% if p %}
+                            <li class="page-item {% if p == paginated_records.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('reportes_bp.generar_reporte', page=p) }}">{{ p }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><a class="page-link">...</a></li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <li class="page-item {% if not paginated_records.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('reportes_bp.generar_reporte', page=paginated_records.next_num) }}">Siguiente</a>
+                    </li>
+                </ul>
+            </nav>
+        {% endif %}
+
+    </div>
+{% endif %}
 
 {% endblock %}
