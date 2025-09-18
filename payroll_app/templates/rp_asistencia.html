@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Reporte de asistencia{% endblock %}
+
+{% block content %}
+
+<div class="container d-flex justify-content-center" style="min-height: 80vh;">
+    <div class="row w-100">
+        <div class="col-md-8 mx-auto">
+            <h2 class="text-center my-4">Generar Reporte de Asistencia</h2>
+            <form method="POST" action="{{ url_for('reportes_bp.generar_reporte') }}">
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label for="empleado_id" class="form-label">Empleado</label>
+                        <select class="form-control select2" id="empleado_id" name="empleado_id">
+                            <option value="todos">Todos los empleados</option>
+                            {% for empleado in empleados %}
+                                <option value="{{ empleado.id_empleado }}">{{ empleado.nombre_completo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="fecha_inicio" class="form-label">Fecha de Inicio</label>
+                        <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required>
+                    </div>
+                
+                    <div class="col-md-6 mb-3">
+                        <label for="fecha_fin" class="form-label">Fecha de Fin</label>
+                        <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end mt-4">
+                    <button type="submit" class="btn btn-primary me-2" name="descargar" value="html">Generar Reporte</button>
+                    <button type="submit" class="btn btn-success me-2" name="descargar" value="csv">Descargar CSV</button>
+                    <button type="submit" class="btn btn-success me-2" name="descargar" value="excel">Descargar Excel</button>
+                    <button type="submit" class="btn btn-danger" name="descargar" value="pdf">Descargar PDF</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
