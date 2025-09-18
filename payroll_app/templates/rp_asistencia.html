@@ -4,51 +4,54 @@
 
 {% block content %}
 
-    <div class="container d-flex justify-content-center" style="min-height: 80vh;">
+    <div class="container d-flex justify-content-center" >
         <div class="row w-100">
             <div class="col-md-8 mx-auto">
-                <h2 class="text-center my-4">Generar Reporte de Asistencia</h2>
-                <form method="POST" action="{{ url_for('reportes_bp.generar_reporte') }}">
-                    <div class="row">
-                        <div class="col-md-12 mb-3">
-                            <label for="empleado_id" class="form-label">Empleado</label>
-                            <select class="form-control select2" id="empleado_id" name="empleado_id">
-                                <option value="todos" {% if empleado_id_seleccionado == 'todos' %}selected{% endif %}>Todos los empleados</option>
-                                {% for empleado in empleados %}
-                                    <option value="{{ empleado.id_empleado }}" {% if empleado_id_seleccionado|int == empleado.id_empleado %}selected{% endif %}>{{ empleado.nombre_completo }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="fecha_inicio" class="form-label">Fecha de Inicio</label>
-                            <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required value="{{ fecha_inicio_seleccionada if fecha_inicio_seleccionada }}">
-                        </div>
-                    
-                        <div class="col-md-6 mb-3">
-                            <label for="fecha_fin" class="form-label">Fecha de Fin</label>
-                            <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required value="{{ fecha_fin_seleccionada if fecha_fin_seleccionada }}">
-                        </div>
-                    </div>
+                <fieldset class="shadow border p-2 mb-0 rounded border-primary">
+                    <legend class="float-none w-auto px-1 fs-3 text-center">Generar Reporte de Asistencia</legend>
+                        <form method="POST" action="{{ url_for('reportes_bp.generar_reporte') }}">
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="empleado_id" class="form-label">Empleado</label>
+                                    <select class="form-control select2" id="empleado_id" name="empleado_id">
+                                        <option value="todos" {% if empleado_id_seleccionado == 'todos' %}selected{% endif %}>Todos los empleados</option>
+                                        {% for empleado in empleados %}
+                                            <option value="{{ empleado.id_empleado }}" {% if empleado_id_seleccionado|int == empleado.id_empleado %}selected{% endif %}>{{ empleado.nombre_completo }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
 
-                    <div class="d-flex justify-content-end mt-4">
-                        <button type="submit" class="btn btn-primary me-2" name="descargar" value="html">Generar Reporte</button>
-                        <button type="submit" class="btn btn-success me-2" name="descargar" value="csv">Descargar CSV</button>
-                        <button type="submit" class="btn btn-success me-2" name="descargar" value="excel">Descargar Excel</button>
-                        <button type="submit" class="btn btn-danger" name="descargar" value="pdf">Descargar PDF</button>
-                    </div>
-                </form>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="fecha_inicio" class="form-label">Fecha de Inicio</label>
+                                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required value="{{ fecha_inicio_seleccionada if fecha_inicio_seleccionada }}">
+                                </div>
+                            
+                                <div class="col-md-6 mb-3">
+                                    <label for="fecha_fin" class="form-label">Fecha de Fin</label>
+                                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required value="{{ fecha_fin_seleccionada if fecha_fin_seleccionada }}">
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end mt-4">
+                                <button type="submit" class="btn btn-primary me-2" name="descargar" value="html">Generar Reporte</button>
+                                <button type="submit" class="btn btn-success me-2" name="descargar" value="csv">Descargar CSV</button>
+                                <button type="submit" class="btn btn-success me-2" name="descargar" value="excel">Descargar Excel</button>
+                                <button type="submit" class="btn btn-danger" name="descargar" value="pdf">Descargar PDF</button>
+                            </div>
+                        </form>
+                </Fieldset>
             </div>
         </div>
     </div>
 
 {% if reporte_html %}
     <hr class="my-4">
-    <div class="container mt-4">
+    <div class="container mt-0">
         <link rel="stylesheet" href="{{ url_for('static', filename='css/reporte_asistencia.css') }}">
-        <h2 class="text-center mb-4">Reporte de Asistencia</h2>
+        <h2 class="text-center mb-1">Reporte de Asistencia</h2>
         <div class="table-responsive">
             {{ reporte_html | safe }}
         </div>

@@ -3,21 +3,22 @@
 {% block title %}Crear Puesto{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <h4 class="text-center">Crear Nuevo Puesto</h4>
-            
-            <form method="POST" action="{{ url_for('puesto.crear_puesto') }}">
-                <div class="mb-3">
-                    <label for="tipo_puesto" class="form-label">Nombre del Puesto</label>
-                    <input type="text" class="form-control" id="tipo_puesto" name="tipo_puesto" required>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <button type="submit" class="btn btn-primary">Guardar Puesto</button>
-                    <a href="{{ url_for('puesto.listar_puestos') }}" class="btn btn-secondary">Cancelar</a>
-                </div>
-            </form>
+            <fieldset class="shadow border p-2 mb-0 rounded border-primary">
+            <legend class="float-none w-auto px-1 fs-3 text-center">Crear un Nuevo Puesto</legend>
+                <form method="POST" action="{{ url_for('puesto.crear_puesto') }}">
+                    <div class="mb-3">
+                        <label for="tipo_puesto" class="form-label">Nombre del Puesto</label>
+                        <input type="text" class="form-control" id="tipo_puesto" name="tipo_puesto" required>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-primary">Guardar Puesto</button>
+                        <a href="{{ url_for('puesto.listar_puestos') }}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </fieldset>
         </div>
     </div>
 </div>

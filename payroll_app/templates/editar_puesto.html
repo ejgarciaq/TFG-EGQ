@@ -3,19 +3,11 @@
 {% block title %}Editar Puesto{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <h4 class="text-center">Editar Puesto</h4>
-
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-            
+            <fieldset class="shadow border p-2 mb-0 rounded border-primary">
+            <legend class="float-none w-auto px-1 fs-3 text-center">Editar el Nuevo Puesto</legend>
             <form method="POST" action="{{ url_for('puesto.editar_puesto', id=puesto.id_puesto) }}">
                 <div class="mb-3">
                     <label for="tipo_puesto" class="form-label">Nombre del Puesto</label>
@@ -26,6 +18,7 @@
                     <a href="{{ url_for('puesto.listar_puestos') }}" class="btn btn-secondary">Cancelar</a>
                 </div>
             </form>
+            </fieldset>
         </div>
     </div>
 </div>
