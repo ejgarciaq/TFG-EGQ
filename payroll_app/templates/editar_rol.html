@@ -3,19 +3,12 @@
 {% block title %}Editar Rol{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <h4 class="text-center">Editar Rol</h4>
-            
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-            
+            <fieldset class="shadow border p-2 mb-0 rounded border-primary">
+            <legend class="float-none w-auto px-1 fs-3 text-center">Editar el Rol</legend>
+
             <form method="POST" action="{{ url_for('rol.editar_rol', id=rol.id_rol) }}">
                 <div class="mb-3">
                     <label for="tipo_rol" class="form-label">Nombre del Rol</label>
@@ -25,11 +18,29 @@
                     <label for="descripcion_rol" class="form-label">Descripción del Rol</label>
                     <textarea class="form-control" id="descripcion_rol" name="descripcion_rol" rows="3">{{ rol.descripcion_rol }}</textarea>
                 </div>
-                <div class="d-flex justify-content-between">
+
+                <div class="mb-3">
+                    <label class="form-label">Permisos</label>
+                    <div class="card p-3 shadow-sm" style="height: 200px; overflow-y: auto;">
+                        {% for permiso in permisos %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="permisos" value="{{ permiso.id_permiso }}" id="permiso-{{ permiso.id_permiso }}"
+                            {% if permiso in rol.permisos %}checked{% endif %}>
+                            <label class="form-check-label" for="permiso-{{ permiso.id_permiso }}">
+                                {{ permiso.nombre }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
                     <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                     <a href="{{ url_for('rol.listar_roles') }}" class="btn btn-secondary">Cancelar</a>
                 </div>
             </form>
+
+            </fieldset>         
         </div>
     </div>
 </div>

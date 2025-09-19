@@ -1,0 +1,54 @@
+/* Estilos generales del documento PDF */
+body {
+    font-family: Arial, sans-serif;
+    margin: 2mm; /* Márgenes del documento */
+    font-size: 10pt;
+    color: #333;
+}
+
+/* Estilos para el encabezado del reporte */
+h1 {
+    text-align: center;
+    color: #004d99; /* Azul oscuro */
+    font-size: 20pt;
+    border-bottom: 2px solid #004d99;
+    padding-bottom: 5px;
+}
+
+/* Estilos para la tabla del reporte */asd
+table {
+    width: 100%;
+    border-collapse: collapse; /* Elimina el espacio entre los bordes de las celdas */
+    margin-top: 25px;
+}
+
+/* Estilos para las celdas de encabezado y datos */
+th, td {
+    border: 1px solid #ddd; /* Borde gris claro */
+    padding: 10px;
+    text-align: center;
+}
+
+/* Estilos específicos para el encabezado de la tabla */
+th {
+    background-color: #f2f2f2; /* Fondo gris claro */
+    font-weight: bold;
+    color: #555;
+    text-transform: uppercase;
+    text-align: center;
+}
+
+/* Estilo para filas pares para mejorar la legibilidad */
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.logo-container {
+    margin-top: -30px;
+    float: left;
+    width: 10%;
+}
+
+.logo-container img {
+    max-width: 100px; /* Ajusta el tamaño del logo */
+}

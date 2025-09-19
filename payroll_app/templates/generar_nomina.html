@@ -2,39 +2,39 @@
 
 {% block content %}
 <div class="container">
-    <h4 class="text-center">Generar Nómina</h4>
-    <form method="POST" action="{{ url_for('registro_asistencia.generar_nomina') }}">
-        <div class="row">
-            <div class="col-md-4">
-                <div class="mb-3">
-                    <label for="fecha_inicio" class="form-label">Fecha de Inicio de Periodo</label>
-                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required>
+    <fieldset class="shadow border p-2 mb-0 rounded border-primary">
+    <legend class="float-none w-auto px-1 fs-3 text-center">Generar Nómina</legend>
+        <form method="POST" action="{{ url_for('registro_asistencia.generar_nomina') }}">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="fecha_inicio" class="form-label">Fecha de Inicio de Periodo</label>
+                        <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="fecha_fin" class="form-label">Fecha de Fin de Periodo</label>
+                        <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="tipo_nomina_id" class="form-label">Tipo de Nómina</label>
+                        <select class="form-control" id="tipo_nomina_id" name="tipo_nomina_id" required>
+                            {% for tipo in tipos_nomina %}
+                            <option value="{{ tipo.id_tipo_nomina }}">{{ tipo.nombre_tipo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="mb-3">
-                    <label for="fecha_fin" class="form-label">Fecha de Fin de Periodo</label>
-                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="mb-3">
-                    <label for="tipo_nomina_id" class="form-label">Tipo de Nómina</label>
-                    <select class="form-control" id="tipo_nomina_id" name="tipo_nomina_id" required>
-                        {% for tipo in tipos_nomina %}
-                        <option value="{{ tipo.id_tipo_nomina }}">{{ tipo.nombre_tipo }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-        </div>
-        <button type="submit" class="btn btn-primary mt-3">Generar Nómina</button>
-    </form>
-    
-    <hr>
+            <button type="submit" class="btn btn-primary mt-3">Generar Nómina</button>
+        </form>
+    </fieldset>
 
     {% if nominas %}
-    <h3 class="mt-5">Nóminas Generadas</h3>
+    <h3 class="mt-1 text-center">Nóminas Generadas</h3>
     <table class="table table-striped mt-3">
         <thead>
             <tr>

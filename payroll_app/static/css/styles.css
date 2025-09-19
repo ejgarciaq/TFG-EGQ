@@ -20,10 +20,9 @@ body {
     - `margin-left` desplaza el contenido para que no se superponga con el menú fijo.
 */
 .body-3 {
-    margin-left: 170px;
+    margin-left: 180px;
     padding: 20px;
 }
-
 
 /* ===================================================================================
    ESTILOS PARA MENÚ LATERAL Y NAVEGACIÓN
@@ -37,12 +36,19 @@ body {
     - `z-index` lo coloca por encima de la mayoría de los elementos.
 */
 nav {
-    position: fixed;
+    position: absolute;
     height: 100vh;
-    width: 160px;
+    width: 195px;
     box-sizing: border-box;
     z-index: 1050;
 }
+
+.nav-link.active {
+    background-color: #007bff; /* Color de fondo azul para el resaltado */
+    color: white; /* Color del texto blanco para mejor contraste */
+    border-radius: 5px; /* Bordes redondeados */
+}
+
 
 /* Alinea el texto de los botones del menú.
     - Útil para los botones que no son desplegables.
@@ -62,11 +68,16 @@ nav {
 /* Resalta el enlace de navegación que está activo.
     - Esto se usa para indicar en qué página se encuentra el usuario.
 */
-.nav-link.active {
-    color: #ffc107;
+.nav-link:hover,
+.nav-link:focus {
+    color: #ffc107 !important;
     font-weight: bold;
 }
-
+/* Opcional: Estilo para los enlaces de los submenús activos */
+.nav-item.active {
+    background-color: #0056b3; /* Un tono de azul más oscuro para los submenús */
+    color: white;
+}
 
 /* ===================================================================================
    ESTILOS PARA SUBMENÚS DESPLEGABLES
@@ -104,6 +115,11 @@ nav {
     display: block;
 }
 
+/* Opcional: Estilo para los enlaces de los submenús activos */
+.dropdown-item.active {
+    background-color: #0056b3; /* Un tono de azul más oscuro para los submenús */
+    color: white;
+}
 
 /* ===================================================================================
    ESTILOS ESPECÍFICOS DE VISTAS
@@ -119,6 +135,17 @@ nav {
 }
 
 /* Estilos para los mensajes flash */
+@keyframes slideDownIn {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 .flashes {
     position: fixed;
     top: 0;
@@ -155,3 +182,4 @@ body:has(.flashes) main {
     font-size: 5em;
     margin-bottom: 20px;
 }
+

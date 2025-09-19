@@ -2,18 +2,21 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from payroll_app.models import db, Feriado
 from datetime import datetime
+from payroll_app.routes.decorators import permiso_requerido
 
 feriado_bp = Blueprint('feriado', __name__)
 
-# Listar feriados
+# Listar feriados ---------------------------------------------
 @feriado_bp.route('/listar_feriado')
+@permiso_requerido('listar_feriado')
 @login_required
 def listar_feriados():
     feriados = Feriado.query.order_by(Feriado.fecha_feriado).all()
     return render_template('feriado.html', feriados=feriados)
 
-# Agregar feriados
+# Agregar feriados -----------------------------------------------
 @feriado_bp.route('/agregar_feriados', methods=['POST'])
+@permiso_requerido('crear_feriados')
 @login_required
 def agregar_feriado():
     fecha_str = request.form.get('fecha_feriado')
@@ -43,8 +46,9 @@ def agregar_feriado():
 
     return redirect(url_for('feriado.listar_feriados'))
 
-# ❗ Editar feriado
+# Editar feriado -------------------------------------------------------------------------
 @feriado_bp.route('/editar_feriado/<int:id_feriado>', methods=['GET', 'POST'])
+@permiso_requerido('editar_feriado')
 @login_required
 def editar_feriado(id_feriado):
     feriado = Feriado.query.get_or_404(id_feriado)
@@ -64,8 +68,9 @@ def editar_feriado(id_feriado):
     
     return render_template('editar_feriado.html', feriado=feriado)
 
-# ❗ Eliminar feriado
+# Eliminar feriado -------------------------------------------------------------
 @feriado_bp.route('/eliminar_feriado/<int:id_feriado>', methods=['POST'])
+@permiso_requerido('eliminar_feriado')
 @login_required
 def eliminar_feriado(id_feriado):
     feriado = Feriado.query.get_or_404(id_feriado)
