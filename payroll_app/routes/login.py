@@ -15,7 +15,7 @@ login_bp = Blueprint('auth', __name__)
 ZONA_HORARIA_LOCAL = pytz.timezone('America/Costa_Rica')
 
 # Definir el límite de intentos y el tiempo de bloqueo de la cuenta.
-MAX_INTENTOS_FALLIDOS = 5
+MAX_INTENTOS_FALLIDOS = 3
 TIEMPO_BLOQUEO_MINUTOS = 15
 
 
