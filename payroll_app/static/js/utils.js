@@ -1,3 +1,4 @@
+
 /* función para mostrar o ocultar la contraseña */
 function togglePassword() {
   var passwordField = document.getElementById("password");
@@ -222,4 +223,12 @@ $(document).ready(function() {
         allowClear: true,
         theme: "bootstrap-5"
     });
+});
+
+// Script para la selección masiva de checkboxes
+document.getElementById('seleccionar_todo').addEventListener('change', function() {
+    var checkboxes = document.querySelectorAll('input[name="registros_seleccionados"]');
+        for (var i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = this.checked;
+        }
 });
