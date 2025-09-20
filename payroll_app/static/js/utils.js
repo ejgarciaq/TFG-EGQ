@@ -68,6 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // logica de camposn de vacaciones e invapacidades
 document.addEventListener('DOMContentLoaded', function() {
+    // Definimos todos los elementos del DOM.
     const tipoApSelect = document.getElementById('tipo_ap_id');
     const empleadoSelect = $('#empleado_id');
     const vacationFields = document.getElementById('vacation_fields');
@@ -92,16 +93,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Función principal para mostrar/ocultar los campos
+    // Función principal para mostrar/ocultar los campos según el tipo de acción
     function actualizarCampos() {
         const selectedOption = tipoApSelect.options[tipoApSelect.selectedIndex];
         const nombreTipo = selectedOption.getAttribute('data-nombre-tipo');
 
-        // Ocultar todos los campos primero para evitar conflictos
+        // Ocultar ambos contenedores primero
         vacationFields.style.display = 'none';
         incapacityLeaveFields.style.display = 'none';
         
-        // Mostrar los campos según el tipo de acción
+        // Mostrar el contenedor correcto basado en el nombre del tipo de acción
         if (nombreTipo === 'Vacaciones') {
             vacationFields.style.display = 'block';
             actualizarSaldoVacaciones();
@@ -160,19 +161,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // 3. Establecer los EventListeners para los cambios del usuario
-    tipoApSelect.addEventListener('change', actualizarCampos);
-    empleadoSelect.on('select2:select', actualizarSaldoVacaciones);
+    // 3. Establecer los EventListeners con la sintaxis correcta para Select2
+    // Usamos 'change' en la selección de empleado para actualizar las vacaciones disponibles
+    empleadoSelect.on('change', actualizarSaldoVacaciones); 
+    // Usamos 'change' en el tipo de acción para mostrar/ocultar los campos
+    $(tipoApSelect).on('change', actualizarCampos);
     
+    // Eventos para el cálculo de días de vacaciones
     fechaInicioVacacionesInput.addEventListener('change', calcularDiasLaboralesVacaciones);
     fechaFinVacacionesInput.addEventListener('change', calcularDiasLaboralesVacaciones);
 
+    // Eventos para el cálculo de días de incapacidad
     fechaInicioIncapacidadInput.addEventListener('change', calcularDiasLaboralesIncapacidad);
     fechaFinIncapacidadInput.addEventListener('change', calcularDiasLaboralesIncapacidad);
 
     // 4. Inicializar el estado del formulario al cargar la página
     actualizarCampos();
-    actualizarSaldoVacaciones();
+});
+
+// Inicialización de Select2 para ambos select
+$(document).ready(function() {
+    $('.select2').select2({
+        placeholder: "Buscar y seleccionar...",
+        allowClear: true,
+        theme: "bootstrap-5"
+    });
 });
 
 // Inicialización de Select2
