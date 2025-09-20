@@ -188,6 +188,15 @@ $(document).ready(function() {
     });
 });
 
+// Inicialización de Select2 para ambos select
+$(document).ready(function() {
+    $('.select2').select2({
+        placeholder: "Buscar y seleccionar...",
+        allowClear: true,
+        theme: "bootstrap-5"
+    });
+});
+
 // Inicialización de Select2
 $(document).ready(function() {
     $('.select2').select2({

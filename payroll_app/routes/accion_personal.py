@@ -222,19 +222,10 @@ def aprobar_accion(ap_id):
         return redirect(url_for('accion_personal_bp.accion_personal'))
 
     try:
+         # 1. Se actualiza el estado de la acción de personal a 'Aprobado'.
         ap.estado_ap = 2 
         ap.id_aprobador = current_user.id_usuario
         ap.fecha_aprobacion = datetime.utcnow()
-
-        VACACIONES_ID = 6
-        INCAPACIDAD_ID = 5
-
-        if ap.Tipo_Ap_id_tipo_ap in [VACACIONES_ID, INCAPACIDAD_ID]:
-            empleado = Empleado.query.get(ap.Empleado_id_empleado)
-            if empleado:
-                empleado.estado = 2 
-                db.session.add(empleado)
-                flash(f'El estado del empleado {empleado.nombre_completo} ha sido actualizado a "Inactivo Temporalmente".', 'info')
         
         db.session.commit()
         flash('Acción de personal aprobada y registrada exitosamente.', 'success')
