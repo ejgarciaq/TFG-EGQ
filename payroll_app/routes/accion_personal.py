@@ -2,27 +2,44 @@ from flask import Blueprint, current_app, render_template, request, flash, redir
 from flask_login import current_user, login_required
 from sqlalchemy import func
 from payroll_app.models import db, Feriado, Empleado, Tipo_AP, Accion_Personal
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 from werkzeug.utils import secure_filename
 from payroll_app.routes.decorators import permiso_requerido
 
-# Define the Blueprint. The static folder is handled in the main app's __init__.py file
+# Define the Blueprint
 accion_personal_bp = Blueprint('accion_personal_bp', __name__)
 
 # Define las extensiones de archivo permitidas
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
 
 def allowed_file(filename):
-    """
-    Verifica si la extensión del archivo es permitida.
-    """
+    """Verifica si la extensión del archivo es permitida."""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def calcular_dias_laborales(fecha_inicio, fecha_fin, dias_feriados):
+    """
+    Calcula los días laborables en un rango de fechas, excluyendo fines de semana y feriados.
+    """
+    dias_laborales = 0
+    # Convertir las fechas de cadena a objetos datetime.date para la comparación
+    feriados_set = {datetime.strptime(f, '%Y-%m-%d').date() for f in dias_feriados}
+    
+    if isinstance(fecha_inicio, str):
+        fecha_inicio = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+    if isinstance(fecha_fin, str):
+        fecha_fin = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+
+    current_date = fecha_inicio
+    while current_date <= fecha_fin:
+        # 0 = lunes, 6 = domingo
+        if current_date.weekday() < 5 and current_date not in feriados_set:
+            dias_laborales += 1
+        current_date += timedelta(days=1)
+    return dias_laborales
 
 # aprobar_accion --------------------------------------------------------------------------------------------------------------
-
 @accion_personal_bp.route('/', methods=['GET', 'POST'])
 @permiso_requerido('listar_accion_personal')
 @login_required
@@ -40,28 +57,47 @@ def accion_personal():
             fecha_fin = None
             cantidad_dia = None
             
-            fecha_inicio_str = request.form.get('fecha_inicio')
-            fecha_fin_str = request.form.get('fecha_fin')
+            empleado = Empleado.query.get(empleado_id)
+            tipo_ap = Tipo_AP.query.get(tipo_ap_id)
             
-            if fecha_inicio_str and fecha_fin_str:
+            # Validaciones y lógica de cálculo para vacaciones e incapacidades
+            if tipo_ap.nombre_tipo in ['Vacaciones', 'Incapacidad', 'Permiso c/ Goce de Salario']:
+                fecha_inicio_str = request.form.get('fecha_inicio')
+                fecha_fin_str = request.form.get('fecha_fin')
+                
+                if not fecha_inicio_str or not fecha_fin_str:
+                    flash('Las fechas de inicio y fin son obligatorias para este tipo de acción.', 'danger')
+                    return redirect(url_for('accion_personal_bp.accion_personal'))
+                
                 fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
                 fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+
+                if fecha_inicio > fecha_fin:
+                    flash('La fecha de inicio no puede ser posterior a la fecha de fin.', 'danger')
+                    return redirect(url_for('accion_personal_bp.accion_personal'))
                 
-                delta = fecha_fin - fecha_inicio
-                cantidad_dia = delta.days + 1
-            
+                # Obtener la lista de feriados para la función de cálculo
+                dias_feriados_list = [f.fecha_feriado.strftime('%Y-%m-%d') for f in Feriado.query.all()]
+                cantidad_dia = calcular_dias_laborales(fecha_inicio, fecha_fin, dias_feriados_list)
+                
+                # Validación de días de vacaciones disponibles
+                if tipo_ap.nombre_tipo == 'Vacaciones':
+                    if empleado.vacaciones_disponibles < cantidad_dia:
+                        flash(f'Solicitud denegada: El empleado solo tiene {empleado.vacaciones_disponibles} días disponibles y está solicitando {cantidad_dia} días.', 'danger')
+                        return redirect(url_for('accion_personal_bp.accion_personal'))
+                    # Descontar días de vacaciones del saldo al momento de solicitar
+                    # Esta lógica se puede mover a la aprobación para un control más estricto
+                    empleado.vacaciones_disponibles -= cantidad_dia
+                    db.session.add(empleado)
+
+            # Lógica para cargar y guardar el archivo adjunto
             documento_adjunto = request.files.get('documento_adjunto')
             nombre_archivo = None
             
             if documento_adjunto and documento_adjunto.filename != '':
-                # Valida la extensión del archivo
                 if not allowed_file(documento_adjunto.filename):
-                    flash('Tipo de archivo no permitido. Las extensiones válidas son: pdf, docx, xlsx, png, jpg, jpeg, gif.', 'danger')
+                    flash('Tipo de archivo no permitido. Las extensiones válidas son: png, jpg, jpeg, pdf.', 'danger')
                     return redirect(url_for('accion_personal_bp.accion_personal'))
-                
-                # Lógica para sanitizar y guardar el archivo
-                empleado = Empleado.query.get(empleado_id)
-                tipo_ap = Tipo_AP.query.get(tipo_ap_id)
                 
                 fecha_formato = fecha_accion.strftime('%Y-%m-%d')
                 
@@ -74,10 +110,8 @@ def accion_personal():
                 
                 app_root = os.path.dirname(os.path.abspath(__file__))
                 upload_folder = os.path.join(app_root, '..', 'static', 'uploads')
-
                 if not os.path.exists(upload_folder):
                     os.makedirs(upload_folder)
-
                 ruta_completa = os.path.join(upload_folder, nombre_archivo)
                 documento_adjunto.save(ruta_completa)
             
@@ -91,7 +125,7 @@ def accion_personal():
                 cantidad_dia=cantidad_dia,
                 detalles=detalles,
                 documento_adjunto=nombre_archivo,
-                estado_ap=1
+                estado_ap=1 # Estado inicial: Pendiente
             )
             
             db.session.add(nueva_accion)
@@ -112,22 +146,21 @@ def accion_personal():
         if is_admin:
             tipos_ap = Tipo_AP.query.all()
             empleados_para_form = Empleado.query.all()
-            acciones_personales = Accion_Personal.query.order_by(Accion_Personal.fecha_accion.desc()).all()
+            vacaciones_disponibles = 'N/A'
         else:
             allowed_types = ['Incapacidad', 'Vacaciones', 'Permiso c/ Goce de Salario', 'Permiso s/ Goce de Salario', 'Renuncia']
             tipos_ap = Tipo_AP.query.filter(Tipo_AP.nombre_tipo.in_(allowed_types)).all()
             empleados_para_form = [current_user.empleado] if current_user.empleado else []
-            acciones_personales = Accion_Personal.query.filter_by(Empleado_id_empleado=current_user.empleado.id_empleado).order_by(Accion_Personal.fecha_accion.desc()).all()
-
+            vacaciones_disponibles = current_user.empleado.vacaciones_disponibles if current_user.empleado else 0
+        
         dias_feriados = [f.fecha_feriado.strftime('%Y-%m-%d') for f in Feriado.query.all()]
         
         return render_template('accion_personal.html', 
                                empleados=empleados_para_form, 
                                tipos_ap=tipos_ap, 
                                dias_feriados=dias_feriados,
-                               acciones_personales=acciones_personales)
-    
-    
+                               vacaciones_disponibles=vacaciones_disponibles)
+
 # historial usuario de acciones de personal ----------------------------------------------------------------
 
 @accion_personal_bp.route('/ver_historial', methods=['GET'])
@@ -256,7 +289,3 @@ def eliminar_accion(ap_id):
         flash(f'Ocurrió un error al eliminar la acción: {str(e)}', 'danger')
         
     return redirect(url_for('accion_personal_bp.acciones_administrativas'))
-
-
-
-

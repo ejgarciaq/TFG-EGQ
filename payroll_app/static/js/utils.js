@@ -66,69 +66,122 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// fechas de vacaciones 
-document.addEventListener("DOMContentLoaded", function () {
-    const tipoApSelect = document.getElementById("tipo_ap_id"); // Obtiene el campo de Tipo de Acción
-    const vacationIncapacityFields = document.getElementById("vacation_incapacity_fields");
+// logica de camposn de vacaciones e invapacidades
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoApSelect = document.getElementById('tipo_ap_id');
+    const empleadoSelect = $('#empleado_id');
+    const vacationFields = document.getElementById('vacation_fields');
+    const incapacityLeaveFields = document.getElementById('incapacity_leave_fields');
+    const saldoVacacionesInput = document.getElementById('saldo_vacaciones_input');
+    const cantidadDiaVacacionesInput = document.getElementById('cantidad_dia_vac');
+    const cantidadDiaIncapacidadInput = document.getElementById('cantidad_dia_inc');
+    const fechaInicioVacacionesInput = document.getElementById('fecha_inicio');
+    const fechaFinVacacionesInput = document.getElementById('fecha_fin');
+    const fechaInicioIncapacidadInput = document.getElementById('fecha_inicio_inc');
+    const fechaFinIncapacidadInput = document.getElementById('fecha_fin_inc');
+    
+    // Función para actualizar el saldo de vacaciones
+    function actualizarSaldoVacaciones() {
+        const selectedEmpleadoOption = empleadoSelect.find(':selected');
+        const saldoVacaciones = selectedEmpleadoOption.data('vacaciones');
+        
+        if (saldoVacaciones !== null && saldoVacaciones !== undefined) {
+            saldoVacacionesInput.value = parseInt(saldoVacaciones);
+        } else {
+            saldoVacacionesInput.value = '';
+        }
+    }
 
-    const fechaInicioInput = document.getElementById("fecha_inicio");
-    const fechaFinInput = document.getElementById("fecha_fin");
-    const cantidadDiasInput = document.getElementById("cantidad_dia");
+    // Función principal para mostrar/ocultar los campos
+    function actualizarCampos() {
+        const selectedOption = tipoApSelect.options[tipoApSelect.selectedIndex];
+        const nombreTipo = selectedOption.getAttribute('data-nombre-tipo');
 
-    const VACACIONES_ID = 6;
-    const INCAPACIDAD_ID = 5;
+        // Ocultar todos los campos primero para evitar conflictos
+        vacationFields.style.display = 'none';
+        incapacityLeaveFields.style.display = 'none';
+        
+        // Mostrar los campos según el tipo de acción
+        if (nombreTipo === 'Vacaciones') {
+            vacationFields.style.display = 'block';
+            actualizarSaldoVacaciones();
+        } else if (nombreTipo === 'Incapacidad' || nombreTipo === 'Permiso c/ Goce de Salario') {
+            incapacityLeaveFields.style.display = 'block';
+        }
+    }
 
-    const diasFestivos = JSON.parse(vacationIncapacityFields.dataset.diasFestivos);
-
-    function isHoliday(date) {
+    // Función auxiliar para verificar si una fecha es feriada
+    function isHoliday(date, diasFestivos) {
         const dateString = date.toISOString().slice(0, 10);
         return diasFestivos.includes(dateString);
     }
+    
+    // Función para calcular días laborales para Vacaciones
+    function calcularDiasLaboralesVacaciones() {
+        const fechaInicioStr = fechaInicioVacacionesInput.value;
+        const fechaFinStr = fechaFinVacacionesInput.value;
+        if (fechaInicioStr && fechaFinStr) {
+            const diasFeriados = JSON.parse(vacationFields.getAttribute('data-dias-festivos'));
+            let fechaInicio = new Date(fechaInicioStr + 'T00:00:00');
+            let fechaFin = new Date(fechaFinStr + 'T00:00:00');
+            let diasLaborales = 0;
+            let currentDate = fechaInicio;
 
-    function calculateBusinessDays() {
-        const fechaInicio = new Date(fechaInicioInput.value + "T00:00:00");
-        const fechaFin = new Date(fechaFinInput.value + "T00:00:00");
-
-        if (!fechaInicioInput.value || !fechaFinInput.value) {
-            cantidadDiasInput.value = "";
-            return;
-        }
-
-        let diasLaborables = 0;
-        for (
-            let d = new Date(fechaInicioInput.value + "T00:00:00");
-            d <= fechaFin;
-            d.setDate(d.getDate() + 1)
-        ) {
-            const diaDeLaSemana = d.getDay(); // 0 = Domingo, 6 = Sábado
-            if (diaDeLaSemana !== 0 && !isHoliday(d)) {
-                diasLaborables++;
+            while (currentDate <= fechaFin) {
+                const diaSemana = currentDate.getDay(); // 0 = Domingo, 1 = Lunes
+                if (diaSemana >= 1 && diaSemana <= 5 && !isHoliday(currentDate, diasFeriados)) {
+                    diasLaborales++;
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
             }
+            cantidadDiaVacacionesInput.value = diasLaborales;
         }
-        cantidadDiasInput.value = diasLaborables;
     }
 
-    // NUEVA LÓGICA: Detección de cambio en el campo de Tipo de Acción
-    $(tipoApSelect).on('change', function() {
-        const selectedValue = $(this).val();
-        if (selectedValue == VACACIONES_ID || selectedValue == INCAPACIDAD_ID) {
-            vacationIncapacityFields.style.display = "block";
-            fechaInicioInput.required = true;
-            fechaFinInput.required = true;
-        } else {
-            vacationIncapacityFields.style.display = "none";
-            fechaInicioInput.required = false;
-            fechaFinInput.required = false;
-            // Opcional: Limpiar los campos cuando no se necesitan
-            fechaInicioInput.value = '';
-            fechaFinInput.value = '';
-            cantidadDiasInput.value = '';
-        }
-    });
+    // Función para calcular días laborales para Incapacidad y Permiso
+    function calcularDiasLaboralesIncapacidad() {
+        const fechaInicioStr = fechaInicioIncapacidadInput.value;
+        const fechaFinStr = fechaFinIncapacidadInput.value;
+        if (fechaInicioStr && fechaFinStr) {
+            const diasFeriados = JSON.parse(incapacityLeaveFields.getAttribute('data-dias-festivos'));
+            let fechaInicio = new Date(fechaInicioStr + 'T00:00:00');
+            let fechaFin = new Date(fechaFinStr + 'T00:00:00');
+            let diasLaborales = 0;
+            let currentDate = fechaInicio;
 
-    // NUEVA LÓGICA: Detección de cambio en las fechas para el cálculo
-    $(fechaInicioInput).on('change', calculateBusinessDays);
-    $(fechaFinInput).on('change', calculateBusinessDays);
+            while (currentDate <= fechaFin) {
+                const diaSemana = currentDate.getDay();
+                if (diaSemana >= 1 && diaSemana <= 5 && !isHoliday(currentDate, diasFeriados)) {
+                    diasLaborales++;
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            cantidadDiaIncapacidadInput.value = diasLaborales;
+        }
+    }
+    
+    // 3. Establecer los EventListeners para los cambios del usuario
+    tipoApSelect.addEventListener('change', actualizarCampos);
+    empleadoSelect.on('select2:select', actualizarSaldoVacaciones);
+    
+    fechaInicioVacacionesInput.addEventListener('change', calcularDiasLaboralesVacaciones);
+    fechaFinVacacionesInput.addEventListener('change', calcularDiasLaboralesVacaciones);
+
+    fechaInicioIncapacidadInput.addEventListener('change', calcularDiasLaboralesIncapacidad);
+    fechaFinIncapacidadInput.addEventListener('change', calcularDiasLaboralesIncapacidad);
+
+    // 4. Inicializar el estado del formulario al cargar la página
+    actualizarCampos();
+    actualizarSaldoVacaciones();
+});
+
+// Inicialización de Select2
+$(document).ready(function() {
+    $('.select2').select2({
+        placeholder: "Buscar y seleccionar...",
+        allowClear: true,
+        theme: "bootstrap-5"
+    });
 });
 
 // Validacion de requisitos de contraseña
@@ -232,3 +285,6 @@ document.getElementById('seleccionar_todo').addEventListener('change', function(
             checkboxes[i].checked = this.checked;
         }
 });
+
+
+
