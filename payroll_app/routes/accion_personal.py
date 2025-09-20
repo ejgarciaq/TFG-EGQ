@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 import os
 from werkzeug.utils import secure_filename
 from payroll_app.routes.decorators import permiso_requerido
+from flask_mail import Message
+
 
 # Define the Blueprint
 accion_personal_bp = Blueprint('accion_personal_bp', __name__)
@@ -38,6 +40,29 @@ def calcular_dias_laborales(fecha_inicio, fecha_fin, dias_feriados):
             dias_laborales += 1
         current_date += timedelta(days=1)
     return dias_laborales
+
+def enviar_notificacion_por_correo(destinatario, asunto, cuerpo):
+    """
+    Envía un correo electrónico a un destinatario.
+    """
+    try:
+        mail_instance = current_app.extensions.get('mail')
+        if not mail_instance:
+           # print("Error: Flask-Mail no está inicializado.")
+            return False
+
+        msg = Message(
+            asunto,
+            sender=current_app.config['MAIL_USERNAME'],
+            recipients=[destinatario]
+        )
+        msg.body = cuerpo
+        mail_instance.send(msg)
+       # print(f"Correo enviado exitosamente a: {destinatario}")
+        return True
+    except Exception as e:
+      #  print(f"¡ATENCIÓN! Error al enviar correo a {destinatario}: {e}")
+        return False
 
 # aprobar_accion --------------------------------------------------------------------------------------------------------------
 @accion_personal_bp.route('/', methods=['GET', 'POST'])
@@ -85,11 +110,7 @@ def accion_personal():
                     if empleado.vacaciones_disponibles < cantidad_dia:
                         flash(f'Solicitud denegada: El empleado solo tiene {empleado.vacaciones_disponibles} días disponibles y está solicitando {cantidad_dia} días.', 'danger')
                         return redirect(url_for('accion_personal_bp.accion_personal'))
-                    # Descontar días de vacaciones del saldo al momento de solicitar
-                    # Esta lógica se puede mover a la aprobación para un control más estricto
-                    empleado.vacaciones_disponibles -= cantidad_dia
-                    db.session.add(empleado)
-
+            
             # Lógica para cargar y guardar el archivo adjunto
             documento_adjunto = request.files.get('documento_adjunto')
             nombre_archivo = None
@@ -131,6 +152,20 @@ def accion_personal():
             db.session.add(nueva_accion)
             db.session.commit()
             
+            # --- Lógica de notificaciones por correo ---
+            # Notificación al administrador (Punto 9)
+            # Debes reemplazar 'administrador@ejemplo.com' con el correo real de tu administrador
+            correo_admin = 'edson.garcia.cr@outlook.com'
+            asunto_admin = 'Nueva Solicitud de Vacaciones Pendiente'
+            cuerpo_admin = f'Una nueva solicitud de {tipo_ap.nombre_tipo} de {empleado.nombre} ha sido enviada. Por favor, revísela.'
+            enviar_notificacion_por_correo(correo_admin, asunto_admin, cuerpo_admin)
+
+            # Notificación al empleado (Punto 10)
+            asunto_empleado = f'Confirmación de Solicitud de {tipo_ap.nombre_tipo}'
+            cuerpo_empleado = f'Hola {empleado.nombre}, tu solicitud de {tipo_ap.nombre_tipo} ha sido enviada con éxito y está pendiente de aprobación.'
+            enviar_notificacion_por_correo(empleado.correo, asunto_empleado, cuerpo_empleado)
+            # --- Fin de la lógica de notificaciones ---
+            
             flash('Acción de personal registrada con éxito.', 'success')
             return redirect(url_for('accion_personal_bp.accion_personal'))
 
@@ -139,7 +174,6 @@ def accion_personal():
             flash(f'Ocurrió un error al registrar la acción: {e}', 'danger')
             return redirect(url_for('accion_personal_bp.accion_personal'))
     
-    # Lógica para el método GET (muestra el formulario)
     else:
         is_admin = current_user.rol.tipo_rol == 'administrador'
         
@@ -188,7 +222,7 @@ def ver_historial_apu():
 # aprobacion de accesos administrativos-------------------------------------------------------
 @accion_personal_bp.route('/historial')
 @login_required
-@permiso_requerido('admin_accion_personal')
+@permiso_requerido('aprobar_acciones_personales')
 def acciones_administrativas():
     """
     Muestra el historial de acciones de personal con paginación
@@ -203,7 +237,7 @@ def acciones_administrativas():
     )
     
     return render_template('historial_acciones.html', 
-                            pagination=paginated_acciones)
+                           pagination=paginated_acciones)
 
 
 # aprobar_accion --------------------------------------------------------------------------------------------------------------
@@ -222,10 +256,19 @@ def aprobar_accion(ap_id):
         return redirect(url_for('accion_personal_bp.accion_personal'))
 
     try:
-         # 1. Se actualiza el estado de la acción de personal a 'Aprobado'.
+        # 1. Se actualiza el estado de la acción de personal a 'Aprobado'.
         ap.estado_ap = 2 
         ap.id_aprobador = current_user.id_usuario
         ap.fecha_aprobacion = datetime.utcnow()
+        
+        # Lógica para DESCONTAR DÍAS de vacaciones al momento de la aprobación
+        VACACIONES_ID = 6
+        if ap.Tipo_Ap_id_tipo_ap == VACACIONES_ID:
+            empleado = Empleado.query.get(ap.Empleado_id_empleado)
+            if empleado and ap.cantidad_dia:
+                empleado.vacaciones_disponibles -= ap.cantidad_dia
+                db.session.add(empleado)
+                flash(f'Se han descontado {ap.cantidad_dia} días de vacaciones al empleado {empleado.nombre_completo}.', 'info')
         
         db.session.commit()
         flash('Acción de personal aprobada y registrada exitosamente.', 'success')
@@ -241,17 +284,31 @@ def aprobar_accion(ap_id):
 @permiso_requerido('rechazar_acciones_personales')
 @login_required
 def rechazar_accion(ap_id):
-    """
-    Rechaza una acción de personal si el usuario tiene el permiso requerido.
-    """
     ap = Accion_Personal.query.get_or_404(ap_id)
     
-    ap.estado_ap = 3
-    ap.id_aprobador = current_user.id_usuario
-    ap.fecha_aprobacion = datetime.utcnow()
+    # Lógica para revertir el descuento si fue una solicitud de vacaciones
+    VACACIONES_ID = 6
+    if ap.Tipo_Ap_id_tipo_ap == VACACIONES_ID:
+        empleado = Empleado.query.get(ap.Empleado_id_empleado)
+        if empleado and ap.cantidad_dia:
+            empleado.vacaciones_disponibles += ap.cantidad_dia
+            db.session.add(empleado)
+            flash(f'Se han revertido {ap.cantidad_dia} días de vacaciones al empleado {empleado.nombre_completo}.', 'info')
     
     try:
+        ap.estado_ap = 3
+        ap.id_aprobador = current_user.id_usuario
+        ap.fecha_aprobacion = datetime.utcnow()
+        
         db.session.commit()
+        
+        # --- Lógica de notificación por correo (NUEVA) ---
+        empleado = Empleado.query.get(ap.Empleado_id_empleado)
+        asunto_rechazo = f'Actualización de Solicitud de {ap.tipo_ap.nombre_tipo}'
+        cuerpo_rechazo = f'Hola {empleado.nombre_completo}, tu solicitud de {ap.tipo_ap.nombre_tipo} ha sido rechazada.'
+        enviar_notificacion_por_correo(empleado.correo, asunto_rechazo, cuerpo_rechazo)
+        # --- Fin de la lógica de notificación ---
+
         flash('Acción de personal rechazada.', 'success')
     except Exception as e:
         db.session.rollback()
