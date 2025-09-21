@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             while (currentDate <= fechaFin) {
                 const diaSemana = currentDate.getDay(); // 0 = Domingo, 1 = Lunes
-                if (diaSemana >= 1 && diaSemana <= 5 && !isHoliday(currentDate, diasFeriados)) {
+                if (diaSemana >= 1 && diaSemana <= 6 && !isHoliday(currentDate, diasFeriados)) {
                     diasLaborales++;
                 }
                 currentDate.setDate(currentDate.getDate() + 1);

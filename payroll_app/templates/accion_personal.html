@@ -3,7 +3,7 @@
 {% block title %}Acciones de Personal{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container">
 
     <fieldset class="shadow border p-2 mb-0 rounded border-primary">
         <legend class="float-none w-auto px-1 fs-3 text-center">Acciones de Personal</legend>
@@ -33,7 +33,7 @@
             
             <div class="mb-3">
                 <label for="fecha_accion" class="form-label">Fecha de la Acción</label>
-                <input type="date" class="form-control" id="fecha_accion" name="fecha_accion" required>
+                <input type="date" class="form-control" id="fecha_accion" name="fecha_accion" value="{{ fecha_accion_actual }}" readonly>
             </div>
             
             <div id="vacation_fields" style="display: none;" data-dias-festivos='{{ dias_feriados | tojson }}'>

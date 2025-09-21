@@ -20,26 +20,6 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def calcular_dias_laborales(fecha_inicio, fecha_fin, dias_feriados):
-    """
-    Calcula los días laborables en un rango de fechas, excluyendo fines de semana y feriados.
-    """
-    dias_laborales = 0
-    # Convertir las fechas de cadena a objetos datetime.date para la comparación
-    feriados_set = {datetime.strptime(f, '%Y-%m-%d').date() for f in dias_feriados}
-    
-    if isinstance(fecha_inicio, str):
-        fecha_inicio = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
-    if isinstance(fecha_fin, str):
-        fecha_fin = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
-
-    current_date = fecha_inicio
-    while current_date <= fecha_fin:
-        # 0 = lunes, 6 = domingo
-        if current_date.weekday() < 5 and current_date not in feriados_set:
-            dias_laborales += 1
-        current_date += timedelta(days=1)
-    return dias_laborales
 
 def enviar_notificacion_por_correo(destinatario, asunto, cuerpo):
     """
@@ -49,6 +29,7 @@ def enviar_notificacion_por_correo(destinatario, asunto, cuerpo):
         mail_instance = current_app.extensions.get('mail')
         if not mail_instance:
            # print("Error: Flask-Mail no está inicializado.")
+            current_app.logger.error("Error: Flask-Mail no está inicializado.")
             return False
 
         msg = Message(
@@ -59,9 +40,11 @@ def enviar_notificacion_por_correo(destinatario, asunto, cuerpo):
         msg.body = cuerpo
         mail_instance.send(msg)
        # print(f"Correo enviado exitosamente a: {destinatario}")
+        current_app.logger.info(f"Correo enviado exitosamente a: {destinatario}")
         return True
     except Exception as e:
       #  print(f"¡ATENCIÓN! Error al enviar correo a {destinatario}: {e}")
+        current_app.logger.error(f"Error al enviar correo a {destinatario}: {e}", exc_info=True)
         return False
 
 # aprobar_accion --------------------------------------------------------------------------------------------------------------
@@ -73,11 +56,10 @@ def accion_personal():
         try:
             empleado_id = request.form.get('empleado_id')
             tipo_ap_id = request.form.get('tipo_ap_id')
-            fecha_accion_str = request.form.get('fecha_accion')
             detalles = request.form.get('detalles')
             
-            fecha_accion = datetime.strptime(fecha_accion_str, '%Y-%m-%d').date()
-
+            fecha_accion = datetime.utcnow().date()
+            
             fecha_inicio = None
             fecha_fin = None
             cantidad_dia = None
@@ -85,10 +67,15 @@ def accion_personal():
             empleado = Empleado.query.get(empleado_id)
             tipo_ap = Tipo_AP.query.get(tipo_ap_id)
             
-            # Validaciones y lógica de cálculo para vacaciones e incapacidades
+            # Validaciones para tipos de acción que requieren fechas
             if tipo_ap.nombre_tipo in ['Vacaciones', 'Incapacidad', 'Permiso c/ Goce de Salario']:
                 fecha_inicio_str = request.form.get('fecha_inicio')
                 fecha_fin_str = request.form.get('fecha_fin')
+                
+                # Obtenemos la cantidad de días DIRECTAMENTE DEL FORMULARIO
+                cantidad_dia_str = request.form.get('cantidad_dia_vac')
+                if cantidad_dia_str:
+                    cantidad_dia = int(cantidad_dia_str)
                 
                 if not fecha_inicio_str or not fecha_fin_str:
                     flash('Las fechas de inicio y fin son obligatorias para este tipo de acción.', 'danger')
@@ -101,13 +88,9 @@ def accion_personal():
                     flash('La fecha de inicio no puede ser posterior a la fecha de fin.', 'danger')
                     return redirect(url_for('accion_personal_bp.accion_personal'))
                 
-                # Obtener la lista de feriados para la función de cálculo
-                dias_feriados_list = [f.fecha_feriado.strftime('%Y-%m-%d') for f in Feriado.query.all()]
-                cantidad_dia = calcular_dias_laborales(fecha_inicio, fecha_fin, dias_feriados_list)
-                
                 # Validación de días de vacaciones disponibles
                 if tipo_ap.nombre_tipo == 'Vacaciones':
-                    if empleado.vacaciones_disponibles < cantidad_dia:
+                    if cantidad_dia is None or empleado.vacaciones_disponibles < cantidad_dia:
                         flash(f'Solicitud denegada: El empleado solo tiene {empleado.vacaciones_disponibles} días disponibles y está solicitando {cantidad_dia} días.', 'danger')
                         return redirect(url_for('accion_personal_bp.accion_personal'))
             
@@ -152,25 +135,23 @@ def accion_personal():
             db.session.add(nueva_accion)
             db.session.commit()
             
-            # --- Lógica de notificaciones por correo ---
-            # Notificación al administrador (Punto 9)
-            # Debes reemplazar 'administrador@ejemplo.com' con el correo real de tu administrador
+            # Notificaciones por correo
             correo_admin = 'edson.garcia.cr@outlook.com'
-            asunto_admin = 'Nueva Solicitud de Vacaciones Pendiente'
-            cuerpo_admin = f'Una nueva solicitud de {tipo_ap.nombre_tipo} de {empleado.nombre} ha sido enviada. Por favor, revísela.'
+            asunto_admin = f'Nueva Solicitud de {tipo_ap.nombre_tipo} Pendiente'
+            cuerpo_admin = f'Una nueva solicitud de {tipo_ap.nombre_tipo} de {empleado.nombre_completo} ha sido enviada. Por favor, revísela.'
             enviar_notificacion_por_correo(correo_admin, asunto_admin, cuerpo_admin)
 
-            # Notificación al empleado (Punto 10)
             asunto_empleado = f'Confirmación de Solicitud de {tipo_ap.nombre_tipo}'
-            cuerpo_empleado = f'Hola {empleado.nombre}, tu solicitud de {tipo_ap.nombre_tipo} ha sido enviada con éxito y está pendiente de aprobación.'
+            cuerpo_empleado = f'Hola {empleado.nombre_completo}, tu solicitud de {tipo_ap.nombre_tipo} ha sido enviada con éxito y está pendiente de aprobación.'
             enviar_notificacion_por_correo(empleado.correo, asunto_empleado, cuerpo_empleado)
-            # --- Fin de la lógica de notificaciones ---
             
+            current_app.logger.info(f'Nueva acción de personal para el empleado {empleado.id_empleado} registrada con éxito.')
             flash('Acción de personal registrada con éxito.', 'success')
             return redirect(url_for('accion_personal_bp.accion_personal'))
 
         except Exception as e:
             db.session.rollback()
+            current_app.logger.error(f'Error al registrar la acción de personal: {e}', exc_info=True)
             flash(f'Ocurrió un error al registrar la acción: {e}', 'danger')
             return redirect(url_for('accion_personal_bp.accion_personal'))
     
@@ -193,7 +174,8 @@ def accion_personal():
                                empleados=empleados_para_form, 
                                tipos_ap=tipos_ap, 
                                dias_feriados=dias_feriados,
-                               vacaciones_disponibles=vacaciones_disponibles)
+                               vacaciones_disponibles=vacaciones_disponibles,
+                               fecha_accion_actual=datetime.utcnow().date())
 
 # historial usuario de acciones de personal ----------------------------------------------------------------
 
@@ -241,30 +223,31 @@ def acciones_administrativas():
 
 
 # aprobar_accion --------------------------------------------------------------------------------------------------------------
+# ... código de importación ...
+
 @accion_personal_bp.route('/aprobar_accion/<int:ap_id>', methods=['POST'])
 @permiso_requerido('aprobar_acciones_personales')
 @login_required
 def aprobar_accion(ap_id):
     """
     Aprueba una acción de personal si el usuario tiene el permiso requerido.
-    El decorador 'permiso_requerido' se encarga de la validación.
     """
     ap = Accion_Personal.query.get_or_404(ap_id)
     
     if ap.estado_ap != 1:
         flash('Esta acción ya ha sido procesada.', 'warning')
-        return redirect(url_for('accion_personal_bp.accion_personal'))
+        return redirect(url_for('accion_personal_bp.acciones_administrativas'))
 
     try:
-        # 1. Se actualiza el estado de la acción de personal a 'Aprobado'.
+        # 1. Update the status of the action to 'Approved'.
         ap.estado_ap = 2 
         ap.id_aprobador = current_user.id_usuario
         ap.fecha_aprobacion = datetime.utcnow()
         
         # Lógica para DESCONTAR DÍAS de vacaciones al momento de la aprobación
-        VACACIONES_ID = 6
-        if ap.Tipo_Ap_id_tipo_ap == VACACIONES_ID:
-            empleado = Empleado.query.get(ap.Empleado_id_empleado)
+        # Se ha corregido la condición para usar el nombre del tipo de acción
+        if ap.tipo_ap.nombre_tipo == 'Vacaciones':
+            empleado = ap.empleado
             if empleado and ap.cantidad_dia:
                 empleado.vacaciones_disponibles -= ap.cantidad_dia
                 db.session.add(empleado)
@@ -286,10 +269,10 @@ def aprobar_accion(ap_id):
 def rechazar_accion(ap_id):
     ap = Accion_Personal.query.get_or_404(ap_id)
     
-    # Lógica para revertir el descuento si fue una solicitud de vacaciones
-    VACACIONES_ID = 6
-    if ap.Tipo_Ap_id_tipo_ap == VACACIONES_ID:
-        empleado = Empleado.query.get(ap.Empleado_id_empleado)
+    # Lógica para revertir el descuento si la solicitud era de vacaciones
+    # Se ha corregido la condición para usar el nombre del tipo de acción
+    if ap.tipo_ap.nombre_tipo == 'Vacaciones':
+        empleado = ap.empleado
         if empleado and ap.cantidad_dia:
             empleado.vacaciones_disponibles += ap.cantidad_dia
             db.session.add(empleado)
@@ -302,12 +285,11 @@ def rechazar_accion(ap_id):
         
         db.session.commit()
         
-        # --- Lógica de notificación por correo (NUEVA) ---
-        empleado = Empleado.query.get(ap.Empleado_id_empleado)
+        # --- Lógica de notificación por correo ---
+        empleado = ap.empleado
         asunto_rechazo = f'Actualización de Solicitud de {ap.tipo_ap.nombre_tipo}'
         cuerpo_rechazo = f'Hola {empleado.nombre_completo}, tu solicitud de {ap.tipo_ap.nombre_tipo} ha sido rechazada.'
         enviar_notificacion_por_correo(empleado.correo, asunto_rechazo, cuerpo_rechazo)
-        # --- Fin de la lógica de notificación ---
 
         flash('Acción de personal rechazada.', 'success')
     except Exception as e:
