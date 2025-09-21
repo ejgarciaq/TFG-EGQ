@@ -6,107 +6,113 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12 text-center">
-            <h3 >Aprobación de Acciones de Personal</h3>
+            <h3>Aprobación de Acciones de Personal</h3>
             <p>Aquí puedes revisar, aprobar, rechazar o eliminar las acciones de personal pendientes.</p>
         </div>
     </div>
 
-            
-            <div class="mb-5">
-                <nav aria-label="Page navigatio">
-                    <ul class="pagination">
-                        {% if pagination.has_prev %}
-                            <li class="page-item"><a class="page-link" href="{{ url_for('accion_personal_bp.acciones_administrativas', page=pagination.prev_num) }}">Anterior</a></li>
+    <div class="mb-5">
+        <nav aria-label="Page navigatio">
+            <ul class="pagination">
+                {% if pagination.has_prev %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('accion_personal_bp.acciones_administrativas', page=pagination.prev_num) }}">Anterior</a></li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+                {% endif %}
+                
+                {% for page_num in pagination.iter_pages() %}
+                    {% if page_num %}
+                        {% if pagination.page == page_num %}
+                            <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
                         {% else %}
-                            <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+                            <li class="page-item"><a class="page-link" href="{{ url_for('accion_personal_bp.acciones_administrativas', page=page_num) }}">{{ page_num }}</a></li>
                         {% endif %}
-                        
-                        {% for page_num in pagination.iter_pages() %}
-                            {% if page_num %}
-                                {% if pagination.page == page_num %}
-                                    <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
-                                {% else %}
-                                    <li class="page-item"><a class="page-link" href="{{ url_for('accion_personal_bp.acciones_administrativas', page=page_num) }}">{{ page_num }}</a></li>
-                                {% endif %}
-                            {% else %}
-                                <li class="page-item disabled"><span class="page-link">...</span></li>
-                            {% endif %}
-                        {% endfor %}
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
 
-                        {% if pagination.has_next %}
-                            <li class="page-item"><a class="page-link" href="{{ url_for('accion_personal_bp.acciones_administrativas', page=pagination.next_num) }}">Siguiente</a></li>
-                        {% else %}
-                            <li class="page-item disabled"><span class="page-link">Siguiente</span></li>
-                        {% endif %}
-                    </ul>
-                </nav>
-            </div>
-    
-    
+                {% if pagination.has_next %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('accion_personal_bp.acciones_administrativas', page=pagination.next_num) }}">Siguiente</a></li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">Siguiente</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+
     <div class="row">
         <div class="col-12">
             <div class="table-responsive">
                 <table class="table table-striped table-hover">
                     <thead>
-                        <tr>
-                            <th>Empleado</th>
+                        <tr class="text-center">
+                            <th>Colaborador</th>
                             <th>Tipo de Acción</th>
                             <th>Fecha de Solicitud</th>
-                            <th>Detalles</th>
+                            <th>Días Solicitados</th>
                             <th>Estado</th>
                             <th>Documento</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {% for accion in pagination.items %}
-                        <tr>
-                            <td>{{ accion.empleado.nombre_completo }}</td>
-                            <td>{{ accion.tipo_ap.nombre_tipo }}</td>
-                            <td>{{ accion.fecha_accion.strftime('%d-%m-%Y') }}</td>
-                            <td>{{ accion.detalles }}</td>
-                            <td>
-                                {% if accion.estado_ap == 1 %}
-                                    <span class="badge bg-warning text-dark">Pendiente</span>
-                                {% elif accion.estado_ap == 2 %}
-                                    <span class="badge bg-success">Aprobada</span>
-                                {% elif accion.estado_ap == 3 %}
-                                    <span class="badge bg-danger">Rechazada</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if accion.documento_adjunto %}
-                                    <a href="{{ url_for('static', filename='uploads/' + accion.documento_adjunto) }}" target="_blank" class="btn btn-sm btn-info">Ver</a>
-                                {% else %}
-                                    N/A
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if accion.estado_ap == 1 %}
-                                    <div class="d-flex gap-2">
-                                        <form method="POST" action="{{ url_for('accion_personal_bp.aprobar_accion', ap_id=accion.id_accion) }}">
-                                            <input type="hidden" name="page" value="{{ pagination.page }}">
-                                            <button type="submit" class="btn btn-success btn-sm">Aprobar</button>
-                                        </form>
-                                        <form method="POST" action="{{ url_for('accion_personal_bp.rechazar_accion', ap_id=accion.id_accion) }}">
-                                            <input type="hidden" name="page" value="{{ pagination.page }}">
-                                            <button type="submit" class="btn btn-warning btn-sm">Rechazar</button>
-                                        </form>
-                                    </div>
-                                {% else %}
-                                    <form method="POST" action="{{ url_for('accion_personal_bp.eliminar_accion', ap_id=accion.id_accion) }}" style="display:inline-block;">
-                                        <input type="hidden" name="page" value="{{ pagination.page }}">
-                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que deseas eliminar esta acción? Esta acción es irreversible.');">Eliminar</button>
-                                    </form>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="7" class="text-center">No hay acciones de personal para gestionar.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
+<tbody>
+    {% for accion in pagination.items %}
+    <tr>
+        <td>{{ accion.empleado.nombre_completo }}</td>
+        <td>{{ accion.tipo_ap.nombre_tipo }}</td>
+        <td class="text-center">{{ accion.fecha_accion.strftime('%d-%m-%Y') }}</td>
+        <td class="text-center">
+            {% if accion.cantidad_dia %}
+                {{ accion.cantidad_dia }}
+            {% else %}
+                N/A
+            {% endif %}
+        </td>
+        <td class="text-center">
+            {% if accion.estado_ap == 1 %}
+                <span class="badge bg-warning text-dark">Pendiente</span>
+            {% elif accion.estado_ap == 2 %}
+                <span class="badge bg-success">Aprobada</span>
+            {% elif accion.estado_ap == 3 %}
+                <span class="badge bg-danger">Rechazada</span>
+            {% endif %}
+        </td>
+        <td class="text-center">
+            {% if accion.documento_adjunto %}
+                <a href="{{ url_for('static', filename='uploads/' + accion.documento_adjunto) }}" target="_blank" class="btn btn-sm btn-info">Ver</a>
+            {% else %}
+                N/A
+            {% endif %}
+        </td>
+        <td>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('accion_personal_bp.ver_detalle_ap', ap_id=accion.id_accion) }}" class="btn btn-primary btn-sm">Ver</a>
+                
+                {% if accion.estado_ap == 1 %}
+                    <form method="POST" action="{{ url_for('accion_personal_bp.aprobar_accion', ap_id=accion.id_accion) }}">
+                        <input type="hidden" name="page" value="{{ pagination.page }}">
+                        <button type="submit" class="btn btn-success btn-sm">Aprobar</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('accion_personal_bp.rechazar_accion', ap_id=accion.id_accion) }}">
+                        <input type="hidden" name="page" value="{{ pagination.page }}">
+                        <button type="submit" class="btn btn-warning btn-sm">Rechazar</button>
+                    </form>
+                {% else %}
+                    <form method="POST" action="{{ url_for('accion_personal_bp.eliminar_accion', ap_id=accion.id_accion) }}" style="display:inline-block;">
+                        <input type="hidden" name="page" value="{{ pagination.page }}">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que deseas eliminar esta acción? Esta acción es irreversible.');">Eliminar</button>
+                    </form>
+                {% endif %}
+            </div>
+        </td>
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="8" class="text-center">No hay acciones de personal para gestionar.</td>
+    </tr>
+    {% endfor %}
+</tbody>
                 </table>
             </div>
 

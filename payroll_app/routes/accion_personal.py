@@ -59,7 +59,7 @@ def enviar_notificacion_por_correo(destinatario, asunto, cuerpo):
         current_app.logger.error(f"Error al iniciar el hilo de correo a {destinatario}: {e}", exc_info=True)
         return False
     
-    
+
 # aprobar_accion --------------------------------------------------------------------------------------------------------------
 @accion_personal_bp.route('/', methods=['GET', 'POST'])
 @permiso_requerido('listar_accion_personal')
@@ -236,7 +236,6 @@ def acciones_administrativas():
 
 
 # aprobar_accion --------------------------------------------------------------------------------------------------------------
-# ... código de importación ...
 
 @accion_personal_bp.route('/aprobar_accion/<int:ap_id>', methods=['POST'])
 @permiso_requerido('aprobar_acciones_personales')
@@ -264,6 +263,14 @@ def aprobar_accion(ap_id):
                 flash(f'Se han descontado {ap.cantidad_dia} días de vacaciones al empleado {empleado.nombre_completo}.', 'info')
         
         db.session.commit()
+
+        # --- CÓDIGO AÑADIDO: Notificación de aprobación por correo ---
+        empleado = ap.empleado
+        asunto_aprobacion = f'Actualización de Solicitud de {ap.tipo_ap.nombre_tipo}'
+        cuerpo_aprobacion = f'Hola {empleado.nombre_completo}, tu solicitud de {ap.tipo_ap.nombre_tipo} ha sido aprobada.'
+        enviar_notificacion_por_correo(empleado.correo, asunto_aprobacion, cuerpo_aprobacion)
+        # -------------------------------------------------------------
+
         flash('Acción de personal aprobada y registrada exitosamente.', 'success')
         
     except Exception as e:
@@ -282,13 +289,6 @@ def rechazar_accion(ap_id):
     page = request.form.get('page', 1, type=int)
 
     ap = Accion_Personal.query.get_or_404(ap_id)
-    
-    if ap.tipo_ap.nombre_tipo == 'Vacaciones':
-        empleado = ap.empleado
-        if empleado and ap.cantidad_dia:
-            empleado.vacaciones_disponibles += ap.cantidad_dia
-            db.session.add(empleado)
-            flash(f'Se han revertido {ap.cantidad_dia} días de vacaciones al empleado {empleado.nombre_completo}.', 'info')
     
     try:
         ap.estado_ap = 3
@@ -333,3 +333,14 @@ def eliminar_accion(ap_id):
         
     # Redirige a la página correcta
     return redirect(url_for('accion_personal_bp.acciones_administrativas', page=page))
+
+
+@accion_personal_bp.route('/ver_detalle/<int:ap_id>')
+@permiso_requerido('listar_accion_personal')
+@login_required
+def ver_detalle_ap(ap_id):
+    """
+    Muestra los detalles completos de una acción de personal específica.
+    """
+    accion = Accion_Personal.query.get_or_404(ap_id)
+    return render_template('detalle_ap.html', accion=accion)
