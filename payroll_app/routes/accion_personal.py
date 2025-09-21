@@ -7,6 +7,7 @@ import os
 from werkzeug.utils import secure_filename
 from payroll_app.routes.decorators import permiso_requerido
 from flask_mail import Message
+from threading import Thread
 
 
 # Define the Blueprint
@@ -20,33 +21,45 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def send_async_email(app, msg):
+    # Funcion que envía el correo en un hilo separado
+    with app.app_context():
+        # Obtenemos la instancia de Flask-Mail del objeto app
+        mail_instance = app.extensions.get('mail')
+        if mail_instance:
+            try:
+                mail_instance.send(msg)
+                app.logger.info(f"Correo enviado exitosamente a: {msg.recipients[0]}")
+            except Exception as e:
+                            app.logger.error(f"Error al enviar correo a {msg.recipients[0]}: {e}", exc_info=True)
+        else:
+            app.logger.error("Error: Flask-Mail no está inicializado en el hilo.")
+
 
 def enviar_notificacion_por_correo(destinatario, asunto, cuerpo):
     """
-    Envía un correo electrónico a un destinatario.
+    Crea y lanza un hilo para enviar un correo electrónico.
     """
     try:
-        mail_instance = current_app.extensions.get('mail')
-        if not mail_instance:
-           # print("Error: Flask-Mail no está inicializado.")
-            current_app.logger.error("Error: Flask-Mail no está inicializado.")
-            return False
-
+        app = current_app._get_current_object()
         msg = Message(
             asunto,
-            sender=current_app.config['MAIL_USERNAME'],
-            recipients=[destinatario]
+            sender=app.config['MAIL_USERNAME'],
+            recipients=[destinatario],
+            body=cuerpo
         )
-        msg.body = cuerpo
-        mail_instance.send(msg)
-       # print(f"Correo enviado exitosamente a: {destinatario}")
-        current_app.logger.info(f"Correo enviado exitosamente a: {destinatario}")
+        
+        # Crea y lanza el hilo para enviar el correo en segundo plano
+        thr = Thread(target=send_async_email, args=[app, msg])
+        thr.start()
+
+        app.logger.info(f"Hilo de envío de correo a {destinatario} iniciado.")
         return True
     except Exception as e:
-      #  print(f"¡ATENCIÓN! Error al enviar correo a {destinatario}: {e}")
-        current_app.logger.error(f"Error al enviar correo a {destinatario}: {e}", exc_info=True)
+        current_app.logger.error(f"Error al iniciar el hilo de correo a {destinatario}: {e}", exc_info=True)
         return False
-
+    
+    
 # aprobar_accion --------------------------------------------------------------------------------------------------------------
 @accion_personal_bp.route('/', methods=['GET', 'POST'])
 @permiso_requerido('listar_accion_personal')
@@ -229,23 +242,20 @@ def acciones_administrativas():
 @permiso_requerido('aprobar_acciones_personales')
 @login_required
 def aprobar_accion(ap_id):
-    """
-    Aprueba una acción de personal si el usuario tiene el permiso requerido.
-    """
+    # Obtiene el número de página del formulario. Usa 1 como valor por defecto.
+    page = request.form.get('page', 1, type=int)
+
     ap = Accion_Personal.query.get_or_404(ap_id)
     
     if ap.estado_ap != 1:
         flash('Esta acción ya ha sido procesada.', 'warning')
-        return redirect(url_for('accion_personal_bp.acciones_administrativas'))
+        return redirect(url_for('accion_personal_bp.acciones_administrativas', page=page))
 
     try:
-        # 1. Update the status of the action to 'Approved'.
         ap.estado_ap = 2 
         ap.id_aprobador = current_user.id_usuario
         ap.fecha_aprobacion = datetime.utcnow()
         
-        # Lógica para DESCONTAR DÍAS de vacaciones al momento de la aprobación
-        # Se ha corregido la condición para usar el nombre del tipo de acción
         if ap.tipo_ap.nombre_tipo == 'Vacaciones':
             empleado = ap.empleado
             if empleado and ap.cantidad_dia:
@@ -260,17 +270,19 @@ def aprobar_accion(ap_id):
         db.session.rollback()
         flash(f'Ocurrió un error al aprobar la acción: {str(e)}', 'danger')
     
-    return redirect(url_for('accion_personal_bp.acciones_administrativas'))
+    # Redirige a la página correcta
+    return redirect(url_for('accion_personal_bp.acciones_administrativas', page=page))
 
 # Rechazar accion de personal ----------------------------------------------------------
 @accion_personal_bp.route('/rechazar_accion/<int:ap_id>', methods=['POST'])
 @permiso_requerido('rechazar_acciones_personales')
 @login_required
 def rechazar_accion(ap_id):
+    # Obtiene el número de página del formulario. Usa 1 como valor por defecto.
+    page = request.form.get('page', 1, type=int)
+
     ap = Accion_Personal.query.get_or_404(ap_id)
     
-    # Lógica para revertir el descuento si la solicitud era de vacaciones
-    # Se ha corregido la condición para usar el nombre del tipo de acción
     if ap.tipo_ap.nombre_tipo == 'Vacaciones':
         empleado = ap.empleado
         if empleado and ap.cantidad_dia:
@@ -285,7 +297,6 @@ def rechazar_accion(ap_id):
         
         db.session.commit()
         
-        # --- Lógica de notificación por correo ---
         empleado = ap.empleado
         asunto_rechazo = f'Actualización de Solicitud de {ap.tipo_ap.nombre_tipo}'
         cuerpo_rechazo = f'Hola {empleado.nombre_completo}, tu solicitud de {ap.tipo_ap.nombre_tipo} ha sido rechazada.'
@@ -296,8 +307,8 @@ def rechazar_accion(ap_id):
         db.session.rollback()
         flash(f'Error al rechazar la acción: {str(e)}', 'danger')
 
-    return redirect(url_for('accion_personal_bp.acciones_administrativas'))
-
+    # Redirige a la página correcta
+    return redirect(url_for('accion_personal_bp.acciones_administrativas', page=page))
 # eliminar accion de personal -----------------------------------------------
 
 @accion_personal_bp.route('/eliminar_accion/<int:ap_id>', methods=['POST'])
@@ -306,8 +317,10 @@ def rechazar_accion(ap_id):
 def eliminar_accion(ap_id):
     """
     Elimina una acción de personal de la base de datos.
-    Requiere el permiso 'eliminar_acciones_personales'.
     """
+    # Obtiene el número de página del formulario. Usa 1 como valor por defecto.
+    page = request.form.get('page', 1, type=int)
+
     ap = Accion_Personal.query.get_or_404(ap_id)
     
     try:
@@ -318,4 +331,5 @@ def eliminar_accion(ap_id):
         db.session.rollback()
         flash(f'Ocurrió un error al eliminar la acción: {str(e)}', 'danger')
         
-    return redirect(url_for('accion_personal_bp.acciones_administrativas'))
+    # Redirige a la página correcta
+    return redirect(url_for('accion_personal_bp.acciones_administrativas', page=page))
