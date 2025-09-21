@@ -60,7 +60,7 @@ def enviar_notificacion_por_correo(destinatario, asunto, cuerpo):
         return False
     
 
-# aprobar_accion --------------------------------------------------------------------------------------------------------------
+# accion de personal --------------------------------------------------------------------------------------------------------------
 @accion_personal_bp.route('/', methods=['GET', 'POST'])
 @permiso_requerido('listar_accion_personal')
 @login_required
@@ -73,41 +73,42 @@ def accion_personal():
             
             fecha_accion = datetime.utcnow().date()
             
+            empleado = Empleado.query.get(empleado_id)
+            tipo_ap = Tipo_AP.query.get(tipo_ap_id)
+            
+            if not empleado or not tipo_ap:
+                flash('Empleado o tipo de acción no válido.', 'danger')
+                return redirect(url_for('accion_personal_bp.accion_personal'))
+
             fecha_inicio = None
             fecha_fin = None
             cantidad_dia = None
             
-            empleado = Empleado.query.get(empleado_id)
-            tipo_ap = Tipo_AP.query.get(tipo_ap_id)
-            
-            # Validaciones para tipos de acción que requieren fechas
-            if tipo_ap.nombre_tipo in ['Vacaciones', 'Incapacidad', 'Permiso c/ Goce de Salario']:
+            if tipo_ap.nombre_tipo in ['Vacaciones', 'Permiso c/ Goce de Salario', 'Permiso s/ Goce de Salario']:
                 fecha_inicio_str = request.form.get('fecha_inicio')
                 fecha_fin_str = request.form.get('fecha_fin')
-                
-                # Obtenemos la cantidad de días DIRECTAMENTE DEL FORMULARIO
                 cantidad_dia_str = request.form.get('cantidad_dia_vac')
-                if cantidad_dia_str:
-                    cantidad_dia = int(cantidad_dia_str)
                 
+            elif tipo_ap.nombre_tipo == 'Incapacidad':
+                fecha_inicio_str = request.form.get('fecha_inicio_inc')
+                fecha_fin_str = request.form.get('fecha_fin_inc')
+                cantidad_dia_str = request.form.get('cantidad_dia_inc')
+            
+            if tipo_ap.nombre_tipo in ['Vacaciones', 'Incapacidad', 'Permiso c/ Goce de Salario']:
                 if not fecha_inicio_str or not fecha_fin_str:
                     flash('Las fechas de inicio y fin son obligatorias para este tipo de acción.', 'danger')
                     return redirect(url_for('accion_personal_bp.accion_personal'))
                 
                 fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
                 fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
-
-                if fecha_inicio > fecha_fin:
-                    flash('La fecha de inicio no puede ser posterior a la fecha de fin.', 'danger')
-                    return redirect(url_for('accion_personal_bp.accion_personal'))
-                
-                # Validación de días de vacaciones disponibles
-                if tipo_ap.nombre_tipo == 'Vacaciones':
-                    if cantidad_dia is None or empleado.vacaciones_disponibles < cantidad_dia:
-                        flash(f'Solicitud denegada: El empleado solo tiene {empleado.vacaciones_disponibles} días disponibles y está solicitando {cantidad_dia} días.', 'danger')
-                        return redirect(url_for('accion_personal_bp.accion_personal'))
             
-            # Lógica para cargar y guardar el archivo adjunto
+                if fecha_inicio > fecha_fin:
+                    flash('La fecha de fin no puede ser anterior a la fecha de inicio.', 'danger')
+                    return redirect(url_for('accion_personal_bp.accion_personal'))
+            
+            if cantidad_dia_str:
+                cantidad_dia = int(cantidad_dia_str)
+
             documento_adjunto = request.files.get('documento_adjunto')
             nombre_archivo = None
             
@@ -132,7 +133,6 @@ def accion_personal():
                 ruta_completa = os.path.join(upload_folder, nombre_archivo)
                 documento_adjunto.save(ruta_completa)
             
-            # Crear y guardar el registro en la base de datos
             nueva_accion = Accion_Personal(
                 Empleado_id_empleado=empleado_id,
                 Tipo_Ap_id_tipo_ap=tipo_ap_id,
@@ -142,13 +142,12 @@ def accion_personal():
                 cantidad_dia=cantidad_dia,
                 detalles=detalles,
                 documento_adjunto=nombre_archivo,
-                estado_ap=1 # Estado inicial: Pendiente
+                estado_ap=1 
             )
             
             db.session.add(nueva_accion)
             db.session.commit()
             
-            # Notificaciones por correo
             correo_admin = 'edson.garcia.cr@outlook.com'
             asunto_admin = f'Nueva Solicitud de {tipo_ap.nombre_tipo} Pendiente'
             cuerpo_admin = f'Una nueva solicitud de {tipo_ap.nombre_tipo} de {empleado.nombre_completo} ha sido enviada. Por favor, revísela.'
@@ -168,18 +167,16 @@ def accion_personal():
             flash(f'Ocurrió un error al registrar la acción: {e}', 'danger')
             return redirect(url_for('accion_personal_bp.accion_personal'))
     
-    else:
+    else: 
         is_admin = current_user.rol.tipo_rol == 'administrador'
         
         if is_admin:
             tipos_ap = Tipo_AP.query.all()
             empleados_para_form = Empleado.query.all()
-            vacaciones_disponibles = 'N/A'
         else:
             allowed_types = ['Incapacidad', 'Vacaciones', 'Permiso c/ Goce de Salario', 'Permiso s/ Goce de Salario', 'Renuncia']
             tipos_ap = Tipo_AP.query.filter(Tipo_AP.nombre_tipo.in_(allowed_types)).all()
             empleados_para_form = [current_user.empleado] if current_user.empleado else []
-            vacaciones_disponibles = current_user.empleado.vacaciones_disponibles if current_user.empleado else 0
         
         dias_feriados = [f.fecha_feriado.strftime('%Y-%m-%d') for f in Feriado.query.all()]
         
@@ -187,7 +184,6 @@ def accion_personal():
                                empleados=empleados_para_form, 
                                tipos_ap=tipos_ap, 
                                dias_feriados=dias_feriados,
-                               vacaciones_disponibles=vacaciones_disponibles,
                                fecha_accion_actual=datetime.utcnow().date())
 
 # historial usuario de acciones de personal ----------------------------------------------------------------
@@ -209,7 +205,7 @@ def ver_historial_apu():
             query = query.filter_by(Empleado_id_empleado=-1) # No resultados
 
     # Paginar los resultados
-    pagination = db.paginate(query, page=page, per_page=15, error_out=False)
+    pagination = db.paginate(query, page=page, per_page=10, error_out=False)
     
     # Renderizar la plantilla del historial, pasando la paginación
     return render_template('historial_apu.html', pagination=pagination)
