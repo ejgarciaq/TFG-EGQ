@@ -45,13 +45,14 @@ def listar_empleado():
         Rendered template: Una página HTML que muestra la lista de empleados.
     """
     page = request.args.get('page', 1, type=int)
-    per_page = 10 # Define la cantidad de elementos por pagina.
 
- 
-    # Usamos paginate() para obtener los empleados de la página actual
-    pagination = Empleado.query.paginate(page=page, per_page=per_page, error_out=False)
+    # Crea la consulta base, ordenada alfabéticamente por el nombre del empleado
+    query = Empleado.query.order_by(Empleado.nombre)
 
-    return render_template("listar_empleado.html", pagination=pagination)
+    # Aplica la paginación a la consulta ordenada
+    pagination = query.paginate(page=page, per_page=10, error_out=False)
+
+    return render_template('listar_empleado.html', pagination=pagination)
 
 #------------------------------------------------------------------------------------
 

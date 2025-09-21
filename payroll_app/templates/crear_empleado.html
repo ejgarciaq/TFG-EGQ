@@ -82,7 +82,7 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="puesto_id" class="form-label">Puesto</label>
-                        <select class="form-control" id="puesto_id" name="puesto_id" required>
+                        <select class="form-control select2" id="puesto_id" name="puesto_id" required>
                             {% for puesto in puestos %}
                             <option value="{{ puesto.id_puesto }}">{{ puesto.tipo_puesto }}</option>
                             {% endfor %}
