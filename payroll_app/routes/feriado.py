@@ -1,8 +1,9 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from payroll_app.models import db, Feriado
-from datetime import datetime
+from datetime import date, datetime
 from payroll_app.routes.decorators import permiso_requerido
+import holidays as pyholidays
 
 feriado_bp = Blueprint('feriado', __name__)
 
@@ -11,8 +12,19 @@ feriado_bp = Blueprint('feriado', __name__)
 @permiso_requerido('listar_feriado')
 @login_required
 def listar_feriados():
-    feriados = Feriado.query.order_by(Feriado.fecha_feriado).all()
-    return render_template('feriado.html', feriados=feriados)
+    """Muestra una lista paginada de todos los feriados."""
+    # Obtiene el número de página de la URL, por defecto es 1
+    page = request.args.get('page', 1, type=int)
+    # Define el número de registros por página (ej. 10)
+    per_page = 12 
+
+    # Crea la consulta base, ordenada por fecha de forma ascendente
+    query = Feriado.query.order_by(Feriado.fecha_feriado.asc())
+
+    # Aplica la paginación a la consulta
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+
+    return render_template('feriado.html', pagination=pagination)
 
 # Agregar feriados -----------------------------------------------
 @feriado_bp.route('/agregar_feriados', methods=['POST'])
@@ -83,3 +95,100 @@ def eliminar_feriado(id_feriado):
         flash(f'Ocurrió un error al eliminar el feriado: {e}', 'danger')
         
     return redirect(url_for('feriado.listar_feriados'))
+
+#agregar feriados masibos del sisgueinte año
+
+@feriado_bp.route('/agregar_feriados_siguiente_mes', methods=['POST'])
+@permiso_requerido('listar_feriado') # Puedes crear un permiso específico para esta acción
+@login_required
+def agregar_feriados_año_actual():
+    """Agrega los feriados del año actual, validando que no existan."""
+    today = date.today()
+    current_year = today.year # <--- CAMBIO CLAVE: Obtenemos el año actual
+    
+    # co_holidays = pyholidays.CountryHoliday('CO', years=next_year) # Línea anterior
+    cr_holidays = pyholidays.CountryHoliday('CR', years=current_year) # <--- CAMBIO CLAVE: Usamos 'CR' y current_year
+
+    feriados_agregados = 0
+    feriados_existentes = 0
+
+    # CAMBIO: Ya no filtramos por mes, iteramos por todos los del año actual
+    for feriado_date, feriado_name in cr_holidays.items():
+        # 1. Validar que el feriado no exista en la base de datos
+        feriado_existente = Feriado.query.filter_by(fecha_feriado=feriado_date).first()
+
+        if feriado_existente:
+            feriados_existentes += 1
+        else:
+            # 2. Si no existe, crear un nuevo registro y agregarlo
+            nuevo_feriado = Feriado(
+                fecha_feriado=feriado_date,
+                descripcion_feriado=feriado_name, # Asegúrate de que el campo sea 'descripcion_feriado' si así lo tienes en tu modelo Feriado
+                pago_obligatorio=False # Asume un valor por defecto
+            )
+            db.session.add(nuevo_feriado)
+            feriados_agregados += 1
+    
+    # 3. Guardar todos los nuevos feriados en la base de datos
+    try:
+        db.session.commit()
+        if feriados_agregados > 0:
+            flash(f"Se agregaron {feriados_agregados} feriados para el año actual. {feriados_existentes} ya existían.", "success") # <--- CAMBIO en el mensaje
+        else:
+            flash(f"No se agregaron nuevos feriados. Todos los feriados del año actual ya existen.", "info") # <--- CAMBIO en el mensaje
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Ocurrió un error al agregar los feriados: {e}", "danger")
+
+    # 4. Redirigir a la lista de feriados con paginación
+    page = request.args.get('page', 1, type=int)
+    return redirect(url_for('feriado.listar_feriados', page=page))
+
+
+@feriado_bp.route('/agregar_feriados_proximo_año', methods=['POST'])
+@permiso_requerido('listar_feriado') # Puedes usar el mismo permiso o uno nuevo
+@login_required
+def agregar_feriados_proximo_año():
+    """Agrega los feriados del próximo año, validando que no existan."""
+    today = date.today() 
+    
+    #  ESTA ES LA CLAVE: Calcula el año objetivo como el año actual + 1
+    target_year = today.year + 1 
+
+    #  ESTA ES LA CLAVE: pyholidays SOLO te devolverá los feriados para 'target_year'
+    cr_holidays = pyholidays.CountryHoliday('CR', years=target_year)
+
+    feriados_agregados = 0
+    feriados_existentes = 0
+
+    # Al iterar sobre cr_holidays, SOLO procesas los feriados del 'target_year'
+    for feriado_date, feriado_name in cr_holidays.items():
+        # 1. Validar que el feriado no exista en la base de datos
+        # Esto previene duplicados para el MISMO feriado en el MISMO año
+        feriado_existente = Feriado.query.filter_by(fecha_feriado=feriado_date).first()
+
+        if feriado_existente:
+            feriados_existentes += 1
+        else:
+            # 2. Si no existe, crear un nuevo registro y agregarlo
+            nuevo_feriado = Feriado(
+                fecha_feriado=feriado_date,
+                descripcion_feriado=feriado_name,
+            )
+            db.session.add(nuevo_feriado)
+            feriados_agregados += 1
+    
+    # 3. Guardar todos los nuevos feriados en la base de datos
+    try:
+        db.session.commit()
+        if feriados_agregados > 0:
+            flash(f"Se agregaron {feriados_agregados} feriados para el año {target_year}. {feriados_existentes} ya existían.", "success")
+        else:
+            flash(f"No se agregaron nuevos feriados para el año {target_year}. Todos ya existen.", "info")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Ocurrió un error al agregar los feriados: {e}", "danger")
+
+    # 4. Redirigir a la lista de feriados con paginación
+    page = request.args.get('page', 1, type=int)
+    return redirect(url_for('feriado.listar_feriados', page=page))
