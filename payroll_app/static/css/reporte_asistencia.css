@@ -1,7 +1,7 @@
 /* Estilos generales del documento PDF */
 body {
     font-family: Arial, sans-serif;
-    margin: 2mm; /* Márgenes del documento */
+    margin: 0.10mm; /* Márgenes del documento */
     font-size: 10pt;
     color: #333;
 }
@@ -12,20 +12,19 @@ h1 {
     color: #004d99; /* Azul oscuro */
     font-size: 20pt;
     border-bottom: 2px solid #004d99;
-    padding-bottom: 5px;
+    padding-bottom: 3px;
 }
 
 /* Estilos para la tabla del reporte */asd
 table {
     width: 100%;
     border-collapse: collapse; /* Elimina el espacio entre los bordes de las celdas */
-    margin-top: 25px;
+    margin-top: 10px;
 }
 
 /* Estilos para las celdas de encabezado y datos */
 th, td {
-    border: 1px solid #ddd; /* Borde gris claro */
-    padding: 10px;
+    padding-bottom: 5px;
     text-align: center;
 }
 
@@ -36,6 +35,7 @@ th {
     color: #555;
     text-transform: uppercase;
     text-align: center;
+    font-size: 9pt;
 }
 
 /* Estilo para filas pares para mejorar la legibilidad */
@@ -51,4 +51,35 @@ tr:nth-child(even) {
 
 .logo-container img {
     max-width: 100px; /* Ajusta el tamaño del logo */
+}
+
+@page {
+    size: letter landscape;
+}
+
+/* Para el reporte HTML generado por Pandas */
+.table th:nth-child(1),
+.table td:nth-child(1) {
+    width: 150px; /* O el ancho que consideres adecuado, ej: 180px, 200px */
+    min-width: 150px; /* Asegura un ancho mínimo */
+    max-width: 250px; /* Establece un ancho máximo si es necesario */
+    word-wrap: break-word; /* Permite que el texto se corte si es muy largo */
+    white-space: normal; /* Asegura que el texto se envuelva en líneas nuevas */
+}
+
+/* Opcional: Centrar el texto en las celdas de la tabla para mejor legibilidad */
+.table th,
+.table td {
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* Ajustar tamaño de fuente si es necesario en las celdas */
+.table td {
+    font-size: 0.85em; /* Un poco más pequeño si la tabla es muy ancha */
+}
+
+/* Para las filas de la tabla en el reporte HTML */
+table.dataframe tr {
+    margin-bottom: 20px; /* Ajusta este valor para el espaciado deseado */
 }

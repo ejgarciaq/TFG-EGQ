@@ -3,12 +3,12 @@
 {% block title %}Listado de Asistencias{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h4 class="text-center mb-4">Listado de Asistencias</h4>
+<div class="container-fluid">
+    <h4 class="text-center mb-3">Listado de Asistencias</h4>
 
     {% if registros.items %}
     <form action="{{ url_for('registro_asistencia.procesar_aprobacion') }}" method="POST">
-    <div class="table-responsive">
+    <div class="table-responsive"  >
         <table class="table table-striped table-hover">
             <thead>
                 <tr class="text-center">
@@ -18,6 +18,8 @@
                     <th>Entrada</th>
                     <th>Salida</th>
                     <th>Total Horas</th>
+                    <th>Salida Almuerzo</th>
+                    <th>Regreso Almuerzo</th>
                     <th>Horas Extra</th>
                     <th>Feriado</th>
                     <th>Monto a Pagar</th>
@@ -32,6 +34,8 @@
                     <td>{{ registro.empleado.nombre }} {{ registro.empleado.apellido_primero }} {{ registro.empleado.apellido_segundo }}</td>
                     <td>{{ registro.fecha_registro.strftime('%Y-%m-%d') }}</td>
                     <td>{{ registro.hora_entrada.strftime('%H:%M:%S') }}</td>
+                    <td>{{ registro.hora_entrada_almuerzo.strftime('%H:%M:%S') if registro.hora_entrada_almuerzo else 'N/A' }}</td>
+                    <td>{{ registro.hora_salida_almuerzo.strftime('%H:%M:%S') if registro.hora_salida_almuerzo else 'N/A' }}</td>
                     <td>{{ registro.hora_salida.strftime('%H:%M:%S') if registro.hora_salida else 'N/A' }}</td>
                     <td class="text-center">{{ registro.total_horas | default('N/A', True) }}</td>
                     <td class="text-center">{{ registro.hora_extra | default('N/A', True) }}</td>

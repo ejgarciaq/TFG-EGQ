@@ -10,60 +10,136 @@ function togglePassword() {
 }
 
 // Este script se encargará de ocultar las alertas automáticamente.
-document.addEventListener("DOMContentLoaded", (event) => {
-  // Selecciona todos los elementos con la clase 'alert'
-  const alerts = document.querySelectorAll(".alert");
+document.addEventListener("DOMContentLoaded", () => {
+    // Selecciona el contenedor de todas las alertas
+    const flashesContainer = document.querySelector(".flashes");
 
-  // Itera sobre cada alerta y programa su cierre
-  alerts.forEach((alert) => {
-    setTimeout(() => {
-      // Cierra la alerta después de 5000 milisegundos (5 segundos)
-      alert.style.display = "none";
-    }, 7000);
-  });
+    if (flashesContainer) { // Solo si el contenedor de flashes existe
+        const alerts = flashesContainer.querySelectorAll(".alert");
+        let activeAlerts = alerts.length; // Contador de alertas activas
+
+        alerts.forEach((alertElement) => {
+            // Inicializa el componente Alert de Bootstrap
+            const bsAlert = new bootstrap.Alert(alertElement);
+
+            // Escucha el evento 'closed.bs.alert' que se dispara cuando la alerta ha terminado de desaparecer
+            alertElement.addEventListener('closed.bs.alert', () => {
+                activeAlerts--; // Decrementa el contador de alertas activas
+                // Si ya no quedan alertas activas en el contenedor, ocultamos el contenedor
+                if (activeAlerts === 0) {
+                    flashesContainer.style.display = 'none';
+                    // O si prefieres eliminarlo completamente del DOM:
+                    // flashesContainer.remove(); 
+                }
+            });
+
+            // Programa el cierre automático de cada alerta
+            setTimeout(() => {
+                bsAlert.close(); // Usa .close() para activar la transición y el evento 'closed.bs.alert'
+            }, 7000); // Cierra después de 7 segundos
+        });
+    }
 });
 
 // Función para actualizar el reloj y la fecha
 document.addEventListener("DOMContentLoaded", () => {
-  const reloj = document.getElementById("reloj");
-  const fechaActual = document.getElementById("fecha_actual");
-  const marcarBtn = document.getElementById("marcar_btn");
-  const formAsistencia = document.getElementById("form_asistencia");
-  const horaClienteInput = document.getElementById("hora_cliente_input");
-  const fechaClienteInput = document.getElementById("fecha_cliente_input");
+    const reloj = document.getElementById("reloj");
+    const fechaActual = document.getElementById("fecha_actual");
+    const formAsistencia = document.getElementById("form_asistencia");
 
-  // Función para actualizar el reloj y la fecha
-  function actualizarReloj() {
-    const ahora = new Date();
+    function actualizarReloj() {
+        const ahora = new Date();
+        const hora = ahora.toLocaleTimeString("es-CR", { hour12: false });
+        const fecha = ahora.toLocaleDateString("es-CR", {
+            weekday: "long", year: "numeric", month: "long", day: "numeric",
+        });
 
-    // Formato para la hora (ej: 14:30:05)
-    const hora = ahora.toLocaleTimeString("es-CR", { hour12: false });
+        if (reloj) reloj.textContent = hora;
+        if (fechaActual) fechaActual.textContent = fecha;
+    }
 
-    // Formato para la fecha (ej: jueves, 29 de agosto de 2025)
-    const fecha = ahora.toLocaleDateString("es-CR", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    setInterval(actualizarReloj, 1000);
+    actualizarReloj();
 
-    // Actualiza el texto visible del reloj y la fecha
-    reloj.textContent = hora;
-    fechaActual.textContent = fecha;
+    // --- LÓGICA PARA GESTIONAR EL BOTÓN ÚNICO ---
+    const btnText = document.getElementById('btn_text');
+    const btnIcon = document.getElementById('btn_icon');
+    const marcarBtn = document.getElementById("marcar_btn");
 
-    // ❗ Actualiza los valores de los campos ocultos
-    horaClienteInput.value = hora; // Usa el mismo formato HH:MM:SS
-    fechaClienteInput.value = ahora.toISOString().split("T")[0]; // Formato YYYY-MM-DD
-  }
+    // >>>>> AÑADE ESTAS LÍNEAS DE DEPURACIÓN AQUÍ <<<<<
+    console.log("DEBUG (JS): btnText element:", btnText);
+    console.log("DEBUG (JS): btnIcon element:", btnIcon);
+    console.log("DEBUG (JS): marcarBtn element:", marcarBtn);
+    // --------------------------------------------------
+    
 
-  // Actualiza el reloj cada segundo
-  setInterval(actualizarReloj, 1000);
-  actualizarReloj(); // Llama a la función una vez al inicio
+    const containerElement = document.querySelector('.container');
+    const estadoActual = containerElement && containerElement.dataset.estadoActual
+                         ? containerElement.dataset.estadoActual.trim() // Aseguramos que no haya espacios extra
+                         : "entrada"; // Valor por defecto si no se encuentra el atributo
 
-  marcarBtn.addEventListener("click", async () => {
-    // La hora y fecha ya están actualizadas en los campos ocultos por el intervalo
-    formAsistencia.submit();
-  });
+    let textoBoton = "";
+    let iconoBoton = "";
+    let valorAccion = "";
+    let claseBoton = "btn-primary";
+
+    switch (estadoActual) {
+        case 'entrada':
+            console.log("DEBUG (JS): Switch cayó en 'entrada'");
+            textoBoton = "Marcar Entrada";
+            iconoBoton = "fas fa-sign-in-alt";
+            valorAccion = "entrada";
+            claseBoton = "btn-success";
+            break;
+        case 'salida_almuerzo':
+            console.log("DEBUG (JS): Switch cayó en 'salida_almuerzo'");
+            textoBoton = "Salida a Almuerzo";
+            iconoBoton = "fas fa-utensils";
+            valorAccion = "salida_almuerzo";
+            claseBoton = "btn-warning";
+            break;
+        case 'regreso_almuerzo':
+            console.log("DEBUG (JS): Switch cayó en 'regreso_almuerzo'");
+            textoBoton = "Regreso del Almuerzo";
+            iconoBoton = "fas fa-mug-hot";
+            valorAccion = "regreso_almuerzo";
+            claseBoton = "btn-info";
+            break;
+        case 'salida_final':
+            console.log("DEBUG (JS): Switch cayó en 'salida_final'");
+            textoBoton = "Finalizar Jornada";
+            iconoBoton = "fas fa-sign-out-alt";
+            valorAccion = "salida_final";
+            claseBoton = "btn-danger";
+            break;
+        case 'jornada_completa_hoy':
+            console.log("DEBUG (JS): Switch cayó en 'jornada_completa_hoy'");
+            textoBoton = "Jornada Finalizada Hoy";
+            iconoBoton = "fas fa-check-circle";
+            valorAccion = "jornada_finalizada"; // Esto es lo que se enviaría si se pulsara, aunque el botón debería estar deshabilitado
+            claseBoton = "btn-secondary disabled";
+            if (marcarBtn) marcarBtn.disabled = true; // Deshabilita el botón
+            break;
+        default:
+            console.log("DEBUG (JS): Switch cayó en 'default'");
+            console.warn(`DEBUG (JS): Estado '${estadoActual}' no reconocido en switch.`);
+            textoBoton = "Error de Estado"; // Texto por defecto si no se reconoce el estado
+            iconoBoton = "fas fa-exclamation-triangle";
+            valorAccion = "error"; // Valor por defecto para enviar si el estado es desconocido
+            claseBoton = "btn-secondary";
+            if (marcarBtn) marcarBtn.disabled = true; // Deshabilita el botón
+            break;
+    }
+
+    // Estas líneas aplican el estado calculado al botón.
+    // Añadimos comprobaciones `if (elemento)` por seguridad.
+    if (btnText) btnText.textContent = textoBoton;
+    if (btnIcon) btnIcon.className = iconoBoton;
+    if (marcarBtn) {
+        marcarBtn.value = valorAccion; // Esto es CLAVE: asigna el valor que se enviará al backend
+        marcarBtn.classList.remove('btn-primary', 'btn-success', 'btn-warning', 'btn-info', 'btn-danger', 'btn-secondary');
+        marcarBtn.classList.add(claseBoton);
+    }
 });
 
 // logica de camposn de vacaciones e invapacidades

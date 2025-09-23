@@ -4,83 +4,97 @@
 
 {% block content %}
 
-    <div class="container d-flex justify-content-center" >
-        <div class="row w-100">
-            <div class="col-md-8 mx-auto">
+{# Contenedor principal para centrar el formulario #}
+<div class="container "> {# Puedes mantener el container aquí para el formulario #}
+    <div class="row justify-content-center">
+        <div class="col-md-12"> {# El formulario centrado, ocupa 8 de 12 columnas #}
 
-                <fieldset class="shadow border p-2 mb-0 rounded border-primary">
-                    <legend class="float-none w-auto px-1 fs-3 text-center">Generar Reporte de Asistencia</legend>
-                        <form method="POST" action="{{ url_for('reportes_bp.generar_reporte') }}">
-                            <div class="row">
-                                <div class="col-md-12 mb-3">
-                                    <label for="empleado_id" class="form-label">Empleado</label>
-                                    <select class="form-control select2" id="empleado_id" name="empleado_id">
-                                        <option value="todos" {% if empleado_id_seleccionado == 'todos' %}selected{% endif %}>Todos los empleados</option>
-                                        {% for empleado in empleados %}
-                                            <option value="{{ empleado.id_empleado }}" {% if empleado_id_seleccionado|int == empleado.id_empleado %}selected{% endif %}>{{ empleado.nombre_completo }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
+            <fieldset class="shadow border p-3 mb-4 rounded border-primary"> {# mb-4 para separar el formulario del reporte #}
+                <legend class="float-none w-auto px-1 fs-3 text-center">Generar Reporte de Asistencia</legend>
+                    <form method="POST" action="{{ url_for('reportes_bp.generar_reporte') }}">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="empleado_id" class="form-label">Empleado</label>
+                                <select class="form-control select2" id="empleado_id" name="empleado_id">
+                                    <option value="todos" {% if empleado_id_seleccionado == 'todos' %}selected{% endif %}>Todos los empleados</option>
+                                    {% for empleado in empleados %}
+                                        <option value="{{ empleado.id_empleado }}" {% if empleado_id_seleccionado|int == empleado.id_empleado %}selected{% endif %}>{{ empleado.nombre_completo }}</option>
+                                    {% endfor %}
+                                </select>
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="fecha_inicio" class="form-label">Fecha de Inicio</label>
-                                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required value="{{ fecha_inicio_seleccionada if fecha_inicio_seleccionada }}">
-                                </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="fecha_inicio" class="form-label">Fecha de Inicio</label>
+                                <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required value="{{ fecha_inicio_seleccionada if fecha_inicio_seleccionada }}">
+                            </div>
+                        
+                            <div class="col-md-4 mb-3">
+                                <label for="fecha_fin" class="form-label">Fecha de Fin</label>
+                                <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required value="{{ fecha_fin_seleccionada if fecha_fin_seleccionada }}">
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-block mt-4">
+                            <button type="submit" class="btn btn-primary mb-2" name="descargar" value="html">Generar Reporte</button>
+                            <button type="submit" class="btn btn-success mb-2" name="descargar" value="csv">Descargar CSV</button>
+                            <button type="submit" class="btn btn-success mb-2" name="descargar" value="excel">Descargar Excel</button>
+                            <button type="submit" class="btn btn-danger mb-2" name="descargar" value="pdf">Descargar PDF</button>
+                        </div>
+                    </form>
+            </fieldset>
+
+{# -------------------------------------------------------------------------------- #}
+{# Sección para el reporte HTML, aparecerá debajo del formulario y ocupará todo el ancho #}
+{# -------------------------------------------------------------------------------- #}
+        {% if reporte_html %}
+            <hr class="my-4">
+            <div class="container-fluid mt-0">
+                <link rel="stylesheet" href="{{ url_for('static', filename='css/reporte_asistencia.css') }}">
+                <h2 class="text-center mb-1">Reporte de Asistencia</h2>
+
+
+                {% if paginated_records and paginated_records.pages > 1 %}
+                    {# Crea un diccionario con los parámetros de la URL para la paginación #}
+                    {% set query_params = {
+                        'empleado_id': empleado_id_seleccionado,
+                        'fecha_inicio': fecha_inicio_seleccionada,
+                        'fecha_fin': fecha_fin_seleccionada,
+                        'descargar': 'html'
+                    } %}
+                    {# El formato html es el que se usa para mostrar en la web #}
+
+                    <nav aria-label="Navegación de páginas" class="d-flex justify-content-left mt-3">
+                        <ul class="pagination">
+                            <li class="page-item {% if not paginated_records.has_prev %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('reportes_bp.generar_reporte', page=paginated_records.prev_num, **query_params) }}" tabindex="-1" aria-disabled="true">Anterior</a>
+                            </li>
                             
-                                <div class="col-md-6 mb-3">
-                                    <label for="fecha_fin" class="form-label">Fecha de Fin</label>
-                                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required value="{{ fecha_fin_seleccionada if fecha_fin_seleccionada }}">
-                                </div>
-                            </div>
+                            {% for p in paginated_records.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                                {% if p %}
+                                    <li class="page-item {% if p == paginated_records.page %}active{% endif %}">
+                                        <a class="page-link" href="{{ url_for('reportes_bp.generar_reporte', page=p, **query_params) }}">{{ p }}</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled"><a class="page-link">...</a></li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            <li class="page-item {% if not paginated_records.has_next %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('reportes_bp.generar_reporte', page=paginated_records.next_num, **query_params) }}">Siguiente</a>
+                            </li>
+                        </ul>
+                    </nav>
 
-                            <div class="d-flex justify-content-end mt-4">
-                                <button type="submit" class="btn btn-primary me-2" name="descargar" value="html">Generar Reporte</button>
-                                <button type="submit" class="btn btn-success me-2" name="descargar" value="csv">Descargar CSV</button>
-                                <button type="submit" class="btn btn-success me-2" name="descargar" value="excel">Descargar Excel</button>
-                                <button type="submit" class="btn btn-danger" name="descargar" value="pdf">Descargar PDF</button>
-                            </div>
-                        </form>
-                </Fieldset>
+                <div class="table-responsive mt-5">
+                    {{ reporte_html | safe }}
+                </div>
+
+                {% endif %}
             </div>
         </div>
     </div>
+</div>
 
-{% if reporte_html %}
-    <hr class="my-4">
-    <div class="container mt-0">
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/reporte_asistencia.css') }}">
-        <h2 class="text-center mb-1">Reporte de Asistencia</h2>
-        <div class="table-responsive">
-            {{ reporte_html | safe }}
-        </div>
-
-        {% if paginated_records and paginated_records.pages > 1 %}
-            <nav aria-label="Navegación de páginas" class="d-flex justify-content-center mt-3">
-                <ul class="pagination">
-                    <li class="page-item {% if not paginated_records.has_prev %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('reportes_bp.generar_reporte', page=paginated_records.prev_num) }}" tabindex="-1" aria-disabled="true">Anterior</a>
-                    </li>
-                    
-                    {% for p in paginated_records.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
-                        {% if p %}
-                            <li class="page-item {% if p == paginated_records.page %}active{% endif %}">
-                                <a class="page-link" href="{{ url_for('reportes_bp.generar_reporte', page=p) }}">{{ p }}</a>
-                            </li>
-                        {% else %}
-                            <li class="page-item disabled"><a class="page-link">...</a></li>
-                        {% endif %}
-                    {% endfor %}
-                    
-                    <li class="page-item {% if not paginated_records.has_next %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('reportes_bp.generar_reporte', page=paginated_records.next_num) }}">Siguiente</a>
-                    </li>
-                </ul>
-            </nav>
-        {% endif %}
-
-    </div>
 {% endif %}
 
 {% endblock %}
