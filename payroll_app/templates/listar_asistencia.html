@@ -63,7 +63,7 @@
     </div>
 
     <nav aria-label="Navegación de páginas">
-        <ul class="pagination justify-content-center">
+        <ul class="pagination justify-content-left">
             {% if registros.page > 1 %}
                 <li class="page-item">
                     <a class="page-link" href="{{ url_for(request.endpoint, page=1) }}">Primera</a>

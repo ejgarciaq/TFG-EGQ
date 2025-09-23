@@ -5,19 +5,18 @@
 
     <fieldset class="shadow border p-4 mb-3 rounded border-primary">
         <legend class="float-none w-auto px-1 fs-3 text-center">Generar Nómina</legend>
+        {# El action del formulario sigue apuntando a la misma ruta que maneja POST #}
         <form method="POST" action="{{ url_for('registro_asistencia.generar_nomina') }}">
             <div class="row g-3">
                 <div class="col-md-4">
                     <div class="mb-3">
                         <label for="fecha_inicio" class="form-label">Fecha de Inicio de Periodo</label>
-                        {# Se agrega el atributo value para conservar la fecha si se pasa desde el backend #}
                         <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required value="{{ fecha_inicio_seleccionada if fecha_inicio_seleccionada }}">
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="mb-3">
                         <label for="fecha_fin" class="form-label">Fecha de Fin de Periodo</label>
-                        {# Se agrega el atributo value para conservar la fecha si se pasa desde el backend #}
                         <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required value="{{ fecha_fin_seleccionada if fecha_fin_seleccionada }}">
                     </div>
                 </div>
@@ -27,7 +26,6 @@
                         <select class="form-select" id="tipo_nomina_id" name="tipo_nomina_id" required>
                             <option value="">Seleccione un tipo de nómina</option>
                             {% for tipo in tipos_nomina %}
-                                {# Se añade la lógica 'selected' para mantener la opción elegida #}
                                 <option value="{{ tipo.id_tipo_nomina }}" {% if tipo.id_tipo_nomina == id_tipo_nomina_seleccionado|int %}selected{% endif %}>
                                     {{ tipo.nombre_tipo }}
                                 </option>
@@ -37,13 +35,54 @@
                 </div>
             </div>
             <button type="submit" class="btn btn-primary mt-3">Generar Nómina</button>
+            {# Opcional: Un botón para aplicar solo filtros sin generar una nueva nómina #}
+            <button type="button" class="btn btn-secondary mt-3 ms-2" onclick="applyFilters()">Aplicar Filtros</button>
         </form>
     </fieldset>
 
     {% if nominas %}
     <h3 class="mt-4 text-center">Nóminas Generadas</h3>
-    <div class="table-responsive">
-        <table class="table table-striped mt-3">
+    
+    {# --- INICIO DE LA NAVEGACIÓN DE PAGINACIÓN --- #}
+    {% if paginated_nominas and paginated_nominas.pages > 1 %}
+        {# query_params captura los valores de los filtros actuales #}
+        {% set query_params = {
+            'fecha_inicio': fecha_inicio_seleccionada,
+            'fecha_fin': fecha_fin_seleccionada,
+            'tipo_nomina_id': id_tipo_nomina_seleccionado
+        } %}
+        <nav aria-label="Navegación de nóminas" class="d-flex justify-content-left ">
+            <ul class="pagination">
+                {# Enlace "Anterior" #}
+                <li class="page-item {% if not paginated_nominas.has_prev %}disabled{% endif %}">
+                    {# url_for apunta a la misma ruta 'generar_nomina' y le pasa la página anterior + los filtros #}
+                    <a class="page-link" href="{{ url_for('registro_asistencia.generar_nomina', page=paginated_nominas.prev_num, **query_params) }}" tabindex="-1" aria-disabled="true">Anterior</a>
+                </li>
+                
+                {# Números de página #}
+                {% for p in paginated_nominas.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                    {% if p %}
+                        <li class="page-item {% if p == paginated_nominas.page %}active{% endif %}">
+                            {# url_for apunta a la misma ruta 'generar_nomina' y le pasa el número de página actual + los filtros #}
+                            <a class="page-link" href="{{ url_for('registro_asistencia.generar_nomina', page=p, **query_params) }}">{{ p }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><a class="page-link">...</a></li>
+                    {% endif %}
+                {% endfor %}
+                
+                {# Enlace "Siguiente" #}
+                <li class="page-item {% if not paginated_nominas.has_next %}disabled{% endif %}">
+                    {# url_for apunta a la misma ruta 'generar_nomina' y le pasa la página siguiente + los filtros #}
+                    <a class="page-link" href="{{ url_for('registro_asistencia.generar_nomina', page=paginated_nominas.next_num, **query_params) }}">Siguiente</a>
+                </li>
+            </ul>
+        </nav>
+    {% endif %}
+    {# --- FIN DE LA NAVEGACIÓN DE PAGINACIÓN --- #}
+
+    <div class="table-responsive mt-5">
+        <table class="table table-striped">
             <thead>
                 <tr>
                     <th>Empleado</th>
@@ -70,10 +109,32 @@
             </tbody>
         </table>
     </div>
+
     {% else %}
     <div class="alert alert-info mt-3" role="alert">
-        No hay nóminas generadas. Usa el formulario de arriba para crear una.
+        No hay nóminas generadas. Usa el formulario de arriba para crear una o ajusta los filtros.
     </div>
     {% endif %}
 </div>
+
+{% block scripts %}
+<script>
+    // Función JavaScript para aplicar filtros sin enviar el formulario POST
+    function applyFilters() {
+        const fechaInicio = document.getElementById('fecha_inicio').value;
+        const fechaFin = document.getElementById('fecha_fin').value;
+        const tipoNomina = document.getElementById('tipo_nomina_id').value;
+
+        // Construir la URL con los parámetros de filtro
+        let url = "{{ url_for('registro_asistencia.generar_nomina') }}";
+        const params = new URLSearchParams();
+        if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+        if (fechaFin) params.append('fecha_fin', fechaFin);
+        if (tipoNomina) params.append('tipo_nomina_id', tipoNomina);
+        
+        window.location.href = url + '?' + params.toString();
+    }
+</script>
+{% endblock %}
+
 {% endblock %}

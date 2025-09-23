@@ -326,7 +326,7 @@ def registrar_asistencia():
             es_feriado_hoy = Feriado.query.filter_by(fecha_feriado=registro_activo.fecha_registro).first()
             registro_activo.Feriado_id_feriado = es_feriado_hoy.id_feriado if es_feriado_hoy else None
 
-            horas_mensuales = 30 * HORA_NOMINAL_ESTANDAR
+            horas_mensuales = 48 * HORA_NOMINAL_ESTANDAR
             costo_por_hora_normal = empleado.salario_base / horas_mensuales if horas_mensuales else 0
             costo_por_hora_extra = costo_por_hora_normal * 1.5
             costo_por_hora_feriado = costo_por_hora_normal * 2
@@ -373,7 +373,7 @@ def listar_asistencia():
     # Obtener todos los registros de asistencia ordenados por fecha con paginación
     page = request.args.get('page', 1, type=int)
     registros = RegistroAsistencia.query.order_by(RegistroAsistencia.fecha_registro.desc()).paginate(
-        page=page, per_page=15, error_out=False
+        page=page, per_page=14, error_out=False
     )
     return render_template('listar_asistencia.html', registros=registros)
 
@@ -508,79 +508,108 @@ def eliminar_asistencia(registro_id):
 @registro_asistencia_bp.route('/generar_nomina', methods=['GET', 'POST'])
 @permiso_requerido('listar_nominas')
 @login_required
-def generar_nomina():
+def generar_nomina(): # Esta función ahora manejará ambos métodos: GET para mostrar, POST para procesar
     """
-    Procesa la generación de nóminas calculando el salario bruto y las deducciones
-    (SEM, IVM, LPT, Renta), ajustando por la frecuencia de nómina.
+    Muestra el formulario para generar nóminas y la tabla paginada de nóminas existentes.
+    Procesa la generación de nóminas cuando se envía el formulario.
     """
     tipos_nomina = TipoNomina.query.all()
     
-    fecha_inicio_seleccionada = None
-    fecha_fin_seleccionada = None
-    id_tipo_nomina_seleccionado = None
+    # --- Parámetros de Paginación y Filtrado (se aplican tanto a GET como a POST) ---
+    page = request.args.get('page', 1, type=int) # Siempre obtenemos la página de los argumentos de la URL
+    
+    # Los filtros se obtienen primero de POST (si es un envío de formulario), luego de GET (si es una navegación)
+    fecha_inicio_str = request.form.get('fecha_inicio') or request.args.get('fecha_inicio')
+    fecha_fin_str = request.form.get('fecha_fin') or request.args.get('fecha_fin')
+    id_tipo_nomina_str = request.form.get('tipo_nomina_id') or request.args.get('tipo_nomina_id')
 
+    # Variables que se pasarán a la plantilla para mantener el estado del formulario
+    fecha_inicio_seleccionada = fecha_inicio_str
+    fecha_fin_seleccionada = fecha_fin_str
+    id_tipo_nomina_seleccionado = id_tipo_nomina_str
+
+    fecha_inicio_obj = None # Objetos datetime.date para las consultas
+    fecha_fin_obj = None
+    id_tipo_nomina_int = None
+
+    if fecha_inicio_str:
+        try:
+            fecha_inicio_obj = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Formato de fecha de inicio inválido.', 'danger')
+            fecha_inicio_seleccionada = None # Reset para evitar errores en Jinja
+
+    if fecha_fin_str:
+        try:
+            fecha_fin_obj = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Formato de fecha de fin inválido.', 'danger')
+            fecha_fin_seleccionada = None # Reset para evitar errores en Jinja
+            
+    if id_tipo_nomina_str:
+        try:
+            id_tipo_nomina_int = int(id_tipo_nomina_str)
+        except ValueError:
+            flash('Tipo de nómina inválido.', 'danger')
+            id_tipo_nomina_seleccionado = None # Reset
+
+    # --- Lógica de POST (Generar Nómina) ---
     if request.method == 'POST':
         try:
-            fecha_inicio_str = request.form.get('fecha_inicio')
-            fecha_fin_str = request.form.get('fecha_fin')
-            id_tipo_nomina_str = request.form.get('tipo_nomina_id')
-
-            fecha_inicio_seleccionada = fecha_inicio_str
-            fecha_fin_seleccionada = fecha_fin_str
-            id_tipo_nomina_seleccionado = id_tipo_nomina_str
-
-            if not id_tipo_nomina_str or not fecha_inicio_str or not fecha_fin_str:
+            if not id_tipo_nomina_int or not fecha_inicio_obj or not fecha_fin_obj:
                 flash('Debe seleccionar un tipo de nómina, fecha de inicio y fecha de fin.', 'danger')
-                # En caso de error, volvemos a renderizar con los datos para que no se pierdan
-                nominas = Nomina.query.order_by(Nomina.fecha_creacion.desc()).all()
-                return render_template(
-                    'generar_nomina.html', 
-                    nominas=nominas, 
-                    tipos_nomina=tipos_nomina,
-                    fecha_inicio_seleccionada=fecha_inicio_seleccionada,
-                    fecha_fin_seleccionada=fecha_fin_seleccionada,
-                    id_tipo_nomina_seleccionado=id_tipo_nomina_seleccionado
-                )
+                # Si hay error en POST, redirigimos a la misma página (GET) para mostrar los mensajes y filtros
+                return redirect(url_for(
+                    'registro_asistencia.generar_nomina',
+                    fecha_inicio=fecha_inicio_seleccionada,
+                    fecha_fin=fecha_fin_seleccionada,
+                    tipo_nomina_id=id_tipo_nomina_seleccionado,
+                    page=page # Mantener la página actual
+                ))
 
-            fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
-            fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
-            id_tipo_nomina = int(id_tipo_nomina_str)
-            
-            tipo_nomina_seleccionado = TipoNomina.query.get(id_tipo_nomina)
+            tipo_nomina_seleccionado = TipoNomina.query.get(id_tipo_nomina_int)
             if not tipo_nomina_seleccionado:
                 flash('Tipo de nómina no encontrado.', 'danger')
-                nominas = Nomina.query.order_by(Nomina.fecha_creacion.desc()).all()
-                return render_template(
-                    'generar_nomina.html', 
-                    nominas=nominas, 
-                    tipos_nomina=tipos_nomina,
-                    fecha_inicio_seleccionada=fecha_inicio_seleccionada,
-                    fecha_fin_seleccionada=fecha_fin_seleccionada,
-                    id_tipo_nomina_seleccionado=id_tipo_nomina_seleccionado
-                )
+                return redirect(url_for(
+                    'registro_asistencia.generar_nomina',
+                    fecha_inicio=fecha_inicio_seleccionada,
+                    fecha_fin=fecha_fin_seleccionada,
+                    tipo_nomina_id=id_tipo_nomina_seleccionado,
+                    page=page
+                ))
 
-
-            empleados = Empleado.query.filter_by(TipoNomina_id_tipo_nomina=id_tipo_nomina).all()
+            empleados = Empleado.query.filter_by(TipoNomina_id_tipo_nomina=id_tipo_nomina_int).all()
             
             if not empleados:
                 flash('No se encontraron empleados para el tipo de nómina seleccionado.', 'warning')
-                nominas = Nomina.query.order_by(Nomina.fecha_creacion.desc()).all()
-                return render_template(
-                    'generar_nomina.html', 
-                    nominas=nominas, 
-                    tipos_nomina=tipos_nomina,
-                    fecha_inicio_seleccionada=fecha_inicio_seleccionada,
-                    fecha_fin_seleccionada=fecha_fin_seleccionada,
-                    id_tipo_nomina_seleccionado=id_tipo_nomina_seleccionado
-                )
-                
+                return redirect(url_for(
+                    'registro_asistencia.generar_nomina',
+                    fecha_inicio=fecha_inicio_seleccionada,
+                    fecha_fin=fecha_fin_seleccionada,
+                    tipo_nomina_id=id_tipo_nomina_seleccionado,
+                    page=page
+                ))
+            
             nominas_generadas_info = []
 
             for empleado in empleados:
-                # ... (resto de tu lógica de cálculo de nómina) ...
+                # Verificar si ya existe una nómina para este empleado y período
+                nomina_existente = Nomina.query.filter(
+                    Nomina.Empleado_id_empleado == empleado.id_empleado,
+                    Nomina.fecha_inicio == fecha_inicio_obj,
+                    Nomina.fecha_fin == fecha_fin_obj,
+                    Nomina.TipoNomina_id_tipo_nomina == id_tipo_nomina_int
+                ).first()
+
+                if nomina_existente:
+                    nominas_generadas_info.append(f"Advertencia: Ya existe una nómina para {empleado.nombre_completo} en el período {fecha_inicio_str} - {fecha_fin_str}. Se omitirá la generación para este empleado.")
+                    continue # Saltar a la siguiente iteración del bucle
+
+                # ... (Aquí va tu lógica detallada de cálculo de nómina) ...
+                # Asegúrate de usar fecha_inicio_obj y fecha_fin_obj en tus filtros de asistencia
                 monto_por_asistencia = db.session.query(func.sum(RegistroAsistencia.monto_pago)).filter(
                     RegistroAsistencia.Empleado_id_empleado == empleado.id_empleado,
-                    RegistroAsistencia.fecha_registro.between(fecha_inicio, fecha_fin),
+                    RegistroAsistencia.fecha_registro.between(fecha_inicio_obj, fecha_fin_obj),
                     RegistroAsistencia.aprobacion_registro == True 
                 ).scalar() or 0.0
 
@@ -598,8 +627,8 @@ def generar_nomina():
                     tipo_ap = Tipo_AP.query.get(ap.Tipo_Ap_id_tipo_ap) 
                     if tipo_ap and tipo_ap.nombre_tipo.lower() in ['vacaciones', 'incapacidad']:
                         if ap.fecha_inicio and ap.fecha_fin:
-                            inicio_ap_periodo = max(ap.fecha_inicio, fecha_inicio)
-                            fin_ap_periodo = min(ap.fecha_fin, fecha_fin)
+                            inicio_ap_periodo = max(ap.fecha_inicio, fecha_inicio_obj)
+                            fin_ap_periodo = min(ap.fecha_fin, fecha_fin_obj)
                             
                             if fin_ap_periodo >= inicio_ap_periodo:
                                 dias_compensados += (fin_ap_periodo - inicio_ap_periodo).days + 1
@@ -634,7 +663,7 @@ def generar_nomina():
 
                 tramos_isr = [TRAMO_1, TRAMO_2, TRAMO_3, TRAMO_4]
                 
-                dias_del_periodo = (fecha_fin - fecha_inicio).days + 1
+                dias_del_periodo = (fecha_fin_obj - fecha_inicio_obj).days + 1
                 factor_prorrateo = dias_del_periodo / 30.4167 
 
                 salario_exento_isr = BASE_SALARIO_EXENTO_ISR * factor_prorrateo
@@ -663,12 +692,12 @@ def generar_nomina():
                 
                 nueva_nomina = Nomina(
                     Empleado_id_empleado=empleado.id_empleado,
-                    fecha_inicio=fecha_inicio,
-                    fecha_fin=fecha_fin,
+                    fecha_inicio=fecha_inicio_obj, # Usa el objeto de fecha
+                    fecha_fin=fecha_fin_obj, # Usa el objeto de fecha
                     salario_bruto=round(total_monto_bruto, 2),
                     salario_neto=round(monto_neto, 2),
                     deducciones=round(total_deducciones_calculadas, 2), 
-                    TipoNomina_id_tipo_nomina=id_tipo_nomina,
+                    TipoNomina_id_tipo_nomina=id_tipo_nomina_int,
                     fecha_creacion=datetime.now()
                 )
                 db.session.add(nueva_nomina)
@@ -680,23 +709,53 @@ def generar_nomina():
                 flash(msg, 'info')
             
             # *** CAMBIO CLAVE AQUI: REDIRECCIONAR DESPUÉS DE UN POST EXITOSO ***
-            return redirect(url_for('registro_asistencia.generar_nomina')) 
-
+            # Redirigimos al mismo endpoint (que ahora maneja GET para listar)
+            # Pasamos los filtros y la página para mantener el estado
+            return redirect(url_for(
+                'registro_asistencia.generar_nomina', # Usamos el mismo endpoint
+                fecha_inicio=fecha_inicio_seleccionada,
+                fecha_fin=fecha_fin_seleccionada,
+                tipo_nomina_id=id_tipo_nomina_seleccionado,
+                page=page
+            )) 
 
         except Exception as e:
             db.session.rollback()
             logging.error(f"Error al generar la nómina: {str(e)}", exc_info=True)
             flash(f'Ocurrió un error al generar la nómina. Por favor, intente de nuevo. (Detalle: {str(e)})', 'danger')
-            # Si hay un error, aún renderizamos la página directamente con los valores del formulario
-            nominas = Nomina.query.order_by(Nomina.fecha_creacion.desc()).all()
-            return render_template(
-                'generar_nomina.html', 
-                nominas=nominas, 
-                tipos_nomina=tipos_nomina,
-                fecha_inicio_seleccionada=fecha_inicio_seleccionada,
-                fecha_fin_seleccionada=fecha_fin_seleccionada,
-                id_tipo_nomina_seleccionado=id_tipo_nomina_seleccionado
-            )
+            # Si hay un error en POST, también redirigimos para que se muestre el mensaje flash
+            return redirect(url_for(
+                'registro_asistencia.generar_nomina',
+                fecha_inicio=fecha_inicio_seleccionada,
+                fecha_fin=fecha_fin_seleccionada,
+                tipo_nomina_id=id_tipo_nomina_seleccionado,
+                page=page
+            ))
+
+    # --- Lógica de GET (Mostrar la Tabla de Nóminas Paginada) ---
+    # Esta parte se ejecuta cuando la página se carga por primera vez o después de un redirect (GET)
+    query_nominas_actual = Nomina.query.order_by(Nomina.fecha_creacion.desc())
+
+    # Aplicar filtros a la consulta de nóminas para la visualización
+    if fecha_inicio_obj:
+        query_nominas_actual = query_nominas_actual.filter(Nomina.fecha_inicio >= fecha_inicio_obj)
+    if fecha_fin_obj:
+        query_nominas_actual = query_nominas_actual.filter(Nomina.fecha_fin <= fecha_fin_obj)
+    if id_tipo_nomina_int:
+        query_nominas_actual = query_nominas_actual.filter(Nomina.TipoNomina_id_tipo_nomina == id_tipo_nomina_int)
+        
+    nominas_paginadas = query_nominas_actual.paginate(page=page, per_page=10, error_out=False)
+
+    return render_template(
+        'generar_nomina.html', 
+        nominas=nominas_paginadas.items, 
+        paginated_nominas=nominas_paginadas,
+        tipos_nomina=tipos_nomina,
+        fecha_inicio_seleccionada=fecha_inicio_seleccionada,
+        fecha_fin_seleccionada=fecha_fin_seleccionada,
+        id_tipo_nomina_seleccionado=id_tipo_nomina_seleccionado
+    )
+
 
     # Este bloque maneja las solicitudes GET (carga inicial o después de un redirect)
     nominas = Nomina.query.order_by(Nomina.fecha_creacion.desc()).all()
@@ -718,14 +777,70 @@ def generar_nomina():
 @permiso_requerido('listar_nominas')
 @login_required
 def listar_nominas():
-    """Muestra una lista de todas las nóminas generadas."""
+    """Muestra una lista de todas las nóminas generadas con paginación y filtros."""
     try:
-        nominas = Nomina.query.order_by(Nomina.fecha_creacion.desc()).all()
+        # 1. Obtener el número de página de la URL, por defecto es 1
+        page = request.args.get('page', 1, type=int)
+        
+        # 2. Obtener los parámetros de filtro de la URL (para mantener el estado al paginar)
+        fecha_inicio_str = request.args.get('fecha_inicio')
+        fecha_fin_str = request.args.get('fecha_fin')
+        tipo_nomina_id_str = request.args.get('tipo_nomina_id')
+
+        # Convertir a objetos de fecha e int si existen y son válidos
+        fecha_inicio_obj = None
+        fecha_fin_obj = None
+        tipo_nomina_id_int = None
+
+        if fecha_inicio_str:
+            try:
+                fecha_inicio_obj = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+            except ValueError:
+                flash('Formato de fecha de inicio inválido para el filtro.', 'danger')
+
+        if fecha_fin_str:
+            try:
+                fecha_fin_obj = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+            except ValueError:
+                flash('Formato de fecha de fin inválido para el filtro.', 'danger')
+                
+        if tipo_nomina_id_str:
+            try:
+                tipo_nomina_id_int = int(tipo_nomina_id_str)
+            except ValueError:
+                flash('Tipo de nómina inválido para el filtro.', 'danger')
+
+        # Iniciar la consulta base
+        query = Nomina.query.order_by(Nomina.fecha_creacion.desc())
+
+        # Aplicar filtros si están presentes
+        if fecha_inicio_obj:
+            query = query.filter(Nomina.fecha_inicio >= fecha_inicio_obj)
+        if fecha_fin_obj:
+            query = query.filter(Nomina.fecha_fin <= fecha_fin_obj)
+        if tipo_nomina_id_int:
+            query = query.filter(Nomina.TipoNomina_id_tipo_nomina == tipo_nomina_id_int)
+
+        # 3. y 4. Paginar los resultados y obtener el objeto Pagination
+        # 'per_page' define cuántos ítems se mostrarán por página
+        paginated_nominas = query.paginate(page=page, per_page=10, error_out=False)
+
         tipos_nomina = TipoNomina.query.all()
-        return render_template('generar_nomina.html', nominas=nominas, tipos_nomina=tipos_nomina)
+        
+        return render_template(
+            'generar_nomina.html',
+            nominas=paginated_nominas.items,       # Los ítems (registros) de la página actual
+            paginated_nominas=paginated_nominas,   # El objeto paginador completo para los controles
+            tipos_nomina=tipos_nomina,
+            # Pasar de vuelta los valores de filtro a la plantilla para mantener el estado del formulario
+            fecha_inicio_seleccionada=fecha_inicio_str,
+            fecha_fin_seleccionada=fecha_fin_str,
+            id_tipo_nomina_seleccionado=tipo_nomina_id_str
+        )
     except Exception as e:
         flash(f'Ocurrió un error al cargar las nóminas: {str(e)}', 'danger')
         tipos_nomina = TipoNomina.query.all()
-        return render_template('generar_nomina.html', nominas=[], tipos_nomina=tipos_nomina)
+        # En caso de error, devolver una lista vacía y un paginador nulo
+        return render_template('generar_nomina.html', nominas=[], tipos_nomina=tipos_nomina, paginated_nominas=None)
     
     
