@@ -2,6 +2,7 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 from flask import Flask, redirect, url_for
+from flask_mail import Mail
 from payroll_app.config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -28,6 +29,7 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+    mail = Mail(app)
 
     # --- Configuración de Flask-Login ---
     # Define la vista de inicio de sesión que Flask-Login debe redirigir a los usuarios

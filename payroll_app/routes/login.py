@@ -18,8 +18,6 @@ ZONA_HORARIA_LOCAL = pytz.timezone('America/Costa_Rica')
 MAX_INTENTOS_FALLIDOS = 3
 TIEMPO_BLOQUEO_MINUTOS = 15
 
-
-
 # Aquí se validan los requisitos de la contraseña
 def validar_complejidad_password(password):
     """    

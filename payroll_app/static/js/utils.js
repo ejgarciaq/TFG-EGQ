@@ -1,3 +1,4 @@
+
 /* función para mostrar o ocultar la contraseña */
 function togglePassword() {
   var passwordField = document.getElementById("password");
@@ -9,125 +10,276 @@ function togglePassword() {
 }
 
 // Este script se encargará de ocultar las alertas automáticamente.
-document.addEventListener("DOMContentLoaded", (event) => {
-  // Selecciona todos los elementos con la clase 'alert'
-  const alerts = document.querySelectorAll(".alert");
+document.addEventListener("DOMContentLoaded", () => {
+    // Selecciona el contenedor de todas las alertas
+    const flashesContainer = document.querySelector(".flashes");
 
-  // Itera sobre cada alerta y programa su cierre
-  alerts.forEach((alert) => {
-    setTimeout(() => {
-      // Cierra la alerta después de 5000 milisegundos (5 segundos)
-      alert.style.display = "none";
-    }, 7000);
-  });
+    if (flashesContainer) { // Solo si el contenedor de flashes existe
+        const alerts = flashesContainer.querySelectorAll(".alert");
+        let activeAlerts = alerts.length; // Contador de alertas activas
+
+        alerts.forEach((alertElement) => {
+            // Inicializa el componente Alert de Bootstrap
+            const bsAlert = new bootstrap.Alert(alertElement);
+
+            // Escucha el evento 'closed.bs.alert' que se dispara cuando la alerta ha terminado de desaparecer
+            alertElement.addEventListener('closed.bs.alert', () => {
+                activeAlerts--; // Decrementa el contador de alertas activas
+                // Si ya no quedan alertas activas en el contenedor, ocultamos el contenedor
+                if (activeAlerts === 0) {
+                    flashesContainer.style.display = 'none';
+                    // O si prefieres eliminarlo completamente del DOM:
+                    // flashesContainer.remove(); 
+                }
+            });
+
+            // Programa el cierre automático de cada alerta
+            setTimeout(() => {
+                bsAlert.close(); // Usa .close() para activar la transición y el evento 'closed.bs.alert'
+            }, 7000); // Cierra después de 7 segundos
+        });
+    }
 });
 
 // Función para actualizar el reloj y la fecha
 document.addEventListener("DOMContentLoaded", () => {
-  const reloj = document.getElementById("reloj");
-  const fechaActual = document.getElementById("fecha_actual");
-  const marcarBtn = document.getElementById("marcar_btn");
-  const formAsistencia = document.getElementById("form_asistencia");
-  const horaClienteInput = document.getElementById("hora_cliente_input");
-  const fechaClienteInput = document.getElementById("fecha_cliente_input");
+    const reloj = document.getElementById("reloj");
+    const fechaActual = document.getElementById("fecha_actual");
+    const formAsistencia = document.getElementById("form_asistencia");
 
-  // Función para actualizar el reloj y la fecha
-  function actualizarReloj() {
-    const ahora = new Date();
+    function actualizarReloj() {
+        const ahora = new Date();
+        const hora = ahora.toLocaleTimeString("es-CR", { hour12: false });
+        const fecha = ahora.toLocaleDateString("es-CR", {
+            weekday: "long", year: "numeric", month: "long", day: "numeric",
+        });
 
-    // Formato para la hora (ej: 14:30:05)
-    const hora = ahora.toLocaleTimeString("es-CR", { hour12: false });
+        if (reloj) reloj.textContent = hora;
+        if (fechaActual) fechaActual.textContent = fecha;
+    }
 
-    // Formato para la fecha (ej: jueves, 29 de agosto de 2025)
-    const fecha = ahora.toLocaleDateString("es-CR", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    setInterval(actualizarReloj, 1000);
+    actualizarReloj();
 
-    // Actualiza el texto visible del reloj y la fecha
-    reloj.textContent = hora;
-    fechaActual.textContent = fecha;
+    // --- LÓGICA PARA GESTIONAR EL BOTÓN ÚNICO ---
+    const btnText = document.getElementById('btn_text');
+    const btnIcon = document.getElementById('btn_icon');
+    const marcarBtn = document.getElementById("marcar_btn");
 
-    // ❗ Actualiza los valores de los campos ocultos
-    horaClienteInput.value = hora; // Usa el mismo formato HH:MM:SS
-    fechaClienteInput.value = ahora.toISOString().split("T")[0]; // Formato YYYY-MM-DD
-  }
+    // >>>>> AÑADE ESTAS LÍNEAS DE DEPURACIÓN AQUÍ <<<<<
+    console.log("DEBUG (JS): btnText element:", btnText);
+    console.log("DEBUG (JS): btnIcon element:", btnIcon);
+    console.log("DEBUG (JS): marcarBtn element:", marcarBtn);
+    // --------------------------------------------------
+    
 
-  // Actualiza el reloj cada segundo
-  setInterval(actualizarReloj, 1000);
-  actualizarReloj(); // Llama a la función una vez al inicio
+    const containerElement = document.querySelector('.container');
+    const estadoActual = containerElement && containerElement.dataset.estadoActual
+                         ? containerElement.dataset.estadoActual.trim() // Aseguramos que no haya espacios extra
+                         : "entrada"; // Valor por defecto si no se encuentra el atributo
 
-  marcarBtn.addEventListener("click", async () => {
-    // La hora y fecha ya están actualizadas en los campos ocultos por el intervalo
-    formAsistencia.submit();
-  });
+    let textoBoton = "";
+    let iconoBoton = "";
+    let valorAccion = "";
+    let claseBoton = "btn-primary";
+
+    switch (estadoActual) {
+        case 'entrada':
+            console.log("DEBUG (JS): Switch cayó en 'entrada'");
+            textoBoton = "Marcar Entrada";
+            iconoBoton = "fas fa-sign-in-alt";
+            valorAccion = "entrada";
+            claseBoton = "btn-success";
+            break;
+        case 'salida_almuerzo':
+            console.log("DEBUG (JS): Switch cayó en 'salida_almuerzo'");
+            textoBoton = "Salida a Almuerzo";
+            iconoBoton = "fas fa-utensils";
+            valorAccion = "salida_almuerzo";
+            claseBoton = "btn-warning";
+            break;
+        case 'regreso_almuerzo':
+            console.log("DEBUG (JS): Switch cayó en 'regreso_almuerzo'");
+            textoBoton = "Regreso del Almuerzo";
+            iconoBoton = "fas fa-mug-hot";
+            valorAccion = "regreso_almuerzo";
+            claseBoton = "btn-info";
+            break;
+        case 'salida_final':
+            console.log("DEBUG (JS): Switch cayó en 'salida_final'");
+            textoBoton = "Finalizar Jornada";
+            iconoBoton = "fas fa-sign-out-alt";
+            valorAccion = "salida_final";
+            claseBoton = "btn-danger";
+            break;
+        case 'jornada_completa_hoy':
+            console.log("DEBUG (JS): Switch cayó en 'jornada_completa_hoy'");
+            textoBoton = "Jornada Finalizada Hoy";
+            iconoBoton = "fas fa-check-circle";
+            valorAccion = "jornada_finalizada"; // Esto es lo que se enviaría si se pulsara, aunque el botón debería estar deshabilitado
+            claseBoton = "btn-secondary disabled";
+            if (marcarBtn) marcarBtn.disabled = true; // Deshabilita el botón
+            break;
+        default:
+            console.log("DEBUG (JS): Switch cayó en 'default'");
+            console.warn(`DEBUG (JS): Estado '${estadoActual}' no reconocido en switch.`);
+            textoBoton = "Error de Estado"; // Texto por defecto si no se reconoce el estado
+            iconoBoton = "fas fa-exclamation-triangle";
+            valorAccion = "error"; // Valor por defecto para enviar si el estado es desconocido
+            claseBoton = "btn-secondary";
+            if (marcarBtn) marcarBtn.disabled = true; // Deshabilita el botón
+            break;
+    }
+
+    // Estas líneas aplican el estado calculado al botón.
+    // Añadimos comprobaciones `if (elemento)` por seguridad.
+    if (btnText) btnText.textContent = textoBoton;
+    if (btnIcon) btnIcon.className = iconoBoton;
+    if (marcarBtn) {
+        marcarBtn.value = valorAccion; // Esto es CLAVE: asigna el valor que se enviará al backend
+        marcarBtn.classList.remove('btn-primary', 'btn-success', 'btn-warning', 'btn-info', 'btn-danger', 'btn-secondary');
+        marcarBtn.classList.add(claseBoton);
+    }
 });
 
-// fechas de vacaciones 
-document.addEventListener("DOMContentLoaded", function () {
-    const tipoApSelect = document.getElementById("tipo_ap_id"); // Obtiene el campo de Tipo de Acción
-    const vacationIncapacityFields = document.getElementById("vacation_incapacity_fields");
+// logica de camposn de vacaciones e invapacidades
+document.addEventListener('DOMContentLoaded', function() {
+    // Definimos todos los elementos del DOM.
+    const tipoApSelect = document.getElementById('tipo_ap_id');
+    const empleadoSelect = $('#empleado_id');
+    const vacationFields = document.getElementById('vacation_fields');
+    const incapacityLeaveFields = document.getElementById('incapacity_leave_fields');
+    const saldoVacacionesInput = document.getElementById('saldo_vacaciones_input');
+    const cantidadDiaVacacionesInput = document.getElementById('cantidad_dia_vac');
+    const cantidadDiaIncapacidadInput = document.getElementById('cantidad_dia_inc');
+    const fechaInicioVacacionesInput = document.getElementById('fecha_inicio');
+    const fechaFinVacacionesInput = document.getElementById('fecha_fin');
+    const fechaInicioIncapacidadInput = document.getElementById('fecha_inicio_inc');
+    const fechaFinIncapacidadInput = document.getElementById('fecha_fin_inc');
+    
+    // Función para actualizar el saldo de vacaciones
+    function actualizarSaldoVacaciones() {
+        const selectedEmpleadoOption = empleadoSelect.find(':selected');
+        const saldoVacaciones = selectedEmpleadoOption.data('vacaciones');
+        
+        if (saldoVacaciones !== null && saldoVacaciones !== undefined) {
+            saldoVacacionesInput.value = parseInt(saldoVacaciones);
+        } else {
+            saldoVacacionesInput.value = '';
+        }
+    }
 
-    const fechaInicioInput = document.getElementById("fecha_inicio");
-    const fechaFinInput = document.getElementById("fecha_fin");
-    const cantidadDiasInput = document.getElementById("cantidad_dia");
+    // Función principal para mostrar/ocultar los campos según el tipo de acción
+    function actualizarCampos() {
+        const selectedOption = tipoApSelect.options[tipoApSelect.selectedIndex];
+        const nombreTipo = selectedOption.getAttribute('data-nombre-tipo');
 
-    const VACACIONES_ID = 6;
-    const INCAPACIDAD_ID = 5;
+        // Ocultar ambos contenedores primero
+        vacationFields.style.display = 'none';
+        incapacityLeaveFields.style.display = 'none';
+        
+        // Mostrar el contenedor correcto basado en el nombre del tipo de acción
+        if (nombreTipo === 'Vacaciones') {
+            vacationFields.style.display = 'block';
+            actualizarSaldoVacaciones();
+        } else if (nombreTipo === 'Incapacidad' || nombreTipo === 'Permiso c/ Goce de Salario') {
+            incapacityLeaveFields.style.display = 'block';
+        }
+    }
 
-    const diasFestivos = JSON.parse(vacationIncapacityFields.dataset.diasFestivos);
-
-    function isHoliday(date) {
+    // Función auxiliar para verificar si una fecha es feriada
+    function isHoliday(date, diasFestivos) {
         const dateString = date.toISOString().slice(0, 10);
         return diasFestivos.includes(dateString);
     }
+    
+    // Función para calcular días laborales para Vacaciones
+    function calcularDiasLaboralesVacaciones() {
+        const fechaInicioStr = fechaInicioVacacionesInput.value;
+        const fechaFinStr = fechaFinVacacionesInput.value;
+        if (fechaInicioStr && fechaFinStr) {
+            const diasFeriados = JSON.parse(vacationFields.getAttribute('data-dias-festivos'));
+            let fechaInicio = new Date(fechaInicioStr + 'T00:00:00');
+            let fechaFin = new Date(fechaFinStr + 'T00:00:00');
+            let diasLaborales = 0;
+            let currentDate = fechaInicio;
 
-    function calculateBusinessDays() {
-        const fechaInicio = new Date(fechaInicioInput.value + "T00:00:00");
-        const fechaFin = new Date(fechaFinInput.value + "T00:00:00");
-
-        if (!fechaInicioInput.value || !fechaFinInput.value) {
-            cantidadDiasInput.value = "";
-            return;
-        }
-
-        let diasLaborables = 0;
-        for (
-            let d = new Date(fechaInicioInput.value + "T00:00:00");
-            d <= fechaFin;
-            d.setDate(d.getDate() + 1)
-        ) {
-            const diaDeLaSemana = d.getDay(); // 0 = Domingo, 6 = Sábado
-            if (diaDeLaSemana !== 0 && !isHoliday(d)) {
-                diasLaborables++;
+            while (currentDate <= fechaFin) {
+                const diaSemana = currentDate.getDay(); // 0 = Domingo, 1 = Lunes
+                if (diaSemana >= 1 && diaSemana <= 6 && !isHoliday(currentDate, diasFeriados)) {
+                    diasLaborales++;
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
             }
+            cantidadDiaVacacionesInput.value = diasLaborales;
         }
-        cantidadDiasInput.value = diasLaborables;
     }
 
-    // NUEVA LÓGICA: Detección de cambio en el campo de Tipo de Acción
-    $(tipoApSelect).on('change', function() {
-        const selectedValue = $(this).val();
-        if (selectedValue == VACACIONES_ID || selectedValue == INCAPACIDAD_ID) {
-            vacationIncapacityFields.style.display = "block";
-            fechaInicioInput.required = true;
-            fechaFinInput.required = true;
-        } else {
-            vacationIncapacityFields.style.display = "none";
-            fechaInicioInput.required = false;
-            fechaFinInput.required = false;
-            // Opcional: Limpiar los campos cuando no se necesitan
-            fechaInicioInput.value = '';
-            fechaFinInput.value = '';
-            cantidadDiasInput.value = '';
-        }
-    });
+    // Función para calcular días laborales para Incapacidad y Permiso
+    function calcularDiasLaboralesIncapacidad() {
+        const fechaInicioStr = fechaInicioIncapacidadInput.value;
+        const fechaFinStr = fechaFinIncapacidadInput.value;
+        if (fechaInicioStr && fechaFinStr) {
+            const diasFeriados = JSON.parse(incapacityLeaveFields.getAttribute('data-dias-festivos'));
+            let fechaInicio = new Date(fechaInicioStr + 'T00:00:00');
+            let fechaFin = new Date(fechaFinStr + 'T00:00:00');
+            let diasLaborales = 0;
+            let currentDate = fechaInicio;
 
-    // NUEVA LÓGICA: Detección de cambio en las fechas para el cálculo
-    $(fechaInicioInput).on('change', calculateBusinessDays);
-    $(fechaFinInput).on('change', calculateBusinessDays);
+            while (currentDate <= fechaFin) {
+                const diaSemana = currentDate.getDay();
+                if (diaSemana >= 1 && diaSemana <= 5 && !isHoliday(currentDate, diasFeriados)) {
+                    diasLaborales++;
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            cantidadDiaIncapacidadInput.value = diasLaborales;
+        }
+    }
+    
+    // 3. Establecer los EventListeners con la sintaxis correcta para Select2
+    // Usamos 'change' en la selección de empleado para actualizar las vacaciones disponibles
+    empleadoSelect.on('change', actualizarSaldoVacaciones); 
+    // Usamos 'change' en el tipo de acción para mostrar/ocultar los campos
+    $(tipoApSelect).on('change', actualizarCampos);
+    
+    // Eventos para el cálculo de días de vacaciones
+    fechaInicioVacacionesInput.addEventListener('change', calcularDiasLaboralesVacaciones);
+    fechaFinVacacionesInput.addEventListener('change', calcularDiasLaboralesVacaciones);
+
+    // Eventos para el cálculo de días de incapacidad
+    fechaInicioIncapacidadInput.addEventListener('change', calcularDiasLaboralesIncapacidad);
+    fechaFinIncapacidadInput.addEventListener('change', calcularDiasLaboralesIncapacidad);
+
+    // 4. Inicializar el estado del formulario al cargar la página
+    actualizarCampos();
+});
+
+// Inicialización de Select2 para ambos select
+$(document).ready(function() {
+    $('.select2').select2({
+        placeholder: "Buscar y seleccionar...",
+        allowClear: true,
+        theme: "bootstrap-5"
+    });
+});
+
+// Inicialización de Select2 para ambos select
+$(document).ready(function() {
+    $('.select2').select2({
+        placeholder: "Buscar y seleccionar...",
+        allowClear: true,
+        theme: "bootstrap-5"
+    });
+});
+
+// Inicialización de Select2
+$(document).ready(function() {
+    $('.select2').select2({
+        placeholder: "Buscar y seleccionar...",
+        allowClear: true,
+        theme: "bootstrap-5"
+    });
 });
 
 // Validacion de requisitos de contraseña
@@ -223,3 +375,14 @@ $(document).ready(function() {
         theme: "bootstrap-5"
     });
 });
+
+// Script para la selección masiva de checkboxes
+document.getElementById('seleccionar_todo').addEventListener('change', function() {
+    var checkboxes = document.querySelectorAll('input[name="registros_seleccionados"]');
+        for (var i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = this.checked;
+        }
+});
+
+
+

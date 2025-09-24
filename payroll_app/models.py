@@ -210,6 +210,8 @@ class RegistroAsistencia(db.Model):
     fecha_registro = db.Column(db.Date, nullable=False)
     hora_entrada = db.Column(db.Time, nullable=False)
     hora_salida = db.Column(db.Time, nullable=True)
+    hora_salida_almuerzo = db.Column(db.Time, nullable=True)
+    hora_entrada_almuerzo = db.Column(db.Time, nullable=True)
     total_horas = db.Column(db.Float, nullable=True)
     monto_pago = db.Column(db.Float, nullable=True)
     hora_nominal = db.Column(db.Float, nullable=True)

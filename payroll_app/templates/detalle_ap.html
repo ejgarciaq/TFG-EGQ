@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Detalle de Acción de Personal{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Detalle de la Acción de Personal</h4>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-4">Empleado:</dt>
+                <dd class="col-sm-8">{{ accion.empleado.nombre_completo }}</dd>
+
+                <dt class="col-sm-4">Tipo de Acción:</dt>
+                <dd class="col-sm-8">{{ accion.tipo_ap.nombre_tipo }}</dd>
+
+                <dt class="col-sm-4">Fecha de Solicitud:</dt>
+                <dd class="col-sm-8">{{ accion.fecha_accion.strftime('%d-%m-%Y') }}</dd>
+
+                {% if accion.fecha_inicio %}
+                <dt class="col-sm-4">Fechas de inicio y final:</dt>
+                <dd class="col-sm-8">{{ accion.fecha_inicio.strftime('%d-%m-%Y') }} - {{ accion.fecha_fin.strftime('%d-%m-%Y') }}</dd>
+                {% endif %}
+
+                {% if accion.cantidad_dia %}
+                <dt class="col-sm-4">Días Solicitados:</dt>
+                <dd class="col-sm-8">{{ accion.cantidad_dia }}</dd>
+                {% endif %}
+
+                <dt class="col-sm-4">Detalles:</dt>
+                <dd class="col-sm-8">{{ accion.detalles }}</dd>
+
+                <dt class="col-sm-4">Estado:</dt>
+                <dd class="col-sm-8">
+                    {% if accion.estado_ap == 1 %}Pendiente{% elif accion.estado_ap == 2 %}Aprobada{% elif accion.estado_ap == 3 %}Rechazada{% endif %}
+                </dd>
+
+                {% if accion.fecha_aprobacion %}
+                <dt class="col-sm-4">Fecha de Aprobación:</dt>
+                <dd class="col-sm-8">{{ accion.fecha_aprobacion.strftime('%d-%m-%Y') }}</dd>
+                {% endif %}
+
+                {% if accion.documento_adjunto %}
+                <dt class="col-sm-4">Documento Adjunto:</dt>
+                <dd class="col-sm-8">
+                    <a href="{{ url_for('static', filename='uploads/' + accion.documento_adjunto) }}" target="_blank" class="btn btn-sm btn-info">Ver Documento</a>
+                </dd>
+                {% endif %}
+            </dl>
+        </div>
+<div class="card-footer text-end">
+    {% if current_user.is_admin %}
+        <a href="{{ url_for('accion_personal_bp.ver_historial_apu') }}" class="btn btn-secondary">Volver</a>
+    {% else %}
+        <a href="{{ url_for('accion_personal_bp.acciones_administrativas') }}" class="btn btn-secondary">Volver al Historial</a>
+    {% endif %}
+</div>
+    </div>
+</div>
+{% endblock %}

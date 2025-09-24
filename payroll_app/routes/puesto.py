@@ -11,9 +11,18 @@ puesto_bp = Blueprint('puesto', __name__)
 @login_required
 def listar_puestos():
     """Muestra una lista de todos los puestos."""
-    # ❗❗❗ CORRECCIÓN: Ordenar los puestos por su ID de forma ascendente ❗❗❗
-    puestos = Puesto.query.order_by(Puesto.id_puesto.asc()).all()
-    return render_template('listar_puestos.html', puestos=puestos)
+    # CORRECCIÓN: Ordenar los puestos por su ID de forma ascendente
+    # Obtiene el número de página de la URL, por defecto es 1
+    page = request.args.get('page', 1, type=int)
+    per_page = 10  # Define el número de registros por página
+
+    # Crea la consulta base, ordenada por el ID del puesto
+    query = Puesto.query.order_by(Puesto.id_puesto.asc())
+
+    # Aplica la paginación a la consulta ordenada
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+
+    return render_template('listar_puestos.html', pagination=pagination)
 
 # Crear Puesto -----------------------------------------------------
 
@@ -51,30 +60,33 @@ def crear_puesto():
 @permiso_requerido('editar_puesto')
 @login_required
 def editar_puesto(id):
-    """Edita un puesto existente."""
     puesto_a_editar = Puesto.query.get_or_404(id)
 
     if request.method == 'POST':
         tipo_puesto = request.form['tipo_puesto']
+        page = request.form.get('page', 1, type=int)
 
-        # Verificar si el nuevo nombre de puesto ya existe, excluyendo el actual
         puesto_existente = Puesto.query.filter(Puesto.tipo_puesto == tipo_puesto, Puesto.id_puesto != id).first()
         if puesto_existente:
             flash('Este puesto ya existe. Por favor, ingrese un nombre diferente.', 'danger')
-            return redirect(url_for('puesto.editar_puesto', id=id))
+            # ⬅️ Corrección: Cambiar 'puesto_bp' a 'puesto'
+            return redirect(url_for('puesto.editar_puesto', id=id, page=page))
         
         puesto_a_editar.tipo_puesto = tipo_puesto
         
         try:
             db.session.commit()
             flash('Puesto actualizado exitosamente.', 'success')
-            return redirect(url_for('puesto.listar_puestos'))
+            # ⬅️ Corrección: Cambiar 'puesto_bp' a 'puesto'
+            return redirect(url_for('puesto.listar_puestos', page=page))
         except Exception as e:
             db.session.rollback()
             flash(f'Error al actualizar el puesto: {e}', 'danger')
-            return redirect(url_for('puesto.editar_puesto', id=id))
+            # ⬅️ Corrección: Cambiar 'puesto_bp' a 'puesto'
+            return redirect(url_for('puesto.editar_puesto', id=id, page=page))
 
-    return render_template('editar_puesto.html', puesto=puesto_a_editar)
+    page = request.args.get('page', 1, type=int)
+    return render_template('editar_puesto.html', puesto=puesto_a_editar, page=page)
 
 # ----------------------------------------------------------
 

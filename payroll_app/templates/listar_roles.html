@@ -1,31 +1,33 @@
 {% extends 'base.html' %}
-{% block title %}Roles{% endblock %}
+
+{% block title %}Listado de Roles{% endblock %}
+
 {% block content %}
-<div class="container">
+<div class="container-fluid">
     <h4 class="text-center">Listado de Roles</h4>
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <a href="{{ url_for('rol.crear_rol') }}" class="btn btn-primary">
-            Crear Rol
-        </a>
+    
+    <div class="d-flex justify-content-end mb-3">
+        <a href="{{ url_for('rol.crear_rol') }}" class="btn btn-primary">Crear Nuevo Rol</a>
     </div>
-    <table class="table table-striped">
+
+    {% if pagination.items %}
+    <table class="table table-striped table-hover">
         <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nombre del Rol</th>
+            <tr class="text-center">
+                <th>Rol</th>
                 <th>Descripción</th>
                 <th>Acciones</th>
             </tr>
         </thead>
         <tbody>
-            {% for rol in roles %}
+            {% for rol in pagination.items %}
             <tr>
-                <td>{{ rol.id_rol }}</td>
                 <td>{{ rol.tipo_rol }}</td>
                 <td>{{ rol.descripcion_rol }}</td>
-                <td>
-                    <a href="{{ url_for('rol.editar_rol', id=rol.id_rol) }}" class="btn btn-sm btn-warning">Editar</a>
-                    <form action="{{ url_for('rol.eliminar_rol', id=rol.id_rol) }}" method="POST" style="display:inline;">
+                <td class="text-center">
+                    <a href="{{ url_for('rol.editar_rol', id=rol.id_rol, page=pagination.page) }}" class="btn btn-sm btn-warning">Editar</a>
+                    <form action="{{ url_for('rol.eliminar_rol', id=rol.id_rol) }}" method="post" style="display:inline;">
+                        <input type="hidden" name="page" value="{{ pagination.page }}">
                         <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de que quieres eliminar este rol?');">Eliminar</button>
                     </form>
                 </td>
@@ -33,5 +35,26 @@
             {% endfor %}
         </tbody>
     </table>
+
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('rol.listar_roles', page=pagination.prev_num) }}">Anterior</a>
+            </li>
+            
+            {% for p in pagination.iter_pages() %}
+            <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('rol.listar_roles', page=p) }}">{{ p }}</a>
+            </li>
+            {% endfor %}
+
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('rol.listar_roles', page=pagination.next_num) }}">Siguiente</a>
+            </li>
+        </ul>
+    </nav>
+    {% else %}
+    <p class="alert alert-info">No hay roles registrados.</p>
+    {% endif %}
 </div>
 {% endblock %}

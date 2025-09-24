@@ -29,3 +29,11 @@ class Config:
     # y proporciona un depurador interactivo en el navegador para los errores,
     # lo cual es muy útil durante el desarrollo.
     DEBUG = True  # Modo de depuración activado
+
+
+    # Configuración del servidor de correo
+    MAIL_SERVER = 'smtp.googlemail.com'  # O tu servidor SMTP
+    MAIL_PORT = 587
+    MAIL_USE_TLS = True
+    MAIL_USERNAME = 'ejgarciaq81@gmail.com'
+    MAIL_PASSWORD = 'jpes wwva vvtf jnyn' # Usa una contraseña de aplicación

@@ -1,7 +1,7 @@
 import re
 import secrets
 import string
-from flask import (
+from flask import ( 
     Blueprint,
     render_template,
     request,
@@ -28,6 +28,33 @@ import logging
 
 # Se crea un objeto Blueprint llamado 'empleado', que permite modularizar la aplicación Flask.
 empleado_bp = Blueprint("empleado", __name__, template_folder="templates")
+
+
+# ---------------------------------------------------------------------------------
+
+@empleado_bp.route("/listar_empleado")
+@permiso_requerido('listar_empleados')
+@login_required
+def listar_empleado():
+    """ Muestra una lista de todos los empleados.
+    
+    Esta función recupera todos los registros de empleados de la base de datos
+    y los pasa a la plantilla 'listar_empleado.html' para su renderizado en una tabla.
+
+    Returns:
+        Rendered template: Una página HTML que muestra la lista de empleados.
+    """
+    page = request.args.get('page', 1, type=int)
+
+    # Crea la consulta base, ordenada alfabéticamente por el nombre del empleado
+    query = Empleado.query.order_by(Empleado.nombre)
+
+    # Aplica la paginación a la consulta ordenada
+    pagination = query.paginate(page=page, per_page=10, error_out=False)
+
+    return render_template('listar_empleado.html', pagination=pagination)
+
+#------------------------------------------------------------------------------------
 
 @empleado_bp.route("/crear_empleado", methods=["GET", "POST"])
 @permiso_requerido('crear_empleado')
@@ -310,23 +337,19 @@ def ver_perfil_empleado(empleado_id):
         flash("Error al cargar el perfil. Por favor, inténtelo de nuevo.", "danger")
         return redirect(url_for("empleado.listar_empleado"))
 
-# ---------------------------------------------------------------------------------
 
-@empleado_bp.route("/listar_empleado")
-@permiso_requerido('listar_empleados')
-@login_required
-def listar_empleado():
-    empleados = Empleado.query.all()
-    return render_template("listar_empleado.html", empleados=empleados)
 
 # -------------------------------------------------------------------------------
 
 @empleado_bp.route("/eliminar_empleado/<int:id>", methods=["POST"])
-@permiso_requerido('eliminar_empleado')
+@permiso_requerido('eliminar_emplado')
 @login_required
 def eliminar_empleado(id):
     empleado = Empleado.query.get_or_404(id)
     usuario = Usuario.query.get_or_404(empleado.Usuario_id_usuario)
+
+    # Captura la página actual desde el formulario
+    page = request.form.get('page', 1, type=int)
 
     try:
         # 1. Eliminar los registros de asistencia del empleado
@@ -347,4 +370,5 @@ def eliminar_empleado(id):
         db.session.rollback()
         flash(f"Ocurrió un error al eliminar el empleado: {str(e)}", "danger")
 
-    return redirect(url_for("empleado.listar_empleado"))
+    # Redirige a la misma página de la que vino el usuario
+    return redirect(url_for("empleado.listar_empleado", page=page))
