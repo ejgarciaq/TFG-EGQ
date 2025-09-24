@@ -92,6 +92,7 @@
                     <th>Deducciones</th>
                     <th>Salario Neto</th>
                     <th>Fecha de Creación</th>
+                    <th> Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -104,6 +105,20 @@
                     <td>₡ {{ "%.2f"|format(nomina.deducciones) }}</td>
                     <td>₡ {{ "%.2f"|format(nomina.salario_neto) }}</td>
                     <td>{{ nomina.fecha_creacion.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        {# Formulario para el botón de eliminar #}
+                        <form action="{{ url_for('registro_asistencia.eliminar_nomina', id_nomina=nomina.id_nomina, 
+                                                  fecha_inicio=request.args.get('fecha_inicio'),
+                                                  fecha_fin=request.args.get('fecha_fin'),
+                                                  tipo_nomina_id=request.args.get('tipo_nomina_id'),
+                                                  page=paginated_nominas.page
+                                                ) }}" 
+                              method="POST" 
+                              style="display:inline;"
+                              onsubmit="return confirm('¿Está seguro de que desea eliminar esta nómina? Esta acción es irreversible.');">
+                            <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
