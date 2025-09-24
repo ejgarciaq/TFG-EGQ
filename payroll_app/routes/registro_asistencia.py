@@ -38,6 +38,7 @@ MIN_DURACION_JORNADA = timedelta(minutes=30) # Para evitar salidas finales muy r
 
 # --- CONFIGURACIÓN (Tasas de deducción) ---
 # Centraliza las tasas para fácil mantenimiento
+
 PORCENTAJE_CCSS_SEM = 0.0550
 PORCENTAJE_CCSS_IVM = 0.0417
 PORCENTAJE_LPT = 0.0100
@@ -48,8 +49,6 @@ TRAMOS_ISR = [
     {'limite': 4745000.00, 'porcentaje': 0.20},
     {'limite': float('inf'), 'porcentaje': 0.25}
 ]
-
-
 
 # ------------------------- Lógica de Aprobación ------------------------------
 
@@ -638,28 +637,38 @@ def eliminar_asistencia(registro_id):
 # --- FUNCIONES AUXILIARES PARA CÁLCULOS ---
 @permiso_requerido('listar_nominas')
 @login_required
-def calcular_isr(salario_bruto, dias_del_periodo):
-    """Calcula el impuesto de renta (ISR) para el período dado."""
-    factor_prorrateo = dias_del_periodo / 30.4167
-    salario_exento_prorrateado = BASE_SALARIO_EXENTO_ISR * factor_prorrateo
-
-    deduccion_isr = 0.0
-    salario_a_gravar = max(0, salario_bruto - salario_exento_prorrateado)
-
-    monto_anterior_tramo = 0.0
+def calcular_isr(monto_bruto_periodo, fecha_inicio_obj, fecha_fin_obj):
+    """
+    Calcula el Impuesto sobre la Renta (ISR) para un monto bruto dado
+    y un período de nómina, ajustando los tramos mensuales.
+    """
+    dias_del_periodo = (fecha_fin_obj - fecha_inicio_obj).days + 1
+    dias_mes_fiscal = 30 
+    
+    factor_ajuste_dias = dias_del_periodo / dias_mes_fiscal 
+    
+    base_exenta_ajustada = BASE_SALARIO_EXENTO_ISR * factor_ajuste_dias
+    
+    monto_sujeto_a_impuesto = max(0, monto_bruto_periodo - base_exenta_ajustada)
+    
+    isr_calculado = 0.0
+    limite_anterior_ajustado = base_exenta_ajustada
+    
     for tramo in TRAMOS_ISR:
-        limite_prorrateado = tramo['limite'] * factor_prorrateo
-        monto_en_tramo = min(salario_a_gravar, limite_prorrateado - monto_anterior_tramo)
+        limite_tramo_ajustado = tramo['limite'] * factor_ajuste_dias
+        porcentaje_tramo = tramo['porcentaje']
+        monto_en_este_tramo = min(monto_sujeto_a_impuesto, limite_tramo_ajustado - limite_anterior_ajustado)
 
-        if monto_en_tramo > 0:
-            deduccion_isr += monto_en_tramo * tramo['porcentaje']
-            salario_a_gravar -= monto_en_tramo
+        if monto_en_este_tramo > 0:
+            isr_calculado += monto_en_este_tramo * porcentaje_tramo
+        
+        monto_sujeto_a_impuesto -= monto_en_este_tramo
+        limite_anterior_ajustado = limite_tramo_ajustado
 
-        monto_anterior_tramo = limite_prorrateado
-        if salario_a_gravar <= 0:
+        if monto_sujeto_a_impuesto <= 0:
             break
-
-    return deduccion_isr
+            
+    return round(isr_calculado, 2)
 
 # -----------------------------------------------------------------
 
@@ -698,7 +707,6 @@ def generar_nomina():
         except ValueError:
             flash('Tipo de nómina inválido.', 'danger')
 
-    # --- Lógica de POST (Generar Nómina) ---
     if request.method == 'POST':
         try:
             if not all([id_tipo_nomina_int, fecha_inicio_obj, fecha_fin_obj]):
@@ -714,30 +722,67 @@ def generar_nomina():
                 flash('Tipo de nómina no encontrado.', 'danger')
                 return redirect(url_for('registro_asistencia.generar_nomina'))
 
-            empleados = Empleado.query.filter_by(TipoNomina_id_tipo_nomina=id_tipo_nomina_int).all()
-            if not empleados:
+            empleados_del_tipo_nomina = Empleado.query.filter_by(
+                tipo_nomina_relacion=tipo_nomina
+            ).order_by(Empleado.id_empleado).all()
+
+            if not empleados_del_tipo_nomina:
                 flash('No se encontraron empleados para el tipo de nómina seleccionado.', 'warning')
                 return redirect(url_for('registro_asistencia.generar_nomina'))
 
             nominas_generadas_info = []
 
-            for empleado in empleados:
+            for empleado in empleados_del_tipo_nomina:
+                # 1. Verificar si el empleado tiene al menos una asistencia aprobada en el período.
+                has_asistencia = RegistroAsistencia.query.filter(
+                    RegistroAsistencia.empleado == empleado,
+                    RegistroAsistencia.fecha_registro.between(fecha_inicio_obj, fecha_fin_obj),
+                    RegistroAsistencia.aprobacion_registro.is_(True)
+                ).first()
+
+                # Si no hay asistencias aprobadas, notificar y continuar con el siguiente empleado.
+                if not has_asistencia:
+                    nominas_generadas_info.append(f"Advertencia: No se encontraron registros de asistencia aprobada para {empleado.nombre_completo}. Nómina no generada.")
+                    continue
+                
+                # 2. Comprobar si ya existe una nómina para el período para evitar duplicados.
                 nomina_existente = Nomina.query.filter(
-                    Nomina.Empleado_id_empleado == empleado.id_empleado,
+                    Nomina.empleado == empleado,
                     Nomina.fecha_inicio == fecha_inicio_obj,
-                    Nomina.fecha_fin == fecha_fin_obj,
-                    Nomina.TipoNomina_id_tipo_nomina == id_tipo_nomina_int
+                    Nomina.fecha_fin == fecha_fin_obj
                 ).first()
 
                 if nomina_existente:
                     nominas_generadas_info.append(f"Advertencia: Ya existe una nómina para {empleado.nombre_completo} en el período. Omitiendo.")
                     continue
 
-                # --- DETERMINAR EL COSTO POR HORA BASE DE MANERA CONSISTENTE ---
+                # 3. Sumar el monto de pago de asistencias aprobadas
+                monto_por_asistencia = db.session.query(func.sum(RegistroAsistencia.monto_pago)).filter(
+                    RegistroAsistencia.empleado == empleado,
+                    RegistroAsistencia.fecha_registro.between(fecha_inicio_obj, fecha_fin_obj),
+                    RegistroAsistencia.aprobacion_registro.is_(True)
+                ).scalar() or 0.0
+
+                # 4. Sumar el monto por acciones de personal aprobadas (vacaciones, incapacidades)
+                dias_compensados = 0
+                acciones_personales = Accion_Personal.query.filter(
+                    Accion_Personal.empleado == empleado,
+                    Accion_Personal.fecha_aprobacion.isnot(None),
+                    Accion_Personal.fecha_inicio <= fecha_fin_obj,
+                    Accion_Personal.fecha_fin >= fecha_inicio_obj,
+                    Accion_Personal.tipo_ap.has(Tipo_AP.nombre_tipo.in_(['Vacaciones', 'Incapacidad']))
+                ).all()
+
+                for ap in acciones_personales:
+                    inicio_ap_periodo = max(ap.fecha_inicio, fecha_inicio_obj)
+                    fin_ap_periodo = min(ap.fecha_fin, fecha_fin_obj)
+                    if fin_ap_periodo >= inicio_ap_periodo:
+                        dias_compensados += (fin_ap_periodo - inicio_ap_periodo).days + 1
+                
+                # 5. Calcular el monto por vacaciones/incapacidades
                 costo_por_hora_base = 0
                 if empleado.salario_base is not None and float(empleado.salario_base) > 0:
                     periodicidad_nombre = empleado.tipo_nomina_relacion.nombre_tipo if empleado.tipo_nomina_relacion else None
-                    
                     horas_periodo_calculo_base = 0
                     if periodicidad_nombre == 'Mensual':
                         horas_periodo_calculo_base = HORAS_MES_ESTANDAR
@@ -745,108 +790,48 @@ def generar_nomina():
                         horas_periodo_calculo_base = HORAS_QUINCENA_ESTANDAR
                     elif periodicidad_nombre == 'Semanal':
                         horas_periodo_calculo_base = HORAS_SEMANA_ESTANDAR
-                    else:
-                        logging.warning(f"Periodicidad de salario inesperada para empleado {empleado.id_empleado}: {periodicidad_nombre}. Asumiendo mensual estándar para cálculo de hora base.")
-                        horas_periodo_calculo_base = HORAS_MES_ESTANDAR
                     
                     if horas_periodo_calculo_base > 0:
                         costo_por_hora_base = float(empleado.salario_base) / horas_periodo_calculo_base
-                    else:
-                        logging.error(f"Horas de período de cálculo base son cero para empleado {empleado.id_empleado} con periodicidad {periodicidad_nombre}. No se pudo calcular costo_por_hora_base. Asignando 0.")
-                else:
-                    logging.warning(f"Salario base no definido o cero para empleado {empleado.id_empleado}. Costo por hora base será 0.")
-                # --- FIN DE COSTO POR HORA BASE CONSISTENTE ---
 
+                monto_por_vac_incap = dias_compensados * HORAS_POR_JORNADA_NORMAL * costo_por_hora_base
 
-                # Sumar montos de asistencia aprobados
-                monto_por_asistencia = db.session.query(func.sum(RegistroAsistencia.monto_pago)).filter(
-                    RegistroAsistencia.Empleado_id_empleado == empleado.id_empleado,
-                    RegistroAsistencia.fecha_registro.between(fecha_inicio_obj, fecha_fin_obj),
-                    RegistroAsistencia.aprobacion_registro.is_(True)
-                ).scalar() or 0.0
-
-                # Sumar montos de vacaciones e incapacidades (Acciones Personales)
-                dias_compensados = 0
-                horas_por_dia = HORAS_POR_JORNADA_NORMAL # Usar la constante para coherencia
-                
-                acciones_personales = Accion_Personal.query.filter(
-                    Accion_Personal.Empleado_id_empleado == empleado.id_empleado,
-                    Accion_Personal.fecha_aprobacion.isnot(None),
-                    Accion_Personal.fecha_inicio <= fecha_fin_obj, # Considerar acciones que terminan después
-                    Accion_Personal.fecha_fin >= fecha_inicio_obj # Considerar acciones que empiezan antes
-                ).all()
-
-                for ap in acciones_personales:
-                    if ap.tipo_ap and ap.tipo_ap.nombre_tipo.lower() in ['vacaciones', 'incapacidad']:
-                        inicio_ap_periodo = max(ap.fecha_inicio, fecha_inicio_obj)
-                        fin_ap_periodo = min(ap.fecha_fin, fecha_fin_obj)
-                        # Solo cuenta si hay solapamiento real
-                        if fin_ap_periodo >= inicio_ap_periodo: 
-                            dias_compensados += (fin_ap_periodo - inicio_ap_periodo).days + 1
-
-                monto_por_vac_incap = dias_compensados * horas_por_dia * costo_por_hora_base
-                total_monto_bruto = monto_por_asistencia + monto_por_vac_incap
-
-                # --- CÁLCULO DE PAGO POR FERIADOS NO TRABAJADOS ---
+                # 6. Sumar el monto por feriados obligatorios no trabajados
                 monto_feriados_no_trabajados = 0.0
-                delta = timedelta(days=1)
                 dia_actual = fecha_inicio_obj
                 while dia_actual <= fecha_fin_obj:
-                    # Excluir domingos si solo se trabaja de L-V o L-S (ajusta según tu política)
-                    # if dia_actual.weekday() == 6: # 6 es domingo
-                    #    dia_actual += delta
-                    #    continue
-
-                    # Buscar feriados de pago obligatorio que no tengan un registro de asistencia aprobado
-                    es_feriado_obligatorio = Feriado.query.filter_by(
-                        fecha_feriado=dia_actual,
-                        pago_obligatorio=True
-                    ).first()
-                    
+                    es_feriado_obligatorio = Feriado.query.filter_by(fecha_feriado=dia_actual, pago_obligatorio=True).first()
                     if es_feriado_obligatorio:
-                        # Verificar si ya existe un registro de asistencia APROBADO para ese día
                         registro_asistencia_aprobado = RegistroAsistencia.query.filter(
-                            RegistroAsistencia.Empleado_id_empleado == empleado.id_empleado,
+                            RegistroAsistencia.empleado == empleado,
                             RegistroAsistencia.fecha_registro == dia_actual,
                             RegistroAsistencia.aprobacion_registro.is_(True)
                         ).first()
-
-                        # Si NO hay un registro de asistencia APROBADO, se paga el día normal
                         if not registro_asistencia_aprobado:
-                            monto_feriados_no_trabajados += horas_por_dia * costo_por_hora_base
-                            logging.info(f"Feriado de pago obligatorio NO TRABAJADO en {dia_actual} para {empleado.nombre_completo}. Monto agregado: {horas_por_dia * costo_por_hora_base}")
-                    
-                    dia_actual += delta
+                            monto_feriados_no_trabajados += HORAS_POR_JORNADA_NORMAL * costo_por_hora_base
+                    dia_actual += timedelta(days=1)
                 
-                total_monto_bruto += monto_feriados_no_trabajados
-                # --- FIN DE LÓGICA DE FERIADOS ---
+                # 7. Calcular el monto bruto total
+                total_monto_bruto = monto_por_asistencia + monto_por_vac_incap + monto_feriados_no_trabajados
 
-                # Esta validación es importante: si después de todo, el bruto es cero, no genera nómina.
-                if total_monto_bruto == 0:
-                    nominas_generadas_info.append(f"Advertencia: Para {empleado.nombre_completo}, no se encontraron registros de pago (asistencia, feriados, vacaciones/incapacidad). Nómina no generada.")
-                    continue
-
-                # --- CÁLCULO DE DEDUCCIONES ---
+                # 8. Calcular deducciones y salario neto
                 total_deducciones = (
                     total_monto_bruto * PORCENTAJE_CCSS_SEM +
                     total_monto_bruto * PORCENTAJE_CCSS_IVM +
                     total_monto_bruto * PORCENTAJE_LPT
                 )
-                
-                dias_del_periodo = (fecha_fin_obj - fecha_inicio_obj).days + 1
-                total_deducciones += calcular_isr(total_monto_bruto, dias_del_periodo) # La función ISR debe ser muy precisa
-
+                total_deducciones += calcular_isr(total_monto_bruto, fecha_inicio_obj, fecha_fin_obj)
                 monto_neto = total_monto_bruto - total_deducciones
 
-                # Guardar en la base de datos
+                # 9. Crear y guardar la nómina
                 nueva_nomina = Nomina(
-                    Empleado_id_empleado=empleado.id_empleado,
+                    empleado=empleado,
                     fecha_inicio=fecha_inicio_obj,
                     fecha_fin=fecha_fin_obj,
                     salario_bruto=round(total_monto_bruto, 2),
                     salario_neto=round(monto_neto, 2),
                     deducciones=round(total_deducciones, 2),
-                    TipoNomina_id_tipo_nomina=id_tipo_nomina_int,
+                    tipo_nomina_relacion=tipo_nomina,
                     fecha_creacion=datetime.now()
                 )
                 db.session.add(nueva_nomina)
@@ -876,12 +861,14 @@ def generar_nomina():
 
     # --- Lógica de GET (Mostrar la Tabla de Nóminas Paginada) ---
     query_nominas_actual = Nomina.query.order_by(Nomina.fecha_creacion.desc())
+    query_nominas_actual = query_nominas_actual.join(Empleado).join(TipoNomina)
+
     if fecha_inicio_obj:
         query_nominas_actual = query_nominas_actual.filter(Nomina.fecha_inicio >= fecha_inicio_obj)
     if fecha_fin_obj:
         query_nominas_actual = query_nominas_actual.filter(Nomina.fecha_fin <= fecha_fin_obj)
     if id_tipo_nomina_int:
-        query_nominas_actual = query_nominas_actual.filter(Nomina.TipoNomina_id_tipo_nomina == id_tipo_nomina_int)
+        query_nominas_actual = query_nominas_actual.filter(Nomina.tipo_nomina_relacion.has(TipoNomina.id_tipo_nomina == id_tipo_nomina_int))
     
     nominas_paginadas = query_nominas_actual.paginate(page=page, per_page=10, error_out=False)
 

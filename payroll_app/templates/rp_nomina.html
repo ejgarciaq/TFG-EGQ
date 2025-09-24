@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h3 class="text-center">Reporte de Nómina</h3>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <h5 class="card-title">Filtros de Reporte</h5>
+            <form id="nomina-report-form" method="GET" action="{{ url_for('reportes_bp.generar_reporte_nomina') }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label for="fecha_inicio" class="form-label">Fecha Inicio:</label>
+                        <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" value="{{ fecha_inicio_seleccionada }}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="fecha_fin" class="form-label">Fecha Fin:</label>
+                        <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" value="{{ fecha_fin_seleccionada }}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="tipo_nomina_id" class="form-label">Tipo de Nómina:</label>
+                        <select class="form-select" id="tipo_nomina_id" name="tipo_nomina_id">
+                            <option value="todos">Todos los Tipos</option>
+                            {% for tipo in tipos_nomina %}
+                                <option value="{{ tipo.id_tipo_nomina }}" {% if id_tipo_nomina_seleccionado|string == tipo.id_tipo_nomina|string %}selected{% endif %}>
+                                    {{ tipo.nombre_tipo }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" name="descargar" value="csv" class="btn btn-info me-2">Exportar CSV</button>
+                        <button type="submit" name="descargar" value="excel" class="btn btn-success me-2">Exportar Excel</button>
+                        <button type="submit" name="descargar" value="pdf" class="btn btn-danger">Exportar PDF</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} mt-3 alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+</div>
+{% endblock %}

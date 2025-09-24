@@ -1,16 +1,19 @@
 from flask import Blueprint, current_app, request, render_template, flash, redirect, url_for, send_file
-from ..models import Empleado, RegistroAsistencia
+from flask_login import login_required
+from payroll_app.models import db, Empleado, RegistroAsistencia, Nomina, TipoNomina
 from weasyprint import HTML, CSS
-from flask import send_file, request
-from payroll_app.models import db
 from datetime import datetime
 import pandas as pd
-import io
+import io,logging
+from sqlalchemy.orm import joinedload, aliased
+# from flask_login import login_required
+
 
 reportes_bp = Blueprint('reportes_bp', __name__)
 
 
 @reportes_bp.route('/asistencia', methods=['GET'])
+@login_required # Proteger esta ruta con login y roles si es necesario
 def mostrar_pagina_reporte():
     """Renderiza la página del formulario para generar reportes."""
     empleados = Empleado.query.all()
@@ -22,22 +25,8 @@ def mostrar_pagina_reporte():
         fecha_fin_seleccionada=''
     )
 
-reportes_bp = Blueprint('reportes_bp', __name__)
-
-@reportes_bp.route('/reportes/asistencia', methods=['GET'])
-def mostrar_pagina_reporte():
-    """Muestra la página inicial del formulario de reporte."""
-    empleados = Empleado.query.all()
-    # Pasa variables con valores predeterminados para evitar el error
-    return render_template(
-        'rp_asistencia.html',
-        empleados=empleados,
-        empleado_id_seleccionado='todos',
-        fecha_inicio_seleccionada='',
-        fecha_fin_seleccionada=''
-    )
-
-@reportes_bp.route('/asistencia/generar', methods=['GET', 'POST'])
+@reportes_bp.route('/asistencia/reporte', methods=['GET', 'POST'])
+@login_required # Proteger esta ruta con login y roles si es necesario
 def generar_reporte():
     """Procesa el formulario y genera/descarga el reporte de asistencia."""
     
@@ -145,7 +134,7 @@ def generar_reporte():
                 <head>
                     <meta charset="UTF-8">
                     <title>Reporte de Asistencia</title>
-                    <link rel="stylesheet" href="{url_for('static', filename='css/reporte_asistencia.css')}">
+                    <link rel="stylesheet" href="{url_for('static', filename='css/reportes.css')}">
                 </head>
                 <body>
                     <div class="logo-container">
@@ -189,3 +178,183 @@ def generar_reporte():
         paginated_records=paginated_records
     )
 
+
+# --- NUEVA FUNCIÓN: Generar y descargar el reporte de NÓMINA ---
+
+@reportes_bp.route('/nomina', methods=['GET'])
+@login_required # Proteger esta ruta con login y roles si es necesario
+def mostrar_pagina_reporte_nomina():
+    """Renderiza la página del formulario para generar reportes de nómina."""
+    tipos_nomina = TipoNomina.query.all()
+    fecha_inicio_seleccionada = request.args.get('fecha_inicio', '')
+    fecha_fin_seleccionada = request.args.get('fecha_fin', '')
+    id_tipo_nomina_seleccionado = request.args.get('tipo_nomina_id', 'todos')
+
+    return render_template(
+        'rp_nomina.html',
+        tipos_nomina=tipos_nomina,
+        fecha_inicio_seleccionada=fecha_inicio_seleccionada,
+        fecha_fin_seleccionada=fecha_fin_seleccionada,
+        id_tipo_nomina_seleccionado=id_tipo_nomina_seleccionado,
+    )
+
+
+@reportes_bp.route('/nomina/generar', methods=['GET'])
+@login_required # Proteger esta ruta con login y roles si es necesario
+def generar_reporte_nomina():
+    """Genera y descarga el reporte de nómina en el formato solicitado."""
+    
+    fecha_inicio_str = request.args.get('fecha_inicio', '')
+    fecha_fin_str = request.args.get('fecha_fin', '')
+    id_tipo_nomina_str = request.args.get('tipo_nomina_id', '')
+    descargar_formato = request.args.get('descargar', 'html')
+
+    if not fecha_inicio_str or not fecha_fin_str:
+        flash('Por favor, selecciona un rango de fechas para generar el reporte de nómina.', 'warning')
+        return redirect(url_for('reportes_bp.mostrar_pagina_reporte_nomina'))
+
+    try:
+        fecha_inicio_obj = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+        fecha_fin_obj = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+        id_tipo_nomina_int = int(id_tipo_nomina_str) if id_tipo_nomina_str and id_tipo_nomina_str != 'todos' else None
+
+        if fecha_inicio_obj > fecha_fin_obj:
+            flash('La fecha de inicio no puede ser posterior a la fecha de fin para el reporte.', 'warning')
+            return redirect(url_for('reportes_bp.mostrar_pagina_reporte_nomina',
+                                     fecha_inicio=fecha_inicio_str, fecha_fin=fecha_fin_str,
+                                     tipo_nomina_id=id_tipo_nomina_str))
+
+        # --- Consulta de las nóminas ya calculadas y almacenadas ---
+        
+        # PASO 1: Crea un alias para el modelo Empleado
+        EmpleadoAlias = aliased(Empleado)
+
+        query_nominas = Nomina.query.options(
+            # Usa el alias en joinedload para asegurar que SQLAlchemy usa el alias correcto para la carga
+            joinedload(Nomina.empleado.of_type(EmpleadoAlias)), 
+            joinedload(Nomina.tipo_nomina_relacion)
+        ).filter(
+            Nomina.fecha_inicio >= fecha_inicio_obj,
+            Nomina.fecha_fin <= fecha_fin_obj
+        )
+        
+        # PASO 2: Usa el alias en la cláusula order_by
+        query_nominas = query_nominas.order_by(
+            Nomina.fecha_creacion.desc(), 
+            EmpleadoAlias.nombre.asc(), 
+            EmpleadoAlias.apellido_primero.asc(), 
+            EmpleadoAlias.apellido_segundo.asc()
+        )
+
+        if id_tipo_nomina_int:
+            query_nominas = query_nominas.filter(Nomina.TipoNomina_id_tipo_nomina == id_tipo_nomina_int)
+        
+        nominas_reporte = query_nominas.all()
+
+        if not nominas_reporte:
+            flash('No se encontraron nóminas generadas para los criterios seleccionados para el reporte.', 'info')
+            return redirect(url_for('reportes_bp.mostrar_pagina_reporte_nomina',
+                                     fecha_inicio=fecha_inicio_str, fecha_fin=fecha_fin_str,
+                                     tipo_nomina_id=id_tipo_nomina_str))
+
+        # --- Preparar los datos para Pandas DataFrame ---
+        data_for_df = [{
+            "Nombre Completo": n.empleado.nombre_completo if n.empleado else 'N/A', 
+            "Cédula": n.empleado.cedula if n.empleado else 'N/A',
+            "Tipo de Nómina": n.tipo_nomina_relacion.nombre_tipo if n.tipo_nomina_relacion else 'N/A',
+            "Período de Nómina": f"{n.fecha_inicio.strftime('%Y-%m-%d')} a {n.fecha_fin.strftime('%Y-%m-%d')}",
+            "Salario Bruto": f"{n.salario_bruto:,.2f}",
+            "Deducciones Totales": f"{n.deducciones:,.2f}",
+            "Salario Neto": f"{n.salario_neto:,.2f}",
+            "Fecha de Generación": n.fecha_creacion.strftime('%Y-%m-%d %H:%M:%S')
+        } for n in nominas_reporte]
+        
+        df = pd.DataFrame(data_for_df)
+
+        def format_currency_es(value):
+            if isinstance(value, (int, float)):
+                # Formatea a 2 decimales, luego reemplaza el separador de miles (coma por punto)
+                # y el separador decimal (punto por coma)
+                return f"{value:,.2f}".replace(",", "#").replace(".", ",").replace("#", ".")
+            return value # Retorna el valor tal cual si no es numérico
+
+        # --- Lógica de descarga según el formato solicitado (sin cambios) ---
+        if descargar_formato == 'csv':
+            csv_buffer = io.StringIO()
+            df.to_csv(csv_buffer, index=False, encoding='utf-8-sig')
+            csv_buffer.seek(0)
+            return send_file(
+                io.BytesIO(csv_buffer.getvalue().encode('utf-8-sig')),
+                mimetype='text/csv',
+                as_attachment=True,
+                download_name=f'reporte_nomina_{fecha_inicio_str}_a_{fecha_fin_str}.csv'
+            )
+        
+        elif descargar_formato == 'excel':
+            excel_buffer = io.BytesIO()
+            df.to_excel(excel_buffer, index=False, engine='openpyxl')
+            excel_buffer.seek(0)
+            return send_file(
+                excel_buffer,
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                as_attachment=True,
+                download_name=f'reporte_nomina_{fecha_inicio_str}_a_{fecha_fin_str}.xlsx'
+            )
+
+        elif descargar_formato == 'pdf':
+            tipos_nomina_disponibles = TipoNomina.query.all()
+            tipo_nomina_nombre = next(
+                (t.nombre_tipo for t in tipos_nomina_disponibles if str(t.id_tipo_nomina) == id_tipo_nomina_str),
+                'Todos'
+            )
+            
+            logo_url = url_for('static', filename='img/logo.webp', _external=True)
+
+            css_url = url_for('static', filename='css/reportes.css', _external=True)
+
+
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Reporte de Nómina</title>
+                <link rel="stylesheet" href="{css_url}"> 
+                <style>
+                    /* Puedes dejar estilos específicos de impresión aquí, como @page */
+                    @page {{ size: A4 landscape; }} 
+                </style>
+            </head>
+            <body>
+                <div class="logo-container">
+                    <img src="{logo_url}" alt="Logo de la empresa">
+                </div>
+                <h1>Nómina</h1>
+                <p><strong>Período:</strong> {fecha_inicio_str} a {fecha_fin_str}</p>
+                <p><strong>Tipo de Nómina:</strong> {tipo_nomina_nombre}</p>
+                {df.to_html(classes='table table-striped table-bordered', index=False)}
+            </body>
+            </html>
+            """
+            
+            pdf_buffer = io.BytesIO()
+            HTML(string=html_content, base_url=request.url_root).write_pdf(pdf_buffer)
+            pdf_buffer.seek(0)
+            return send_file(
+                pdf_buffer,
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=f'planilla_nomina_{fecha_inicio_str}_a_{fecha_fin_str}.pdf'
+            )
+
+    except ValueError:
+        flash('Formato de fecha inválido para el reporte. Por favor, seleccione fechas del calendario.', 'danger')
+        logging.exception("Error de formato de fecha en generar_reporte_nomina.")
+    except Exception as e:
+        flash(f'Ocurrió un error al generar el reporte de nómina. Detalle: {str(e)}', 'danger')
+        logging.exception("Error al generar el reporte de nómina.")
+    
+    return redirect(url_for('reportes_bp.mostrar_pagina_reporte_nomina',
+                            fecha_inicio=fecha_inicio_str,
+                            fecha_fin=fecha_fin_str,
+                            tipo_nomina_id=id_tipo_nomina_str))
