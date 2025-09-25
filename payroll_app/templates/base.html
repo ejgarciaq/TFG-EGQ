@@ -12,8 +12,7 @@
 </head>
 <body>
     <div class="d-flex">
-        <!-- Navbar lateral -->
-    <nav class="bg-light p-2 menu-vertical d-flex flex-column">
+        <nav class="bg-light p-2 menu-vertical d-flex flex-column">
         <div class=" justify-content-center mx-auto mb-3">
             <img src="{{ url_for('static', filename='/img/logo.webp') }}" alt="Logo de la Aplicación" class="img-fluid">
         </div>
@@ -42,12 +41,15 @@
             <li class="nav-item {% if request.endpoint == 'aguinaldo.calcular_aguinaldo' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('aguinaldo.calcular_aguinaldo') }}">Aguinaldo</a>
             </li>
+            <li class="nav-item {% if request.endpoint == 'liquidacion.buscar_empleado' %}active{% endif %}">
+                <a class="nav-link" href="{{ url_for('liquidacion.buscar_empleado') }}">Liquidación</a>
+            </li>
 
             <li class="nav-item">
                 <a class="nav-link disabled" href="#">disponible</a>
             </li>
 
-            <li class="nav-item dropdown {% if 'empleado' in request.endpoint or 'rol' in request.endpoint or 'puesto' in request.endpoint or 'feriado' in request.endpoint or 'registro_asistencia.listar_asistencia' in request.endpoint or 'accion_personal_bp.acciones_administrativas' in request.endpoint %}active{% endif %}">
+            <li class="nav-item dropdown {% if request.blueprint in ['empleado', 'rol', 'puesto', 'feriado', 'reportes_bp'] or request.endpoint in ['registro_asistencia.listar_asistencia', 'accion_personal_bp.acciones_administrativas'] %}active{% endif %}">
                 <a class="nav-link dropdown-toggle" href="#" id="dropdownMenuButton" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                     Administrativo RH
                 </a>
@@ -75,7 +77,7 @@
                         <a class="dropdown-item {% if request.endpoint == 'reportes_bp.mostrar_pagina_reporte' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_pagina_reporte') }}">Reportes Asistencia</a>
                     </li>
                     <li>
-                        <a class="dropdown-item {% if 'reportes_bp.nomina' in request.endpoint %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_pagina_reporte_nomina') }}">Reporte de Nómina</a>
+                        <a class="dropdown-item {% if request.endpoint == 'reportes_bp.mostrar_pagina_reporte_nomina' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_pagina_reporte_nomina') }}">Reporte de Nómina</a>
                     </li>
 
                 </ul>
@@ -99,11 +101,9 @@
         </ul>
     </nav>
 
-        <!-- Contenido principal -->
-         
-    <div class="flex-grow-1 body-3">
+        <div class="flex-grow-1 body-3">
         <div class="md-12">
-            <h5>Bienvenido,{% if current_user.is_authenticated %} {{ current_user.empleado.nombre }}  {% endif %}</h5>
+            <h5>Bienvenido,{% if current_user.is_authenticated %} {{ current_user.empleado.nombre }}  {% endif %}</h5>
             <hr class="border border-primary">
         </div>
         

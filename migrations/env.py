@@ -1,9 +1,28 @@
 import logging
 from logging.config import fileConfig
 
-from flask import current_app
+from flask import current_app, Flask # Agregamos Flask si no estaba
 
 from alembic import context
+
+# =========================================================================
+# === INICIALIZACIÓN FORZADA DEL CONTEXTO DE LA APLICACIÓN (CORRECCIÓN) ===
+# =========================================================================
+
+# 1. Importa tu fábrica y modelos
+from payroll_app import create_app 
+from payroll_app import models # Esto garantiza que Empleado y otros se definan
+
+# 2. Inicializa la app y fuerza el contexto si no existe, 
+#    ESTE BLOQUE DEBE ESTAR ANTES DE CUALQUIER USO DE current_app
+try:
+    # Intenta acceder a una configuración para verificar el contexto
+    current_app.config 
+except RuntimeError:
+    app = create_app()
+    app.app_context().push()
+    
+# =========================================================================
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -14,6 +33,8 @@ config = context.config
 fileConfig(config.config_file_name)
 logger = logging.getLogger('alembic.env')
 
+
+# AHORA PODEMOS USAR current_app y target_db SIN RIESGO DE ERROR DE CONTEXTO
 
 def get_engine():
     try:
@@ -34,20 +55,16 @@ def get_engine_url():
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
 config.set_main_option('sqlalchemy.url', get_engine_url())
-target_db = current_app.extensions['migrate'].db
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
+# target_db se inicializa ahora que el contexto está garantizado
+target_db = current_app.extensions['migrate'].db 
 
 
 def get_metadata():
     if hasattr(target_db, 'metadatas'):
-        return target_db.metadatas[None]
+        # target_db.metadatas[None] es la MetaData global de la app
+        return target_db.metadatas[None] 
     return target_db.metadata
 
 

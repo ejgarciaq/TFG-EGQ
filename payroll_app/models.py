@@ -282,3 +282,28 @@ class Accion_Personal(db.Model):
 
     def __repr__(self):
         return f'<Accion_Personal {self.id_accion} Tipo: {self.Tipo_Ap_id_tipo_ap}>'
+    
+# Liquidación ---------------------------------------------------------------------
+
+class Liquidacion(db.Model):
+    __tablename__ = 'liquidacion' 
+    id_liquidacion = db.Column(db.Integer, primary_key=True)
+    fecha_pago = db.Column(db.Date, nullable=False) 
+    fecha_fin_contrato = db.Column(db.Date, nullable=False)
+    total_monto = db.Column(db.Numeric(10, 2), nullable=False)
+    monto_preaviso = db.Column(db.Numeric(10, 2), default=0.0)
+    monto_cesantia = db.Column(db.Numeric(10, 2), default=0.0)
+    monto_vacaciones = db.Column(db.Numeric(10, 2), default=0.0)
+    monto_aguinaldo = db.Column(db.Numeric(10, 2), default=0.0)
+    
+    # 🌟 NUEVO CAMPO AGREGADO 🌟
+    monto_salario_pendiente = db.Column(db.Numeric(10, 2), default=0.0) 
+    
+    # Clave Foránea
+    Empleado_id_empleado = db.Column(db.Integer, db.ForeignKey('empleado.id_empleado'), nullable=False)
+    
+    # Relación
+    empleado_relacion = db.relationship('Empleado', backref='liquidaciones')
+    
+    def __repr__(self):
+        return f"Liquidacion(id={self.id_liquidacion}, Empleado={self.Empleado_id_empleado}, Total={self.total_monto})"
