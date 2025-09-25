@@ -1,11 +1,15 @@
-from flask import Blueprint, current_app, request, render_template, flash, redirect, url_for, send_file
+import csv
+from flask import Blueprint, current_app, make_response, request, render_template, flash, redirect, url_for, send_file
 from flask_login import login_required
-from payroll_app.models import db, Empleado, RegistroAsistencia, Nomina, TipoNomina
+from sqlalchemy import extract
+from payroll_app.models import Aguinaldo, Liquidacion, db, Empleado, RegistroAsistencia, Nomina, TipoNomina
 from weasyprint import HTML, CSS
 from datetime import datetime
 import pandas as pd
 import io,logging
 from sqlalchemy.orm import joinedload, aliased
+
+from payroll_app.routes.decorators import permiso_requerido
 # from flask_login import login_required
 
 
@@ -358,3 +362,383 @@ def generar_reporte_nomina():
                             fecha_inicio=fecha_inicio_str,
                             fecha_fin=fecha_fin_str,
                             tipo_nomina_id=id_tipo_nomina_str))
+
+
+
+# ====================================================================
+# --- REPORTE DE AGUINALDOS ---
+# ====================================================================
+
+@reportes_bp.route('/reporte_aguinaldos', methods=['GET', 'POST'])
+@login_required
+#@permiso_requerido('administrador') # RNF-SE-020
+def mostrar_reporte_aguinaldos():
+    """
+    Genera y muestra el reporte de aguinaldos. (Pasos 3 a 7)
+    """
+    aguinaldos = []
+    ano_filtrado = None
+    
+    if request.method == 'POST':
+        ano_str = request.form.get('ano_aguinaldo')
+        try:
+            ano_filtrado = int(ano_str)
+            # Consulta la base de datos para obtener los aguinaldos de ese año (Paso 6)
+            aguinaldos = db.session.query(Aguinaldo, Empleado).join(Empleado).filter(
+                db.extract('year', Aguinaldo.fecha_pago) == ano_filtrado # Uso correcto de db.extract
+            ).all()
+
+            if not aguinaldos:
+                flash(f'No se encontraron registros de aguinaldos para el año {ano_filtrado}. (FA1)', 'info')
+            
+        except ValueError:
+            flash('Por favor, ingrese un año válido.', 'danger')
+        except Exception as e:
+            flash(f'Error al generar el reporte de aguinaldos: {e} (FA2)', 'danger')
+            logging.error(f'Error en reporte_aguinaldos: {e}', exc_info=True) # RNF-AR-020, FA2
+            
+    return render_template('rp_aguinaldos.html', 
+                           aguinaldos=aguinaldos, 
+                           ano_filtrado=ano_filtrado,
+                           current_year=datetime.now().year)
+
+# Función de exportación para aguinaldos (Paso 8)
+@reportes_bp.route('/exportar_aguinaldos/<int:ano>')
+#@login_required
+#@permiso_requerido('administrador')
+def exportar_aguinaldos_csv(ano):
+    try:
+        aguinaldos = db.session.query(Aguinaldo, Empleado).join(Empleado).filter(
+            extract('year', Aguinaldo.fecha_pago) == ano
+        ).all()
+
+        if not aguinaldos:
+            flash(f'No hay datos para exportar para el año {ano}.', 'info')
+            return redirect(url_for('reportes_bp.mostrar_reporte_aguinaldos'))
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        # Encabezados (RNF-US-020)
+        writer.writerow(['Año', 'Cédula Empleado', 'Nombre Empleado', 'Fecha Cálculo', 'Monto Aguinaldo'])
+
+        for aguinaldo, empleado in aguinaldos:
+            writer.writerow([
+                aguinaldo.fecha_pago.year,
+                empleado.cedula,
+                f"{empleado.nombre} {empleado.apellido_primero} {empleado.apellido_segundo}",
+                aguinaldo.fecha_pago.strftime('%Y-%m-%d'),
+                f"{aguinaldo.monto:.2f}"
+            ])
+
+        response = make_response(output.getvalue())
+        response.headers["Content-Disposition"] = f"attachment; filename=reporte_aguinaldos_{ano}.csv"
+        response.headers["Content-type"] = "text/csv"
+        return response
+
+    except Exception as e:
+        flash(f'Error al exportar el reporte de aguinaldos: {e} (FA2)', 'danger')
+        logging.error(f'Error en exportar_aguinaldos_csv: {e}', exc_info=True)
+        return redirect(url_for('reportes_bp.mostrar_reporte_aguinaldos'))
+    
+# Función de exportación para aguinaldos (Paso 8)
+@reportes_bp.route('/exportar_aguinaldos/<int:ano>/<string:formato>')
+@login_required
+#@permiso_requerido('administrador')
+def exportar_aguinaldos(ano, formato):
+    try:
+        aguinaldos_data = db.session.query(Aguinaldo, Empleado).join(Empleado).filter(
+            extract('year', Aguinaldo.fecha_pago) == ano
+        ).all()
+
+        if not aguinaldos_data:
+            flash(f'No hay datos para exportar para el año {ano}.', 'info')
+            return redirect(url_for('reportes_bp.mostrar_reporte_aguinaldos'))
+
+        # --- Preparar datos en DataFrame para todos los formatos ---
+        data_list = []
+        for aguinaldo, empleado in aguinaldos_data:
+            data_list.append({
+                'Año': aguinaldo.fecha_pago.year,
+                'Cédula Empleado': empleado.cedula,
+                # Asumo que el modelo Empleado tiene apellido_primero y apellido_segundo
+                'Nombre Empleado': f"{empleado.nombre} {empleado.apellido_primero} {empleado.apellido_segundo}",
+                'Fecha Cálculo': aguinaldo.fecha_pago.strftime('%Y-%m-%d'),
+                'Monto Aguinaldo': float(f"{aguinaldo.monto:.2f}")
+            })
+        df = pd.DataFrame(data_list)
+        
+        # --- Lógica de exportación según el formato ---
+        
+        if formato == 'csv':
+            csv_buffer = io.StringIO()
+            df.to_csv(csv_buffer, index=False, encoding='utf-8-sig')
+            csv_buffer.seek(0)
+            return send_file(
+                io.BytesIO(csv_buffer.getvalue().encode('utf-8-sig')),
+                mimetype='text/csv',
+                as_attachment=True,
+                download_name=f'reporte_aguinaldos_{ano}.csv'
+            )
+        
+        elif formato == 'excel':
+            excel_buffer = io.BytesIO()
+            df.to_excel(excel_buffer, index=False, engine='openpyxl')
+            excel_buffer.seek(0)
+            return send_file(
+                excel_buffer,
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                as_attachment=True,
+                download_name=f'reporte_aguinaldos_{ano}.xlsx'
+            )
+            
+        elif formato == 'pdf':
+            # Preparar HTML para PDF (similar a como lo haces con Nómina)
+            logo_url = url_for('static', filename='img/logo.webp', _external=True)
+            css_url = url_for('static', filename='css/reportes.css', _external=True)
+
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Reporte de Aguinaldos</title>
+                <link rel="stylesheet" href="{css_url}"> 
+                <style>
+                    @page {{ size: A4 landscape; }} 
+                </style>
+            </head>
+            <body>
+                <div class="logo-container">
+                    <img src="{logo_url}" alt="Logo de la empresa">
+                </div>
+                <h1>Reporte de Aguinaldos</h1>
+                <p><strong>Año:</strong> {ano}</p>
+                {df.to_html(classes='table table-striped table-bordered', index=False)}
+            </body>
+            </html>
+            """
+            
+            pdf_buffer = io.BytesIO()
+            # Nota: usamos base_url=request.url_root para que WeasyPrint pueda cargar el CSS y el logo
+            HTML(string=html_content, base_url=request.url_root).write_pdf(pdf_buffer)
+            pdf_buffer.seek(0)
+            return send_file(
+                pdf_buffer,
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=f'reporte_aguinaldos_{ano}.pdf'
+            )
+            
+        else:
+            flash('Formato de exportación no válido.', 'danger')
+            return redirect(url_for('reportes_bp.mostrar_reporte_aguinaldos'))
+
+    except Exception as e:
+        flash(f'Error al exportar el reporte de aguinaldos: {e} (FA2)', 'danger')
+        logging.error(f'Error en exportar_aguinaldos: {e}', exc_info=True)
+        return redirect(url_for('reportes_bp.mostrar_reporte_aguinaldos'))
+
+
+
+
+# ====================================================================
+# --- REPORTE DE LIQUIDACIONES ---
+# ====================================================================
+
+@reportes_bp.route('/reporte_liquidaciones', methods=['GET', 'POST'])
+@login_required
+#@permiso_requerido('administrador') # RNF-SE-020
+def mostrar_reporte_liquidaciones():
+    """
+    Genera y muestra el reporte de liquidaciones. (Pasos 3 a 7)
+    """
+    liquidaciones = []
+    fecha_inicio_filtro = None
+    fecha_fin_filtro = None
+
+    if request.method == 'POST':
+        fecha_inicio_str = request.form.get('fecha_inicio')
+        fecha_fin_str = request.form.get('fecha_fin')
+        
+        try:
+            fecha_inicio_filtro = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+            fecha_fin_filtro = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+
+            if fecha_inicio_filtro > fecha_fin_filtro:
+                flash('La fecha de inicio no puede ser posterior a la fecha de fin.', 'warning')
+                return render_template('rp_liquidaciones.html', liquidaciones=[], today=datetime.now().date())
+
+            # Consulta la base de datos (Paso 6)
+            liquidaciones = db.session.query(Liquidacion, Empleado).join(Empleado).filter(
+                Liquidacion.fecha_pago.between(fecha_inicio_filtro, fecha_fin_filtro)
+            ).all()
+
+            if not liquidaciones:
+                flash(f'No se encontraron registros de liquidaciones entre {fecha_inicio_str} y {fecha_fin_str}. (FA1)', 'info')
+
+        except (ValueError, TypeError):
+            flash('Por favor, ingrese fechas válidas.', 'danger')
+        except Exception as e:
+            flash(f'Error al generar el reporte de liquidaciones: {e} (FA2)', 'danger')
+            logging.error(f'Error en reporte_liquidaciones: {e}', exc_info=True) # RNF-AR-020, FA2
+
+    return render_template('rp_liquidaciones.html', 
+                           liquidaciones=liquidaciones, 
+                           fecha_inicio_filtro=fecha_inicio_filtro,
+                           fecha_fin_filtro=fecha_fin_filtro,
+                           today=datetime.now().date())
+
+# Función de exportación para liquidaciones (Paso 8)
+@reportes_bp.route('/exportar_liquidaciones/<string:fecha_inicio>/<string:fecha_fin>')
+@login_required
+#@permiso_requerido('administrador')
+def exportar_liquidaciones_csv(fecha_inicio, fecha_fin):
+    try:
+        fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+        fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+
+        liquidaciones = db.session.query(Liquidacion, Empleado).join(Empleado).filter(
+            Liquidacion.fecha_pago.between(fecha_inicio_dt, fecha_fin_dt)
+        ).all()
+
+        if not liquidaciones:
+            flash(f'No hay datos para exportar entre {fecha_inicio} y {fecha_fin}.', 'info')
+            return redirect(url_for('reportes_bp.mostrar_reporte_liquidaciones'))
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        # Encabezados (RNF-US-020)
+        writer.writerow([
+            'Cédula Empleado', 'Nombre Empleado', 'Fecha Fin Contrato', 'Fecha Pago', 
+            'Monto Total', 'Preaviso', 'Cesantía', 'Vacaciones', 'Aguinaldo', 'Salario Pendiente'
+        ])
+
+        for liquidacion, empleado in liquidaciones:
+            writer.writerow([
+                empleado.cedula,
+                f"{empleado.nombre} {empleado.apellido_primero} {empleado.apellido_segundo}",
+                liquidacion.fecha_fin_contrato.strftime('%Y-%m-%d'),
+                liquidacion.fecha_pago.strftime('%Y-%m-%d'),
+                f"{liquidacion.total_monto:.2f}",
+                f"{liquidacion.monto_preaviso:.2f}",
+                f"{liquidacion.monto_cesantia:.2f}",
+                f"{liquidacion.monto_vacaciones:.2f}",
+                f"{liquidacion.monto:.2f}",
+                f"{liquidacion.monto_salario_pendiente:.2f}"
+            ])
+
+        response = make_response(output.getvalue())
+        response.headers["Content-Disposition"] = f"attachment; filename=reporte_liquidaciones_{fecha_inicio}_a_{fecha_fin}.csv"
+        response.headers["Content-type"] = "text/csv"
+        return response
+
+    except Exception as e:
+        flash(f'Error al exportar el reporte de liquidaciones: {e} (FA2)', 'danger')
+        logging.error(f'Error en exportar_liquidaciones_csv: {e}', exc_info=True)
+        return redirect(url_for('reportes_bp.mostrar_reporte_liquidaciones'))
+    
+    # Función de exportación para liquidaciones (Paso 8)
+@reportes_bp.route('/exportar_liquidaciones/<string:fecha_inicio>/<string:fecha_fin>/<string:formato>')
+@login_required
+#@permiso_requerido('administrador')
+def exportar_liquidaciones(fecha_inicio, fecha_fin, formato):
+    try:
+        fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+        fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+
+        liquidaciones_data = db.session.query(Liquidacion, Empleado).join(Empleado).filter(
+            Liquidacion.fecha_pago.between(fecha_inicio_dt, fecha_fin_dt)
+        ).all()
+
+        if not liquidaciones_data:
+            flash(f'No hay datos para exportar entre {fecha_inicio} y {fecha_fin}.', 'info')
+            return redirect(url_for('reportes_bp.mostrar_reporte_liquidaciones'))
+
+        # --- Preparar datos en DataFrame para todos los formatos ---
+        data_list = []
+        for liquidacion, empleado in liquidaciones_data:
+            data_list.append({
+                'Cédula Empleado': empleado.cedula,
+                'Nombre Empleado': f"{empleado.nombre} {empleado.apellido_primero} {empleado.apellido_segundo}",
+                'Fecha Fin Contrato': liquidacion.fecha_fin_contrato.strftime('%Y-%m-%d'),
+                'Fecha Pago': liquidacion.fecha_pago.strftime('%Y-%m-%d'),
+                'Monto Total': float(f"{liquidacion.total_monto:.2f}"),
+                'Preaviso': float(f"{liquidacion.monto_preaviso:.2f}"),
+                'Cesantía': float(f"{liquidacion.monto_cesantia:.2f}"),
+                'Vacaciones': float(f"{liquidacion.monto_vacaciones:.2f}"),
+                'Aguinaldo': float(f"{liquidacion.monto:.2f}"),
+                'Salario Pendiente': float(f"{liquidacion.monto_salario_pendiente:.2f}")
+            })
+        df = pd.DataFrame(data_list)
+        
+        # --- Lógica de exportación según el formato ---
+
+        if formato == 'csv':
+            csv_buffer = io.StringIO()
+            df.to_csv(csv_buffer, index=False, encoding='utf-8-sig')
+            csv_buffer.seek(0)
+            return send_file(
+                io.BytesIO(csv_buffer.getvalue().encode('utf-8-sig')),
+                mimetype='text/csv',
+                as_attachment=True,
+                download_name=f'reporte_liquidaciones_{fecha_inicio}_a_{fecha_fin}.csv'
+            )
+        
+        elif formato == 'excel':
+            excel_buffer = io.BytesIO()
+            df.to_excel(excel_buffer, index=False, engine='openpyxl')
+            excel_buffer.seek(0)
+            return send_file(
+                excel_buffer,
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                as_attachment=True,
+                download_name=f'reporte_liquidaciones_{fecha_inicio}_a_{fecha_fin}.xlsx'
+            )
+            
+        elif formato == 'pdf':
+            # Preparar HTML para PDF
+            logo_url = url_for('static', filename='img/logo.webp', _external=True)
+            css_url = url_for('static', filename='css/reportes.css', _external=True)
+
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Reporte de Liquidaciones</title>
+                <link rel="stylesheet" href="{css_url}"> 
+                <style>
+                    @page {{ size: A4 landscape; }} 
+                </style>
+            </head>
+            <body>
+                <div class="logo-container">
+                    <img src="{logo_url}" alt="Logo de la empresa">
+                </div>
+                <h1>Reporte de Liquidaciones</h1>
+                <p><strong>Período:</strong> {fecha_inicio} a {fecha_fin}</p>
+                {df.to_html(classes='table table-striped table-bordered', index=False)}
+            </body>
+            </html>
+            """
+            
+            pdf_buffer = io.BytesIO()
+            HTML(string=html_content, base_url=request.url_root).write_pdf(pdf_buffer)
+            pdf_buffer.seek(0)
+            return send_file(
+                pdf_buffer,
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=f'reporte_liquidaciones_{fecha_inicio}_a_{fecha_fin}.pdf'
+            )
+            
+        else:
+            flash('Formato de exportación no válido.', 'danger')
+            return redirect(url_for('reportes_bp.mostrar_reporte_liquidaciones'))
+
+    except Exception as e:
+        flash(f'Error al exportar el reporte de liquidaciones: {e} (FA2)', 'danger')
+        logging.error(f'Error en exportar_liquidaciones: {e}', exc_info=True)
+        return redirect(url_for('reportes_bp.mostrar_reporte_liquidaciones'))

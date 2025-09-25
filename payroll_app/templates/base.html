@@ -79,6 +79,12 @@
                     <li>
                         <a class="dropdown-item {% if request.endpoint == 'reportes_bp.mostrar_pagina_reporte_nomina' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_pagina_reporte_nomina') }}">Reporte de Nómina</a>
                     </li>
+                    <li>
+                        <a class="dropdown-item {% if request.endpoint == 'reportes_bp.mostrar_reporte_aguinaldos' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_reporte_aguinaldos') }}">Reporte de Aguinaldos</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item {% if request.endpoint == 'reportes_bp.mostrar_reporte_liquidaciones' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_reporte_liquidaciones') }}">Reporte de Liquidaciones</a>
+                    </li>
 
                 </ul>
             </li>
