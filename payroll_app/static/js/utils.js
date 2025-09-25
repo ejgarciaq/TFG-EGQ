@@ -9,7 +9,7 @@ function togglePassword() {
   }
 }
 
-// Este script se encargará de ocultar las alertas automáticamente.
+/* Oculta las alertas flash autmáticamente a un tiempo programado*/
 document.addEventListener("DOMContentLoaded", () => {
     // Selecciona el contenedor de todas las alertas
     const flashesContainer = document.querySelector(".flashes");
@@ -28,11 +28,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 // Si ya no quedan alertas activas en el contenedor, ocultamos el contenedor
                 if (activeAlerts === 0) {
                     flashesContainer.style.display = 'none';
-                    // O si prefieres eliminarlo completamente del DOM:
-                    // flashesContainer.remove(); 
                 }
             });
-
             // Programa el cierre automático de cada alerta
             setTimeout(() => {
                 bsAlert.close(); // Usa .close() para activar la transición y el evento 'closed.bs.alert'
@@ -41,7 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-// Función para actualizar el reloj y la fecha
+/* Lógica para el reloj y la gestión del botón único de asistencia */
 document.addEventListener("DOMContentLoaded", () => {
     const reloj = document.getElementById("reloj");
     const fechaActual = document.getElementById("fecha_actual");
@@ -65,19 +62,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnText = document.getElementById('btn_text');
     const btnIcon = document.getElementById('btn_icon');
     const marcarBtn = document.getElementById("marcar_btn");
-
-    // >>>>> AÑADE ESTAS LÍNEAS DE DEPURACIÓN AQUÍ <<<<<
-    console.log("DEBUG (JS): btnText element:", btnText);
-    console.log("DEBUG (JS): btnIcon element:", btnIcon);
-    console.log("DEBUG (JS): marcarBtn element:", marcarBtn);
-    // --------------------------------------------------
-    
-
+    // Obtenemos el estado actual desde el atributo data del contenedor principal
     const containerElement = document.querySelector('.container');
     const estadoActual = containerElement && containerElement.dataset.estadoActual
                          ? containerElement.dataset.estadoActual.trim() // Aseguramos que no haya espacios extra
                          : "entrada"; // Valor por defecto si no se encuentra el atributo
-
     let textoBoton = "";
     let iconoBoton = "";
     let valorAccion = "";
@@ -121,8 +110,6 @@ document.addEventListener("DOMContentLoaded", () => {
             if (marcarBtn) marcarBtn.disabled = true; // Deshabilita el botón
             break;
         default:
-            console.log("DEBUG (JS): Switch cayó en 'default'");
-            console.warn(`DEBUG (JS): Estado '${estadoActual}' no reconocido en switch.`);
             textoBoton = "Error de Estado"; // Texto por defecto si no se reconoce el estado
             iconoBoton = "fas fa-exclamation-triangle";
             valorAccion = "error"; // Valor por defecto para enviar si el estado es desconocido
@@ -142,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-// logica de camposn de vacaciones e invapacidades
+/* Lógica para mostrar/ocultar campos según el tipo de acción y calcular días laborales */
 document.addEventListener('DOMContentLoaded', function() {
     // Definimos todos los elementos del DOM.
     const tipoApSelect = document.getElementById('tipo_ap_id');
@@ -255,83 +242,85 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarCampos();
 });
 
-// Inicialización de Select2 para ambos select
-$(document).ready(function() {
-    $('.select2').select2({
-        placeholder: "Buscar y seleccionar...",
-        allowClear: true,
-        theme: "bootstrap-5"
-    });
-});
-
-// Inicialización de Select2 para ambos select
-$(document).ready(function() {
-    $('.select2').select2({
-        placeholder: "Buscar y seleccionar...",
-        allowClear: true,
-        theme: "bootstrap-5"
-    });
-});
-
-// Inicialización de Select2
-$(document).ready(function() {
-    $('.select2').select2({
-        placeholder: "Buscar y seleccionar...",
-        allowClear: true,
-        theme: "bootstrap-5"
-    });
-});
-
-// Validacion de requisitos de contraseña
+/* Lógica para validar los requisitos de la contraseña y controlar el envío del formulario */
 document.addEventListener('DOMContentLoaded', function() {
+    // Obtener elementos clave del DOM, verificando el campo principal de entrada
     const passwordInput = document.getElementById('nueva_contrasena');
+    
+    // Si el campo de contraseña NO existe, salimos inmediatamente
+    if (!passwordInput) {
+        // console.log("DEBUG: Campo 'nueva_contrasena' no encontrado. Saltando validación de contraseña.");
+        return; 
+    }
+    
+    // A partir de aquí, el código solo se ejecuta si estamos en la página correcta
+    
+    const form = document.querySelector('form');
+    const confirmInput = document.getElementById('confirmar_contrasena');
+    const submitButton = form.querySelector('button[type="submit"]');
+
+    // Requisitos de complejidad
     const lengthReq = document.getElementById('length-req');
     const uppercaseReq = document.getElementById('uppercase-req');
     const lowercaseReq = document.getElementById('lowercase-req');
     const numberReq = document.getElementById('number-req');
     const symbolReq = document.getElementById('symbol-req');
+    const confirmReq = document.getElementById('confirm-req');
 
-    passwordInput.addEventListener('keyup', function() {
+    // Deshabilitar el botón de envío por defecto
+    submitButton.disabled = true;
+
+    // Escuchar eventos de teclado en ambos campos
+    passwordInput.addEventListener('keyup', validatePassword);
+    confirmInput.addEventListener('keyup', validatePassword);
+    
+    // ... (El resto de la función validatePassword() y updateRequirement() queda igual)
+    function validatePassword() {
         const password = passwordInput.value;
+        const confirmPassword = confirmInput.value;
 
-        // Validar la longitud
+        // ... (Tu lógica de validación de complejidad e isMatchValid) ...
         const isLengthValid = password.length >= 8;
-        updateRequirement(lengthReq, isLengthValid);
-
-        // Validar mayúscula
         const isUppercaseValid = /[A-Z]/.test(password);
-        updateRequirement(uppercaseReq, isUppercaseValid);
-
-        // Validar minúscula
         const isLowercaseValid = /[a-z]/.test(password);
-        updateRequirement(lowercaseReq, isLowercaseValid);
-
-        // Validar número
         const isNumberValid = /[0-9]/.test(password);
-        updateRequirement(numberReq, isNumberValid);
-
-        // Validar símbolo
         const isSymbolValid = /[@$!%*?&]/.test(password);
+        const isMatchValid = password === confirmPassword && confirmPassword.length > 0;
+
+        // Actualizar la interfaz (se asume que los elementos existen por la verificación inicial)
+        updateRequirement(lengthReq, isLengthValid);
+        updateRequirement(uppercaseReq, isUppercaseValid);
+        updateRequirement(lowercaseReq, isLowercaseValid);
+        updateRequirement(numberReq, isNumberValid);
         updateRequirement(symbolReq, isSymbolValid);
-    });
+        updateRequirement(confirmReq, isMatchValid);
+
+        // Comprobar estado final para el botón
+        const allComplexValid = isLengthValid && isUppercaseValid && isLowercaseValid && isNumberValid && isSymbolValid;
+        submitButton.disabled = !(allComplexValid && isMatchValid);
+    }
 
     function updateRequirement(element, isValid) {
         const icon = element.querySelector('i');
-        if (isValid) {
-            element.classList.remove('text-danger');
-            element.classList.add('text-success');
-            icon.classList.remove('fa-times-circle');
-            icon.classList.add('fa-check-circle');
-        } else {
-            element.classList.remove('text-success');
-            element.classList.add('text-danger');
-            icon.classList.remove('fa-check-circle');
-            icon.classList.add('fa-times-circle');
+        if (icon) {
+            if (isValid) {
+                element.classList.remove('text-danger');
+                element.classList.add('text-success');
+                icon.classList.remove('fa-times-circle');
+                icon.classList.add('fa-check-circle');
+            } else {
+                element.classList.remove('text-success');
+                element.classList.add('text-danger');
+                icon.classList.remove('fa-check-circle');
+                icon.classList.add('fa-times-circle');
+            }
         }
     }
+    
+    validatePassword(); 
 });
 
-// Lógica para generar contraseña temporal
+/* Solo se ejecuta si estamos en la página correcta (existe el campo 'password' y el botón 'generatePasswordBtn') */
 const passwordInput = document.getElementById('password');
 const generatePasswordBtn = document.getElementById('generatePasswordBtn');
 
@@ -366,7 +355,7 @@ if (passwordInput && generatePasswordBtn) {
     });
 }
 
-// Select2 para los formularios
+/* jQuery y clase CSS Select2 están cargados antes de este script */
 $(document).ready(function() {
     // Inicialización de Select2 en el campo de empleados
     $('.select2').select2({
@@ -376,7 +365,7 @@ $(document).ready(function() {
     });
 });
 
-// Script para la selección masiva de checkboxes
+/* Seleccionar o deseleccionar todos los checkboxes */
 document.getElementById('seleccionar_todo').addEventListener('change', function() {
     var checkboxes = document.querySelectorAll('input[name="registros_seleccionados"]');
         for (var i = 0; i < checkboxes.length; i++) {
