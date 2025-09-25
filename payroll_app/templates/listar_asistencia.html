@@ -34,8 +34,8 @@
                     <td>{{ registro.empleado.nombre }} {{ registro.empleado.apellido_primero }} {{ registro.empleado.apellido_segundo }}</td>
                     <td class="text-center">{{ registro.fecha_registro.strftime('%Y-%m-%d') }}</td>
                     <td class="text-center">{{ registro.hora_entrada.strftime('%H:%M:%S') }}</td>
-                    <td class="text-center">{{ registro.hora_salida_almuerzo.strftime('%H:%M:%S') if registro.hora_salida_almuerzo else 'N/A' }}</td>
                     <td class="text-center">{{ registro.hora_entrada_almuerzo.strftime('%H:%M:%S') if registro.hora_entrada_almuerzo else 'N/A' }}</td>
+                    <td class="text-center">{{ registro.hora_salida_almuerzo.strftime('%H:%M:%S') if registro.hora_salida_almuerzo else 'N/A' }}</td>
                     <td class="text-center">{{ registro.hora_salida.strftime('%H:%M:%S') if registro.hora_salida else 'N/A' }}</td>
                     <td class="text-center">{{ registro.total_horas | default('N/A', True) }}</td>
                     <td class="text-center">{{ registro.hora_extra | default('N/A', True) }}</td>

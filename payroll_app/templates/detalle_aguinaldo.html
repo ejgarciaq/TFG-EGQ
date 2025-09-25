@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-file-invoice-dollar text-success"></i> Detalle de Cálculo de Aguinaldo</h2>
+    <a href="{{ url_for('aguinaldo.calcular_aguinaldo') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i> Volver al Cálculo
+    </a>
+</div>
+
+<div class="row">
+    {# --- Columna de Resumen --- #}
+    <div class="col-md-5">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Resumen del Aguinaldo</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Empleado:</strong> {{ empleado.nombre_completo }}</p>
+                <p><strong>Identificación:</strong> {{ empleado.identificacion }}</p>
+                <p><strong>Fecha de Pago Registrada:</strong> {{ aguinaldo.fecha_pago.strftime('%d/%m/%Y') }}</p>
+                <hr>
+                <h4 class="text-success">Monto Calculado: ${{ "{:,.2f}".format(aguinaldo.monto) }}</h4>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Base de Cálculo</h5>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Período Auditado:</span>
+                    <span class="fw-bold">{{ periodo_inicio.strftime('%d/%m/%Y') }} al {{ periodo_fin.strftime('%d/%m/%Y') }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Suma Total de Salario Bruto (Período):</span>
+                    <span class="fw-bold">${{ "{:,.2f}".format(total_bruto) }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Divisor Legal (Meses):</span>
+                    <span class="fw-bold">12</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between bg-warning bg-opacity-25">
+                    <span class="fw-bold">Aguinaldo (Total Bruto / 12):</span>
+                    <span class="fw-bold text-primary">${{ "{:,.2f}".format(promedio_calculado) }}</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    {# --- Columna de Auditoría (Registros de Nómina) --- #}
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Registros de Nómina Utilizados (RNF-US-018)</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Mes/Nómina</th>
+                                <th>Fecha Fin</th>
+                                <th class="text-end">Salario Bruto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for nomina in registros_nomina %}
+                            <tr>
+                                <td>Nom. #{{ nomina.id_nomina }}</td>
+                                <td>{{ nomina.fecha_fin.strftime('%d/%m/%Y') }}</td>
+                                <td class="text-end">${{ "{:,.2f}".format(nomina.salario_bruto) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">No se encontraron registros de nómina para el período de cálculo.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr>
+                                <td colspan="2" class="fw-bold text-end">SUMA TOTAL:</td>
+                                <td class="fw-bold text-end">${{ "{:,.2f}".format(total_bruto) }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

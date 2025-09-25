@@ -39,6 +39,10 @@
                 <a class="nav-link" href="{{ url_for('accion_personal_bp.accion_personal') }}">Acción de Personal</a>
             </li>
 
+            <li class="nav-item {% if request.endpoint == 'aguinaldo.calcular_aguinaldo' %}active{% endif %}">
+                <a class="nav-link" href="{{ url_for('aguinaldo.calcular_aguinaldo') }}">Aguinaldo</a>
+            </li>
+
             <li class="nav-item">
                 <a class="nav-link disabled" href="#">disponible</a>
             </li>
@@ -116,7 +120,7 @@
             {% endwith %}
         </div>
 
-        <div class="d-flex md-12" style="z-index: 1;">
+        <div class="col-12 md-12" style="z-index: 1;">
             {% block content %}{% endblock %}
         </div>
     </div>
