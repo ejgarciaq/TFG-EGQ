@@ -17,19 +17,6 @@
                     <div class="card-body">
                         <h2 class="card-title text-center mb-4">Cambiar Contraseña</h2>
 
-                        <div class="flashes">
-                            {% with messages = get_flashed_messages(with_categories=true) %}
-                                {% if messages %}
-                                    {% for category, message in messages %}
-                                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                                            {{ message|safe }}
-                                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-                                        </div>
-                                    {% endfor %}
-                                {% endif %}
-                            {% endwith %}
-                        </div>
-
                         <p class="text-muted">
                             Su contraseña temporal ha sido utilizada. Por favor, cree una nueva contraseña para continuar.
                         </p>
@@ -49,28 +36,16 @@
                         <form method="POST">
                             <div class="mb-3">
                                 <label for="nueva_contrasena" class="form-label">Nueva Contraseña:</label>
-                                <input
-                                    type="password"
-                                    class="form-control"
-                                    id="nueva_contrasena"
-                                    name="nueva_contrasena"
-                                    required
-                                />
+                                <input type="password" class="form-control" id="nueva_contrasena" name="nueva_contrasena" required />
                             </div>
-
                             <div class="mb-3">
                                 <label for="confirmar_contrasena" class="form-label">Confirmar Contraseña:</label>
-                                <input
-                                    type="password"
-                                    class="form-control"
-                                    id="confirmar_contrasena"
-                                    name="confirmar_contrasena"
-                                    required
-                                />
+                                <input type="password" class="form-control" id="confirmar_contrasena" name="confirmar_contrasena" required />
                             </div>
-
                             <div class="d-grid">
-                                <button type="submit" class="btn btn-primary">Cambiar Contraseña</button>
+                                <button type="submit" class="btn btn-outline-primary">
+                                    <i class="fas fa-user-edit"></i> Cambiar Contraseña
+                                </button>
                             </div>
                         </form>
                     </div>

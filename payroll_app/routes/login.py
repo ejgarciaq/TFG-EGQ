@@ -1,24 +1,21 @@
-import pytz
-import secrets
-import string
-import re
+import pytz, secrets, string, re
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 from payroll_app.models import Empleado, Usuario, db
 from flask_login import login_user, logout_user, login_required, current_user
 
-# Crea un Blueprint para las rutas de autenticación.
+""" Blueprint para las rutas de autenticación (login, logout, etc.)."""
 login_bp = Blueprint('auth', __name__)
 
-# Define la zona horaria local de Costa Rica para manejar fechas y horas correctamente.
+""" Define la zona horaria local de Costa Rica para manejar fechas y horas correctamente."""
 ZONA_HORARIA_LOCAL = pytz.timezone('America/Costa_Rica')
 
-# Definir el límite de intentos y el tiempo de bloqueo de la cuenta.
+""" Definir el límite de intentos y el tiempo de bloqueo de la cuenta. """
 MAX_INTENTOS_FALLIDOS = 3
 TIEMPO_BLOQUEO_MINUTOS = 15
 
-# Aquí se validan los requisitos de la contraseña
+""" Función para validar la complejidad de la contraseña. """
 def validar_complejidad_password(password):
     """    
     Requisitos:
@@ -61,7 +58,7 @@ def home():
 
 @login_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    # Si el usuario ya está autenticado, evita que acceda al formulario de login.
+    """ Maneja el inicio de sesión de los usuarios."""
     if current_user.is_authenticated:
         return redirect(url_for('auth.base'))
 
@@ -72,7 +69,7 @@ def login():
             # Valida que los campos de usuario y contraseña no estén vacíos.
             if not username or not password:
                 flash('Por favor, completa todos los campos', 'danger')
-                return render_template('index.html')
+                return render_template('auth/index.html')
             # Busca el usuario en la base de datos por el nombre de usuario.
             usuario = Usuario.query.filter_by(username=username).first()
             
@@ -89,10 +86,10 @@ def login():
                         usuario.intentos_fallidos = 0
                         db.session.commit()
                         flash('Su cuenta ha sido desbloqueada. Por favor, intente iniciar sesión de nuevo.', 'success')
-                        return render_template('index.html')
+                        return render_template('auth/index.html')
                     else:
                         flash('Su cuenta se encuentra temporalmente bloqueada debido a demasiados intentos fallidos. Por favor, inténtelo de nuevo más tarde.', 'danger')
-                        return render_template('index.html')
+                        return render_template('auth/index.html')
                 # Verifica la contraseña con la función de hash.
                 if check_password_hash(usuario.password, password):
                     # Inicio de sesión exitoso:
@@ -112,7 +109,7 @@ def login():
                         return redirect(url_for('auth.base'))
                 else:
                     # Contraseña incorrecta:
-                    # - Incrementa el contador de intentos fallidos y actualiza la fecha.
+                    # Incrementa el contador de intentos fallidos y actualiza la fecha.
                     usuario.intentos_fallidos += 1
                     usuario.fecha_ultimo_intento = ahora
                     db.session.commit()
@@ -131,19 +128,18 @@ def login():
             # Captura y registra cualquier error inesperado para su posterior análisis.
             current_app.logger.error(f'Error en la función de login: {e}', exc_info=True)
             flash('Ocurrió un error inesperado. Por favor, intente de nuevo más tarde.', 'danger')
-            return render_template('index.html')
+            return render_template('auth/index.html')
             
-    return render_template('index.html')
+    return render_template('auth/index.html')
     
 @login_bp.route('/base')
 @login_required # Decorador que asegura que solo los usuarios autenticados pueden acceder a esta ruta.
 def base():
     """Ruta para la página principal de la aplicación, solo accesible para usuarios autenticados."""
     return render_template('base.html')
-
-# Cerrar sesión ----------------------------------------------------------------------
     
 @login_bp.route('/logout')
+@login_required
 def logout():
     """Cierra la sesión del usuario actual."""
     try:
@@ -158,7 +154,31 @@ def logout():
 @login_bp.route('/olvido_contrasena', methods=['GET'])
 def olvido_contrasena():
     """Muestra la página de 'olvidó su contraseña' que redirige al administrador."""
-    return render_template('olvido_contrasena.html')
+    return render_template('auth/olvido_contrasena.html')
+
+
+@login_bp.before_app_request
+def redirect_if_password_change_required():
+    # 1. Verificar si hay un usuario logueado
+    if current_user.is_authenticated:
+        
+        # 2. Verificar si el cambio de contraseña es requerido
+        if current_user.cambio_password_requerido:
+            
+            # 3. Obtener el nombre del endpoint al que el usuario intenta acceder
+            endpoint = request.endpoint 
+            
+            if endpoint == 'static' or endpoint is None:
+                return
+            
+            # Si el usuario intenta acceder a CUALQUIER COSA que no sea:
+            #   - La página de cambio de contraseña ('auth.cambiar_contrasena')
+            #   - La página de cierre de sesión ('auth.logout')
+            # Lo redirigimos forzosamente a la página de cambio de contraseña.
+            if (endpoint != 'auth.cambiar_contrasena' and 
+                endpoint != 'auth.logout'):
+                
+                return redirect(url_for('auth.cambiar_contrasena'))
 
 @login_bp.route('/admin/restablecer_contrasena', methods=['POST']) # ✅ Cambiar a solo POST
 @login_required
@@ -225,17 +245,17 @@ def cambiar_contrasena():
         # Valida que los campos no estén vacíos y que las contraseñas coincidan.
         if not nueva_contrasena or not confirmar_contrasena:
             flash('Por favor, completa todos los campos.', 'danger')
-            return render_template('cambiar_contrasena.html')
+            return render_template('auth/cambiar_contrasena.html')
 
         # Aquí se realiza la nueva validación de complejidad
         es_valida, mensaje = validar_complejidad_password(nueva_contrasena)
         if not es_valida:
             flash(mensaje, 'danger')
-            return render_template('cambiar_contrasena.html')
+            return render_template('auth/cambiar_contrasena.html')
 
         if nueva_contrasena != confirmar_contrasena:
             flash('Las contraseñas no coinciden.', 'danger')
-            return render_template('cambiar_contrasena.html')
+            return render_template('auth/cambiar_contrasena.html')
 
         try:
             # Hashea y guarda la nueva contraseña, y desactiva el flag de cambio requerido.
@@ -249,4 +269,4 @@ def cambiar_contrasena():
             current_app.logger.error(f'Error al cambiar la contraseña del usuario {current_user.username}: {e}', exc_info=True)
             flash('Ocurrió un error al actualizar su contraseña. Intente de nuevo.', 'danger')
 
-    return render_template('cambiar_contrasena.html')
+    return render_template('auth/cambiar_contrasena.html')
