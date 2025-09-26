@@ -9,13 +9,12 @@ import pandas as pd
 from sqlalchemy.orm import joinedload, aliased
 from payroll_app.routes.decorators import permiso_requerido
 
-
 """ Rutas y lógica para generación de reportes en varios formatos (HTML, CSV, Excel, PDF)."""
 reportes_bp = Blueprint('reportes_bp', __name__)
 
 """Renderiza la página del formulario para generar reportes."""
 @reportes_bp.route('/asistencia', methods=['GET'])
-#@permiso_requerido('rp_asistencia')
+@permiso_requerido('rp_asistencia')
 @login_required # Proteger esta ruta con login y roles si es necesario
 def mostrar_pagina_reporte():
     empleados = Empleado.query.all()
@@ -23,7 +22,7 @@ def mostrar_pagina_reporte():
 
 """ Genera y descarga el reporte de asistencia en el formato solicitado."""
 @reportes_bp.route('/asistencia', methods=['GET', 'POST'])
-#@permiso_requerido('rp_asistencia')
+@permiso_requerido('rp_asistencia')
 @login_required # Proteger esta ruta con login y roles si es necesario
 def generar_reporte():
     
@@ -180,7 +179,7 @@ def generar_reporte():
 
 """ Rutas y lógica para generación de reportes de nómina en varios formatos (HTML, CSV, Excel, PDF)."""
 @reportes_bp.route('/nomina', methods=['GET'])
-#@permiso_requerido('rp_nomina')
+@permiso_requerido('rp_nomina')
 @login_required
 def mostrar_pagina_reporte_nomina():
     """Renderiza la página del formulario y, si los filtros están presentes, la tabla de resultados."""
@@ -231,10 +230,9 @@ def format_currency_es(value):
     
     return str(value)
 
-
 """ Genera y descarga el reporte de nómina en el formato solicitado."""
 @reportes_bp.route('/nomina/generar', methods=['GET']) 
-#@permiso_requerido('rp_nomina')
+@permiso_requerido('rp_nomina')
 @login_required
 def generar_reporte_nomina():
     """Procesa los filtros, genera el reporte (HTML o descarga) y gestiona errores."""
@@ -459,7 +457,7 @@ def generar_reporte_nomina():
 """ Rutas y lógica para generación de reportes de aguinaldos en varios formatos (HTML, CSV, Excel, PDF)."""
 @reportes_bp.route('/reporte_aguinaldos', methods=['GET', 'POST'])
 @login_required
-#@permiso_requerido('rp_aguinaldo')
+@permiso_requerido('rp_aguinaldo')
 def mostrar_reporte_aguinaldos():
     """
     Genera y muestra el reporte de aguinaldos con paginación.
@@ -550,7 +548,7 @@ def mostrar_reporte_aguinaldos():
 """ Función de exportación para aguinaldos en varios formatos (CSV, Excel, PDF). """
 @reportes_bp.route('/exportar_aguinaldos/<int:ano>/<string:formato>')
 @login_required
-#@permiso_requerido('rp_aguinaldo')
+@permiso_requerido('rp_aguinaldo')
 def exportar_aguinaldos(ano, formato):
     try:
         aguinaldos_data = db.session.query(Aguinaldo, Empleado).join(Empleado).filter(
@@ -651,9 +649,10 @@ def exportar_aguinaldos(ano, formato):
 # --- REPORTE DE LIQUIDACIONES ---
 # ====================================================================
 
+""" Rutas y lógica para generación de reportes de liquidaciones. """
 @reportes_bp.route('/reporte_liquidaciones', methods=['GET', 'POST'])
 @login_required
-#@permiso_requerido('rp_liquidacion')
+@permiso_requerido('rp_liquidacion')
 def mostrar_reporte_liquidaciones():
     """
     Genera y muestra el reporte de liquidaciones. (Pasos 3 a 7)
@@ -694,10 +693,10 @@ def mostrar_reporte_liquidaciones():
                            fecha_fin_filtro=fecha_fin_filtro,
                            today=datetime.now().date())
 
-# Función de exportación para liquidaciones (Paso 8)
+""" Función de exportación para liquidaciones en formato CSV (RNF-US-020) """
 @reportes_bp.route('/exportar_liquidaciones/<string:fecha_inicio>/<string:fecha_fin>')
 @login_required
-#@permiso_requerido('administrador')
+@permiso_requerido('administrador')
 def exportar_liquidaciones_csv(fecha_inicio, fecha_fin):
     try:
         fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
@@ -744,10 +743,9 @@ def exportar_liquidaciones_csv(fecha_inicio, fecha_fin):
         logging.error(f'Error en exportar_liquidaciones_csv: {e}', exc_info=True)
         return redirect(url_for('reportes_bp.mostrar_reporte_liquidaciones'))
     
-    # Función de exportación para liquidaciones (Paso 8)
 @reportes_bp.route('/exportar_liquidaciones/<string:fecha_inicio>/<string:fecha_fin>/<string:formato>')
 @login_required
-#@permiso_requerido('administrador')
+@permiso_requerido('administrador')
 def exportar_liquidaciones(fecha_inicio, fecha_fin, formato):
     try:
         fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()

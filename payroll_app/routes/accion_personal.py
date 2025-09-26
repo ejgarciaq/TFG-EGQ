@@ -10,10 +10,10 @@ from flask_mail import Message
 from threading import Thread
 
 
-# Define the Blueprint
+""" Blueprint para las rutas de acciones de personal"""
 accion_personal_bp = Blueprint('accion_personal_bp', __name__)
 
-# Define las extensiones de archivo permitidas
+""" Configuración para la carga de archivos """
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
 
 def allowed_file(filename):
@@ -21,6 +21,7 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+""" Funciones para el envío de correos electrónicos en segundo plano """
 def send_async_email(app, msg):
     # Funcion que envía el correo en un hilo separado
     with app.app_context():
@@ -35,7 +36,7 @@ def send_async_email(app, msg):
         else:
             app.logger.error("Error: Flask-Mail no está inicializado en el hilo.")
 
-
+""" Función para enviar notificaciones por correo electrónico """
 def enviar_notificacion_por_correo(destinatario, asunto, cuerpo):
     """
     Crea y lanza un hilo para enviar un correo electrónico.
@@ -59,8 +60,7 @@ def enviar_notificacion_por_correo(destinatario, asunto, cuerpo):
         current_app.logger.error(f"Error al iniciar el hilo de correo a {destinatario}: {e}", exc_info=True)
         return False
     
-
-# accion de personal --------------------------------------------------------------------------------------------------------------
+""" Ruta para manejar la creación y visualización de acciones de personal """
 @accion_personal_bp.route('/', methods=['GET', 'POST'])
 @permiso_requerido('listar_accion_personal')
 @login_required
@@ -83,6 +83,7 @@ def accion_personal():
             fecha_inicio = None
             fecha_fin = None
             cantidad_dia = None
+            cantidad_dia_str = None 
             
             if tipo_ap.nombre_tipo in ['Vacaciones', 'Permiso c/ Goce de Salario', 'Permiso s/ Goce de Salario']:
                 fecha_inicio_str = request.form.get('fecha_inicio')
@@ -180,14 +181,13 @@ def accion_personal():
         
         dias_feriados = [f.fecha_feriado.strftime('%Y-%m-%d') for f in Feriado.query.all()]
         
-        return render_template('accion_personal.html', 
+        return render_template('accion_personal/accion_personal.html', 
                                empleados=empleados_para_form, 
                                tipos_ap=tipos_ap, 
                                dias_feriados=dias_feriados,
                                fecha_accion_actual=datetime.utcnow().date())
 
-# historial usuario de acciones de personal ----------------------------------------------------------------
-
+""" Ruta para ver el historial de acciones de personal del usuario actual """
 @accion_personal_bp.route('/ver_historial', methods=['GET'])
 @permiso_requerido('listar_accion_personal')
 @login_required
@@ -208,16 +208,13 @@ def ver_historial_apu():
     pagination = db.paginate(query, page=page, per_page=10, error_out=False)
     
     # Renderizar la plantilla del historial, pasando la paginación
-    return render_template('historial_apu.html', pagination=pagination)
+    return render_template('accion_personal/historial_apu.html', pagination=pagination)
 
-# aprobacion de accesos administrativos-------------------------------------------------------
+""" Ruta para ver el historial de todas las acciones de personal (solo administradores) """
 @accion_personal_bp.route('/historial')
 @login_required
 @permiso_requerido('aprobar_acciones_personales')
 def acciones_administrativas():
-    """
-    Muestra el historial de acciones de personal con paginación
-    """
     page = request.args.get('page', 1, type=int)
     per_page = 10
     
@@ -227,19 +224,17 @@ def acciones_administrativas():
         error_out=False
     )
     
-    return render_template('historial_acciones.html', 
+    return render_template('accion_personal/historial_acciones.html', 
                            pagination=paginated_acciones)
 
 
-# aprobar_accion --------------------------------------------------------------------------------------------------------------
-
+""" Ruta para aprobar una acción de personal """
 @accion_personal_bp.route('/aprobar_accion/<int:ap_id>', methods=['POST'])
 @permiso_requerido('aprobar_acciones_personales')
 @login_required
 def aprobar_accion(ap_id):
-    # Obtiene el número de página del formulario. Usa 1 como valor por defecto.
-    page = request.form.get('page', 1, type=int)
 
+    page = request.form.get('page', 1, type=int)
     ap = Accion_Personal.query.get_or_404(ap_id)
     
     if ap.estado_ap != 1:
@@ -266,7 +261,6 @@ def aprobar_accion(ap_id):
         cuerpo_aprobacion = f'Hola {empleado.nombre_completo}, tu solicitud de {ap.tipo_ap.nombre_tipo} ha sido aprobada.'
         enviar_notificacion_por_correo(empleado.correo, asunto_aprobacion, cuerpo_aprobacion)
         # -------------------------------------------------------------
-
         flash('Acción de personal aprobada y registrada exitosamente.', 'success')
         
     except Exception as e:
@@ -276,7 +270,7 @@ def aprobar_accion(ap_id):
     # Redirige a la página correcta
     return redirect(url_for('accion_personal_bp.acciones_administrativas', page=page))
 
-# Rechazar accion de personal ----------------------------------------------------------
+""" Ruta para rechazar una acción de personal """
 @accion_personal_bp.route('/rechazar_accion/<int:ap_id>', methods=['POST'])
 @permiso_requerido('rechazar_acciones_personales')
 @login_required
@@ -305,8 +299,8 @@ def rechazar_accion(ap_id):
 
     # Redirige a la página correcta
     return redirect(url_for('accion_personal_bp.acciones_administrativas', page=page))
-# eliminar accion de personal -----------------------------------------------
 
+""" Ruta para eliminar una acción de personal """
 @accion_personal_bp.route('/eliminar_accion/<int:ap_id>', methods=['POST'])
 @login_required
 @permiso_requerido('eliminar_accion_personal')
@@ -330,7 +324,7 @@ def eliminar_accion(ap_id):
     # Redirige a la página correcta
     return redirect(url_for('accion_personal_bp.acciones_administrativas', page=page))
 
-
+""" Ruta para ver los detalles de una acción de personal """
 @accion_personal_bp.route('/ver_detalle/<int:ap_id>')
 @permiso_requerido('listar_accion_personal')
 @login_required
@@ -339,4 +333,4 @@ def ver_detalle_ap(ap_id):
     Muestra los detalles completos de una acción de personal específica.
     """
     accion = Accion_Personal.query.get_or_404(ap_id)
-    return render_template('detalle_ap.html', accion=accion)
+    return render_template('accion_personal/detalle_ap.html', accion=accion)
