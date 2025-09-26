@@ -1,9 +1,9 @@
 import pytz, secrets, string, re
 from datetime import datetime, timedelta
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
-from payroll_app.models import Empleado, Usuario, db
-from flask_login import login_user, logout_user, login_required, current_user
+from werkzeug.security import ( generate_password_hash, check_password_hash, )
+from flask import ( Blueprint, render_template, request, redirect, url_for, flash, session, current_app, )
+from payroll_app.models import ( Empleado, Usuario, db, )
+from flask_login import ( login_user, logout_user, login_required, current_user )
 
 """ Blueprint para las rutas de autenticación (login, logout, etc.)."""
 login_bp = Blueprint('auth', __name__)
