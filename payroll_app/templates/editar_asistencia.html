@@ -29,7 +29,7 @@
                 <div class="mb-3">
                     <label for="hora_salida_almuerzo" class="form-label">Hora de Salida a Almuerzo</label>
                     <input type="time" class="form-control" id="hora_salida_almuerzo" name="hora_salida_almuerzo" 
-                        value="{{ registro.hora_salida_almuerzo.strftime('%H:%M:%S') if registro.hora_salida_almuerzo else '' }}" step="1">     
+                        value="{{ registro.hora_entrada_almuerzo.strftime('%H:%M:%S') if registro.hora_entrada_almuerzo else '' }}" step="1"> 
                     {# Note: Usamos hora_entrada_almuerzo para la salida a almuerzo #}
                     {# El campo no es requerido, por si el empleado no tuvo almuerzo #}
                 </div>
@@ -38,8 +38,7 @@
                 <div class="mb-3">
                     <label for="hora_regreso_almuerzo" class="form-label">Hora de Regreso de Almuerzo</label>
                     <input type="time" class="form-control" id="hora_regreso_almuerzo" name="hora_regreso_almuerzo" 
-                        value="{{ registro.hora_entrada_almuerzo.strftime('%H:%M:%S') if registro.hora_entrada_almuerzo else '' }}" step="1">
-                           
+                    value="{{ registro.hora_salida_almuerzo.strftime('%H:%M:%S') if registro.hora_salida_almuerzo else '' }}" step="1">    
                     {# Note: Usamos hora_salida_almuerzo para el regreso de almuerzo #}
                     {# El campo no es requerido #}
                 </div>

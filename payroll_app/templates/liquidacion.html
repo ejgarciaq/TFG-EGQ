@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Seleccionar Empleado para Liquidación{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Seleccionar Empleado para Liquidación</h2>
+    
+
+    <div class="card p-4 shadow">
+        <form method="POST" action="{{ url_for('liquidacion.buscar_empleado') }}">
+            <div class="mb-3">
+                <label for="empleado_id" class="form-label">Empleado:</label>
+                <select class="form-select" id="empleado_id" name="empleado_id" required>
+                    <option value="">-- Seleccione un Empleado --</option>
+                    {% for empleado in empleados %}
+                        <option value="{{ empleado.id_empleado }}">{{ empleado.nombre }} {{ empleado.apellido1 }} {{ empleado.apellido2 }} (Cédula: {{ empleado.cedula }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="fecha_fin_contrato" class="form-label">Fecha de Finalización del Contrato:</label>
+                <input type="date" class="form-control" id="fecha_fin_contrato" name="fecha_fin_contrato" value="{{ today.strftime('%Y-%m-%d') }}" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Calcular Liquidación</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

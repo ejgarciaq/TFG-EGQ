@@ -38,6 +38,7 @@ MIN_DURACION_JORNADA = timedelta(minutes=30) # Para evitar salidas finales muy r
 
 # --- CONFIGURACIÓN (Tasas de deducción) ---
 # Centraliza las tasas para fácil mantenimiento
+
 PORCENTAJE_CCSS_SEM = 0.0550
 PORCENTAJE_CCSS_IVM = 0.0417
 PORCENTAJE_LPT = 0.0100
@@ -48,8 +49,6 @@ TRAMOS_ISR = [
     {'limite': 4745000.00, 'porcentaje': 0.20},
     {'limite': float('inf'), 'porcentaje': 0.25}
 ]
-
-
 
 # ------------------------- Lógica de Aprobación ------------------------------
 
@@ -190,8 +189,10 @@ def ver_asistencia():
 # registrar asistencia -------------------------------
 @registro_asistencia_bp.route('/asistencia/registrar', methods=['POST'])
 @login_required 
-def registrar_asistencia():
+def registrar_asistencia(registro_id):
+    registro = RegistroAsistencia.query.get_or_404(registro_id)
     empleado = Empleado.query.filter_by(Usuario_id_usuario=current_user.id_usuario).first()
+
 
     if not empleado:
         flash('Error de autenticación: No se encontró el empleado asociado a tu cuenta. Contacta al administrador.', 'danger')
@@ -407,7 +408,7 @@ def registrar_asistencia():
                 
                 monto_pago_calculado = (horas_nominales_trabajadas * costo_por_hora_normal) + \
                                        (registro_activo.hora_extra * costo_por_hora_extra)
-            
+
             registro_activo.monto_pago = round(monto_pago_calculado, 2)
 
             # Lógica de aprobación: requiere aprobación si hay extras o feriado
@@ -446,12 +447,58 @@ def listar_asistencia():
 
 # Editar registro de asistencia ---------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------
+# FUNCIONES AUXILIARES
+# ----------------------------------------------------------------------
+
+def _parse_time_or_none(time_str):
+    """Convierte un string 'HH:MM:SS' a datetime.time, manejando None o string vacío."""
+    if time_str and time_str.strip():
+        try:
+            return datetime.strptime(time_str.strip(), '%H:%M:%S').time()
+        except ValueError:
+            # Si el formato es incorrecto, devolvemos None; el bloque principal lo manejará.
+            return None
+    return None
+
+def _calculate_monto(registro, empleado, costo_hora_normal):
+    """Calcula el monto de pago, horas extra y horas feriado."""
+    
+    registro.hora_extra = 0.0
+    registro.hora_feriado = 0.0
+    monto_pago_calculado = 0.0
+
+    if registro.total_horas == 0.0 or costo_hora_normal == 0:
+        registro.monto_pago = 0.0
+        return
+        
+    es_feriado = Feriado.query.filter_by(fecha_feriado=registro.fecha_registro).first()
+    registro.Feriado_id_feriado = es_feriado.id_feriado if es_feriado else None
+    
+    costo_por_hora_extra = costo_hora_normal * 1.5
+    costo_por_hora_feriado = costo_hora_normal * 2
+
+    if es_feriado and es_feriado.pago_obligatorio:
+        registro.hora_feriado = registro.total_horas
+        monto_pago_calculado = registro.total_horas * costo_por_hora_feriado
+    else:
+        horas_nominales_trabajadas = min(registro.total_horas, HORAS_POR_JORNADA_NORMAL)
+        registro.hora_extra = max(0, registro.total_horas - HORAS_POR_JORNADA_NORMAL)
+        
+        monto_pago_calculado = (horas_nominales_trabajadas * costo_hora_normal) + \
+                                 (registro.hora_extra * costo_por_hora_extra)
+    
+    registro.monto_pago = round(monto_pago_calculado, 2)
+
+# ----------------------------------------------------------------------
+# VISTA PRINCIPAL
+# ----------------------------------------------------------------------
+
 @registro_asistencia_bp.route('/editar/<int:registro_id>', methods=['GET', 'POST'])
 @permiso_requerido('editar_asistencia')
 @login_required
 def editar_asistencia(registro_id):
     registro = RegistroAsistencia.query.get_or_404(registro_id)
-    # Cargar el empleado con su relación de tipo de nómina
     empleado = Empleado.query.options(joinedload(Empleado.tipo_nomina_relacion)).get(registro.Empleado_id_empleado)
 
     if not empleado:
@@ -459,162 +506,133 @@ def editar_asistencia(registro_id):
         return redirect(url_for('registro_asistencia.listar_asistencia'))
 
     if request.method == 'POST':
+        
+        # Inicializar variables de URL fuera del try para evitar 'is not defined'
+        page = request.args.get('page', 1, type=int) 
+        fecha_inicio_filtro = request.args.get('fecha_inicio')
+        fecha_fin_filtro = request.args.get('fecha_fin')
+        empleado_id_filtro = request.args.get('empleado_id')
+        aprobacion_filtro = request.args.get('aprobacion')
+        
         try:
-            # Obtener los parámetros de filtro y paginación de la URL
-            page = request.args.get('page', 1, type=int) 
-            fecha_inicio_filtro = request.args.get('fecha_inicio')
-            fecha_fin_filtro = request.args.get('fecha_fin')
-            empleado_id_filtro = request.args.get('empleado_id')
-            aprobacion_filtro = request.args.get('aprobacion')
-            
-            # Procesar los datos del formulario
+            # --- 1. Obtención y Saneamiento de Datos ---
             nueva_fecha_registro = datetime.strptime(request.form['fecha'], '%Y-%m-%d').date()
-            nueva_hora_entrada = datetime.strptime(request.form['hora_entrada'], '%H:%M:%S').time()
-            nueva_hora_salida_almuerzo_str = request.form.get('hora_salida_almuerzo')
-            nueva_hora_regreso_almuerzo_str = request.form.get('hora_regreso_almuerzo')
-            nueva_hora_salida_str = request.form.get('hora_salida')
             aprobado_form = 'aprobado' in request.form
 
-            # Actualizar el registro con los datos del formulario
+            # Usamos la función auxiliar para manejar la conversión segura
+            nueva_hora_entrada = _parse_time_or_none(request.form.get('hora_entrada'))
+            nueva_hora_salida = _parse_time_or_none(request.form.get('hora_salida'))
+            nueva_hora_salida_almuerzo = _parse_time_or_none(request.form.get('hora_salida_almuerzo'))
+            nueva_hora_regreso_almuerzo = _parse_time_or_none(request.form.get('hora_regreso_almuerzo'))
+
+            # --- 2. Validaciones Críticas ---
+            if not nueva_hora_entrada:
+                flash('Error: La hora de entrada es obligatoria.', 'danger')
+                return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **request.args))
+            
+            if not empleado.salario_base or float(empleado.salario_base) <= 0:
+                flash(f'Error: El salario base del empleado {empleado.nombre} no es válido.', 'danger')
+                return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **request.args))
+
+            # --- 3. Asignación al Registro ---
             registro.fecha_registro = nueva_fecha_registro
             registro.hora_entrada = nueva_hora_entrada
-            
-            if nueva_hora_salida_str:
-                nueva_hora_salida = datetime.strptime(nueva_hora_salida_str, '%H:%M:%S').time()
-                registro.hora_salida = nueva_hora_salida
+            registro.hora_salida = nueva_hora_salida
+            registro.hora_entrada_almuerzo = nueva_hora_salida_almuerzo 
+            registro.hora_salida_almuerzo = nueva_hora_regreso_almuerzo 
+            registro.aprobacion_registro = aprobado_form
+
+            # --- 4. Lógica de Cálculo de Tiempos y Monto ---
+            if registro.hora_salida: 
                 
-                # --- CÁLCULO DE TIEMPOS DE JORNADA ---
-                dt_entrada = datetime.combine(nueva_fecha_registro, nueva_hora_entrada)
-                dt_salida = datetime.combine(nueva_fecha_registro, nueva_hora_salida)
+                # CÁLCULO DEL COSTO POR HORA (necesario antes del monto)
+                horas_periodo_calculo = HORAS_MES_ESTANDAR # Valor por defecto
+                periodicidad = empleado.tipo_nomina_relacion.nombre_tipo if empleado.tipo_nomina_relacion else None
+                if periodicidad == 'Quincenal':
+                    horas_periodo_calculo = HORAS_QUINCENA_ESTANDAR
+                elif periodicidad == 'Semanal':
+                    horas_periodo_calculo = HORAS_SEMANA_ESTANDAR
                 
-                # CORRECCIÓN: Manejar jornadas que pasan la medianoche o son en el mismo día
-                # Solo suma un día si la hora de salida es ANTERIOR a la hora de entrada
-                # Y el registro original es del mismo día (no ya de un día anterior)
-                if dt_salida < dt_entrada and registro.fecha_registro == nueva_fecha_registro:
+                costo_por_hora_normal = 0
+                if horas_periodo_calculo > 0:
+                    costo_por_hora_normal = float(empleado.salario_base) / horas_periodo_calculo
+
+                # CÁLCULO DEL TIEMPO TRABAJADO
+                dt_entrada = datetime.combine(nueva_fecha_registro, registro.hora_entrada)
+                dt_salida = datetime.combine(nueva_fecha_registro, registro.hora_salida)
+
+                if dt_salida < dt_entrada:
                     dt_salida += timedelta(days=1)
 
                 total_time_bruto = dt_salida - dt_entrada
+                
+                if total_time_bruto < timedelta(minutes=0):
+                    flash('Error: La hora de salida principal no puede ser anterior a la hora de entrada.','danger')
+                    return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **request.args))
 
                 pausa_real_almuerzo = timedelta(minutes=0)
-                if nueva_hora_salida_almuerzo_str and nueva_hora_regreso_almuerzo_str:
-                    nueva_hora_salida_almuerzo = datetime.strptime(nueva_hora_salida_almuerzo_str, '%H:%M:%S').time()
-                    nueva_hora_regreso_almuerzo = datetime.strptime(nueva_hora_regreso_almuerzo_str, '%H:%M:%S').time()
-                    registro.hora_entrada_almuerzo = nueva_hora_salida_almuerzo
-                    registro.hora_salida_almuerzo = nueva_hora_regreso_almuerzo
-
-                    dt_salida_almuerzo = datetime.combine(nueva_fecha_registro, nueva_hora_salida_almuerzo)
-                    dt_regreso_almuerzo = datetime.combine(nueva_fecha_registro, nueva_hora_regreso_almuerzo)
+                pausa_obligatoria_deducida = timedelta(minutes=0) 
+                
+                if registro.hora_entrada_almuerzo and registro.hora_salida_almuerzo:
+                    dt_salida_almuerzo = datetime.combine(nueva_fecha_registro, registro.hora_entrada_almuerzo)
+                    dt_regreso_almuerzo = datetime.combine(nueva_fecha_registro, registro.hora_salida_almuerzo)
                     
-                    # Ajuste si el almuerzo pasó la medianoche (poco común, pero por si acaso)
                     if dt_regreso_almuerzo < dt_salida_almuerzo:
-                        dt_regreso_almuerzo += timedelta(days=1)
-
+                         dt_regreso_almuerzo += timedelta(days=1)
+                    
                     pausa_real_almuerzo = dt_regreso_almuerzo - dt_salida_almuerzo
-                else:
-                    registro.hora_entrada_almuerzo = None
-                    registro.hora_salida_almuerzo = None
 
-                total_time_neto = total_time_bruto
-                if pausa_real_almuerzo > timedelta(minutes=0):
-                    total_time_neto -= pausa_real_almuerzo
-                elif total_time_bruto > JORNADA_MINIMA_PAUSA_OBLIGATORIA:
-                    # Deduce 1 hora si trabajó más de la jornada mínima y no marcó el almuerzo
-                    total_time_neto -= timedelta(minutes=60) 
+                    if pausa_real_almuerzo < timedelta(minutes=0):
+                        flash('Error: La hora de regreso del almuerzo no puede ser anterior a la de salida.','danger')
+                        return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **request.args))
                 
+                else:
+                    # Aplicar Pausa Obligatoria SOLO si NO se registró pausa real y la jornada es larga
+                    if total_time_bruto > JORNADA_MINIMA_PAUSA_OBLIGATORIA:
+                         pausa_obligatoria_deducida = timedelta(minutes=60)
+
+                # Cálculo final del tiempo neto
+                total_time_neto = total_time_bruto - pausa_real_almuerzo - pausa_obligatoria_deducida
+                         
+                if total_time_neto < timedelta(minutes=0):
+                    total_time_neto = timedelta(minutes=0)
+
                 registro.total_horas = round(total_time_neto.total_seconds() / 3600, 2)
-
-                # --- Lógica de Cálculo de Monto y Horas Extra/Feriado ---
                 
-                # Verificación de feriado (basado en la fecha del registro)
-                es_feriado = Feriado.query.filter_by(fecha_feriado=registro.fecha_registro).first()
-                registro.Feriado_id_feriado = es_feriado.id_feriado if es_feriado else None
-
-                costo_por_hora_normal = 0
-                horas_periodo_calculo = 0
+                # CÁLCULO DEL MONTO FINAL
+                _calculate_monto(registro, empleado, costo_por_hora_normal)
                 
-                # CÁLCULO DEL COSTO POR HORA SEGÚN LA PERIODICIDAD DEL SALARIO
-                if empleado.salario_base is not None and float(empleado.salario_base) > 0:
-                    # ✅ Corrección para usar 'nombre_tipo'
-                    periodicidad = empleado.tipo_nomina_relacion.nombre_tipo if empleado.tipo_nomina_relacion else None
-                    
-                    if periodicidad == 'Mensual':
-                        horas_periodo_calculo = HORAS_MES_ESTANDAR
-                    elif periodicidad == 'Quincenal':
-                        horas_periodo_calculo = HORAS_QUINCENA_ESTANDAR
-                    elif periodicidad == 'Semanal':
-                        horas_periodo_calculo = HORAS_SEMANA_ESTANDAR
-                    else:
-                        logging.warning(f"Periodicidad de salario inesperada para empleado {empleado.id_empleado}: {periodicidad}. Asumiendo mensual estándar para cálculo de hora.")
-                        horas_periodo_calculo = HORAS_MES_ESTANDAR 
-                    
-                    if horas_periodo_calculo > 0:
-                        costo_por_hora_normal = float(empleado.salario_base) / horas_periodo_calculo
-                    else:
-                        logging.error(f"Horas de período de cálculo son cero para empleado {empleado.id_empleado} con periodicidad {periodicidad}. No se pudo calcular costo_por_hora_normal. Asignando 0.")
-                        costo_por_hora_normal = 0
-                else:
-                    logging.warning(f"Salario base no definido o cero para empleado {empleado.id_empleado}. Monto de pago será 0.")
-                    costo_por_hora_normal = 0
-                
-                costo_por_hora_extra = costo_por_hora_normal * 1.5
-                costo_por_hora_feriado = costo_por_hora_normal * 2
-                
-                registro.hora_extra = 0.0
-                registro.hora_feriado = 0.0
-                monto_pago_calculado = 0.0
-
-                if es_feriado and es_feriado.pago_obligatorio:
-                    registro.hora_feriado = registro.total_horas
-                    monto_pago_calculado = registro.total_horas * costo_por_hora_feriado
-                else:
-                    horas_nominales_trabajadas = min(registro.total_horas, HORAS_POR_JORNADA_NORMAL)
-                    registro.hora_extra = max(0, registro.total_horas - HORAS_POR_JORNADA_NORMAL)
-                    
-                    monto_pago_calculado = (horas_nominales_trabajadas * costo_por_hora_normal) + \
-                                           (registro.hora_extra * costo_por_hora_extra)
-                
-                registro.monto_pago = round(monto_pago_calculado, 2)
-
-                # Lógica de aprobación (mantiene la lógica de tu función de registro)
-                if aprobado_form:
-                    registro.aprobacion_registro = True
-                elif registro.hora_extra > 0 or registro.hora_feriado > 0:
-                    registro.aprobacion_registro = False
-                else:
-                    registro.aprobacion_registro = True
-            else:
-                # Si se elimina la hora de salida, resetear los campos
-                registro.hora_salida = None
-                registro.hora_entrada_almuerzo = None
-                registro.hora_salida_almuerzo = None
+            else: # No hay hora de salida, resetear campos
                 registro.total_horas = 0.0
                 registro.hora_extra = 0.0
                 registro.hora_feriado = 0.0
                 registro.monto_pago = 0.0
-                registro.aprobacion_registro = False
 
             db.session.commit()
             flash('Registro de asistencia actualizado exitosamente.', 'success')
 
             return redirect(url_for('registro_asistencia.listar_asistencia',
-                                    page=page,
-                                    fecha_inicio=fecha_inicio_filtro,
-                                    fecha_fin=fecha_fin_filtro,
-                                    empleado_id=empleado_id_filtro,
-                                    aprobacion=aprobacion_filtro))
+                                     page=page,
+                                     fecha_inicio=fecha_inicio_filtro,
+                                     fecha_fin=fecha_fin_filtro,
+                                     empleado_id=empleado_id_filtro,
+                                     aprobacion=aprobacion_filtro))
         
-        except ValueError:
+        except ValueError as e:
             db.session.rollback()
-            flash('Formato de fecha u hora incorrecto. Asegúrate de que todos los campos de hora tengan el formato HH:MM:SS.', 'danger')
+            logging.exception(f"Error de formato al actualizar registro {registro_id}: {e}")
+            flash(f'Ocurrió un error de formato. Revise que las horas tengan el formato HH:MM:SS.', 'danger')
+            return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **request.args))
+            
         except Exception as e:
             db.session.rollback()
-            logging.exception(f"Error al actualizar el registro de asistencia {registro_id}.")
-            flash(f'Ocurrió un error al actualizar el registro: {str(e)}', 'danger')
+            logging.exception(f"Error inesperado al actualizar el registro de asistencia {registro_id}: {e}")
+            flash(f'Ocurrió un error inesperado al actualizar el registro: {str(e)}', 'danger')
+            return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **request.args))
     
     return render_template('editar_asistencia.html', 
                            registro=registro,
                            page=request.args.get('page', 1, type=int))
-
 #Eliminar registro --------------------------------------------------------------
 
 @registro_asistencia_bp.route('/eliminar/<int:registro_id>', methods=['POST'])
@@ -633,33 +651,43 @@ def eliminar_asistencia(registro_id):
 
     return redirect(url_for('registro_asistencia.listar_asistencia'))
 
-# -------------------------   Generar Planilla ---------------------------------------
+# -------------------------   Generar Nomina ---------------------------------------
 
 # --- FUNCIONES AUXILIARES PARA CÁLCULOS ---
 @permiso_requerido('listar_nominas')
 @login_required
-def calcular_isr(salario_bruto, dias_del_periodo):
-    """Calcula el impuesto de renta (ISR) para el período dado."""
-    factor_prorrateo = dias_del_periodo / 30.4167
-    salario_exento_prorrateado = BASE_SALARIO_EXENTO_ISR * factor_prorrateo
-
-    deduccion_isr = 0.0
-    salario_a_gravar = max(0, salario_bruto - salario_exento_prorrateado)
-
-    monto_anterior_tramo = 0.0
+def calcular_isr(monto_bruto_periodo, fecha_inicio_obj, fecha_fin_obj):
+    """
+    Calcula el Impuesto sobre la Renta (ISR) para un monto bruto dado
+    y un período de nómina, ajustando los tramos mensuales.
+    """
+    dias_del_periodo = (fecha_fin_obj - fecha_inicio_obj).days + 1
+    dias_mes_fiscal = 30 
+    
+    factor_ajuste_dias = dias_del_periodo / dias_mes_fiscal 
+    
+    base_exenta_ajustada = BASE_SALARIO_EXENTO_ISR * factor_ajuste_dias
+    
+    monto_sujeto_a_impuesto = max(0, monto_bruto_periodo - base_exenta_ajustada)
+    
+    isr_calculado = 0.0
+    limite_anterior_ajustado = base_exenta_ajustada
+    
     for tramo in TRAMOS_ISR:
-        limite_prorrateado = tramo['limite'] * factor_prorrateo
-        monto_en_tramo = min(salario_a_gravar, limite_prorrateado - monto_anterior_tramo)
+        limite_tramo_ajustado = tramo['limite'] * factor_ajuste_dias
+        porcentaje_tramo = tramo['porcentaje']
+        monto_en_este_tramo = min(monto_sujeto_a_impuesto, limite_tramo_ajustado - limite_anterior_ajustado)
 
-        if monto_en_tramo > 0:
-            deduccion_isr += monto_en_tramo * tramo['porcentaje']
-            salario_a_gravar -= monto_en_tramo
+        if monto_en_este_tramo > 0:
+            isr_calculado += monto_en_este_tramo * porcentaje_tramo
+        
+        monto_sujeto_a_impuesto -= monto_en_este_tramo
+        limite_anterior_ajustado = limite_tramo_ajustado
 
-        monto_anterior_tramo = limite_prorrateado
-        if salario_a_gravar <= 0:
+        if monto_sujeto_a_impuesto <= 0:
             break
-
-    return deduccion_isr
+            
+    return round(isr_calculado, 2)
 
 # -----------------------------------------------------------------
 
@@ -698,7 +726,6 @@ def generar_nomina():
         except ValueError:
             flash('Tipo de nómina inválido.', 'danger')
 
-    # --- Lógica de POST (Generar Nómina) ---
     if request.method == 'POST':
         try:
             if not all([id_tipo_nomina_int, fecha_inicio_obj, fecha_fin_obj]):
@@ -714,30 +741,67 @@ def generar_nomina():
                 flash('Tipo de nómina no encontrado.', 'danger')
                 return redirect(url_for('registro_asistencia.generar_nomina'))
 
-            empleados = Empleado.query.filter_by(TipoNomina_id_tipo_nomina=id_tipo_nomina_int).all()
-            if not empleados:
+            empleados_del_tipo_nomina = Empleado.query.filter_by(
+                tipo_nomina_relacion=tipo_nomina
+            ).order_by(Empleado.id_empleado).all()
+
+            if not empleados_del_tipo_nomina:
                 flash('No se encontraron empleados para el tipo de nómina seleccionado.', 'warning')
                 return redirect(url_for('registro_asistencia.generar_nomina'))
 
             nominas_generadas_info = []
 
-            for empleado in empleados:
+            for empleado in empleados_del_tipo_nomina:
+                # 1. Verificar si el empleado tiene al menos una asistencia aprobada en el período.
+                has_asistencia = RegistroAsistencia.query.filter(
+                    RegistroAsistencia.empleado == empleado,
+                    RegistroAsistencia.fecha_registro.between(fecha_inicio_obj, fecha_fin_obj),
+                    RegistroAsistencia.aprobacion_registro.is_(True)
+                ).first()
+
+                # Si no hay asistencias aprobadas, notificar y continuar con el siguiente empleado.
+                if not has_asistencia:
+                    nominas_generadas_info.append(f"Advertencia: No se encontraron registros de asistencia aprobada para {empleado.nombre_completo}. Nómina no generada.")
+                    continue
+                
+                # 2. Comprobar si ya existe una nómina para el período para evitar duplicados.
                 nomina_existente = Nomina.query.filter(
-                    Nomina.Empleado_id_empleado == empleado.id_empleado,
+                    Nomina.empleado == empleado,
                     Nomina.fecha_inicio == fecha_inicio_obj,
-                    Nomina.fecha_fin == fecha_fin_obj,
-                    Nomina.TipoNomina_id_tipo_nomina == id_tipo_nomina_int
+                    Nomina.fecha_fin == fecha_fin_obj
                 ).first()
 
                 if nomina_existente:
                     nominas_generadas_info.append(f"Advertencia: Ya existe una nómina para {empleado.nombre_completo} en el período. Omitiendo.")
                     continue
 
-                # --- DETERMINAR EL COSTO POR HORA BASE DE MANERA CONSISTENTE ---
+                # 3. Sumar el monto de pago de asistencias aprobadas
+                monto_por_asistencia = db.session.query(func.sum(RegistroAsistencia.monto_pago)).filter(
+                    RegistroAsistencia.empleado == empleado,
+                    RegistroAsistencia.fecha_registro.between(fecha_inicio_obj, fecha_fin_obj),
+                    RegistroAsistencia.aprobacion_registro.is_(True)
+                ).scalar() or 0.0
+
+                # 4. Sumar el monto por acciones de personal aprobadas (vacaciones, incapacidades)
+                dias_compensados = 0
+                acciones_personales = Accion_Personal.query.filter(
+                    Accion_Personal.empleado == empleado,
+                    Accion_Personal.fecha_aprobacion.isnot(None),
+                    Accion_Personal.fecha_inicio <= fecha_fin_obj,
+                    Accion_Personal.fecha_fin >= fecha_inicio_obj,
+                    Accion_Personal.tipo_ap.has(Tipo_AP.nombre_tipo.in_(['Vacaciones', 'Incapacidad']))
+                ).all()
+
+                for ap in acciones_personales:
+                    inicio_ap_periodo = max(ap.fecha_inicio, fecha_inicio_obj)
+                    fin_ap_periodo = min(ap.fecha_fin, fecha_fin_obj)
+                    if fin_ap_periodo >= inicio_ap_periodo:
+                        dias_compensados += (fin_ap_periodo - inicio_ap_periodo).days + 1
+                
+                # 5. Calcular el monto por vacaciones/incapacidades
                 costo_por_hora_base = 0
                 if empleado.salario_base is not None and float(empleado.salario_base) > 0:
                     periodicidad_nombre = empleado.tipo_nomina_relacion.nombre_tipo if empleado.tipo_nomina_relacion else None
-                    
                     horas_periodo_calculo_base = 0
                     if periodicidad_nombre == 'Mensual':
                         horas_periodo_calculo_base = HORAS_MES_ESTANDAR
@@ -745,117 +809,74 @@ def generar_nomina():
                         horas_periodo_calculo_base = HORAS_QUINCENA_ESTANDAR
                     elif periodicidad_nombre == 'Semanal':
                         horas_periodo_calculo_base = HORAS_SEMANA_ESTANDAR
-                    else:
-                        logging.warning(f"Periodicidad de salario inesperada para empleado {empleado.id_empleado}: {periodicidad_nombre}. Asumiendo mensual estándar para cálculo de hora base.")
-                        horas_periodo_calculo_base = HORAS_MES_ESTANDAR
                     
                     if horas_periodo_calculo_base > 0:
                         costo_por_hora_base = float(empleado.salario_base) / horas_periodo_calculo_base
-                    else:
-                        logging.error(f"Horas de período de cálculo base son cero para empleado {empleado.id_empleado} con periodicidad {periodicidad_nombre}. No se pudo calcular costo_por_hora_base. Asignando 0.")
-                else:
-                    logging.warning(f"Salario base no definido o cero para empleado {empleado.id_empleado}. Costo por hora base será 0.")
-                # --- FIN DE COSTO POR HORA BASE CONSISTENTE ---
 
+                monto_por_vac_incap = dias_compensados * HORAS_POR_JORNADA_NORMAL * costo_por_hora_base
 
-                # Sumar montos de asistencia aprobados
-                monto_por_asistencia = db.session.query(func.sum(RegistroAsistencia.monto_pago)).filter(
-                    RegistroAsistencia.Empleado_id_empleado == empleado.id_empleado,
-                    RegistroAsistencia.fecha_registro.between(fecha_inicio_obj, fecha_fin_obj),
-                    RegistroAsistencia.aprobacion_registro.is_(True)
-                ).scalar() or 0.0
-
-                # Sumar montos de vacaciones e incapacidades (Acciones Personales)
-                dias_compensados = 0
-                horas_por_dia = HORAS_POR_JORNADA_NORMAL # Usar la constante para coherencia
-                
-                acciones_personales = Accion_Personal.query.filter(
-                    Accion_Personal.Empleado_id_empleado == empleado.id_empleado,
-                    Accion_Personal.fecha_aprobacion.isnot(None),
-                    Accion_Personal.fecha_inicio <= fecha_fin_obj, # Considerar acciones que terminan después
-                    Accion_Personal.fecha_fin >= fecha_inicio_obj # Considerar acciones que empiezan antes
-                ).all()
-
-                for ap in acciones_personales:
-                    if ap.tipo_ap and ap.tipo_ap.nombre_tipo.lower() in ['vacaciones', 'incapacidad']:
-                        inicio_ap_periodo = max(ap.fecha_inicio, fecha_inicio_obj)
-                        fin_ap_periodo = min(ap.fecha_fin, fecha_fin_obj)
-                        # Solo cuenta si hay solapamiento real
-                        if fin_ap_periodo >= inicio_ap_periodo: 
-                            dias_compensados += (fin_ap_periodo - inicio_ap_periodo).days + 1
-
-                monto_por_vac_incap = dias_compensados * horas_por_dia * costo_por_hora_base
-                total_monto_bruto = monto_por_asistencia + monto_por_vac_incap
-
-                # --- CÁLCULO DE PAGO POR FERIADOS NO TRABAJADOS ---
+                # 6. Sumar el monto por feriados obligatorios no trabajados
                 monto_feriados_no_trabajados = 0.0
-                delta = timedelta(days=1)
                 dia_actual = fecha_inicio_obj
                 while dia_actual <= fecha_fin_obj:
-                    # Excluir domingos si solo se trabaja de L-V o L-S (ajusta según tu política)
-                    # if dia_actual.weekday() == 6: # 6 es domingo
-                    #    dia_actual += delta
-                    #    continue
-
-                    # Buscar feriados de pago obligatorio que no tengan un registro de asistencia aprobado
-                    es_feriado_obligatorio = Feriado.query.filter_by(
-                        fecha_feriado=dia_actual,
-                        pago_obligatorio=True
-                    ).first()
-                    
+                    es_feriado_obligatorio = Feriado.query.filter_by(fecha_feriado=dia_actual, pago_obligatorio=True).first()
                     if es_feriado_obligatorio:
-                        # Verificar si ya existe un registro de asistencia APROBADO para ese día
                         registro_asistencia_aprobado = RegistroAsistencia.query.filter(
-                            RegistroAsistencia.Empleado_id_empleado == empleado.id_empleado,
+                            RegistroAsistencia.empleado == empleado,
                             RegistroAsistencia.fecha_registro == dia_actual,
                             RegistroAsistencia.aprobacion_registro.is_(True)
                         ).first()
-
-                        # Si NO hay un registro de asistencia APROBADO, se paga el día normal
                         if not registro_asistencia_aprobado:
-                            monto_feriados_no_trabajados += horas_por_dia * costo_por_hora_base
-                            logging.info(f"Feriado de pago obligatorio NO TRABAJADO en {dia_actual} para {empleado.nombre_completo}. Monto agregado: {horas_por_dia * costo_por_hora_base}")
-                    
-                    dia_actual += delta
+                            monto_feriados_no_trabajados += HORAS_POR_JORNADA_NORMAL * costo_por_hora_base
+                    dia_actual += timedelta(days=1)
                 
-                total_monto_bruto += monto_feriados_no_trabajados
-                # --- FIN DE LÓGICA DE FERIADOS ---
+                # 7. Calcular el monto bruto total
+                total_monto_bruto = monto_por_asistencia + monto_por_vac_incap + monto_feriados_no_trabajados
 
-                # Esta validación es importante: si después de todo, el bruto es cero, no genera nómina.
-                if total_monto_bruto == 0:
-                    nominas_generadas_info.append(f"Advertencia: Para {empleado.nombre_completo}, no se encontraron registros de pago (asistencia, feriados, vacaciones/incapacidad). Nómina no generada.")
-                    continue
-
-                # --- CÁLCULO DE DEDUCCIONES ---
+                # 8. Calcular deducciones y salario neto
                 total_deducciones = (
                     total_monto_bruto * PORCENTAJE_CCSS_SEM +
                     total_monto_bruto * PORCENTAJE_CCSS_IVM +
                     total_monto_bruto * PORCENTAJE_LPT
                 )
-                
-                dias_del_periodo = (fecha_fin_obj - fecha_inicio_obj).days + 1
-                total_deducciones += calcular_isr(total_monto_bruto, dias_del_periodo) # La función ISR debe ser muy precisa
-
+                total_deducciones += calcular_isr(total_monto_bruto, fecha_inicio_obj, fecha_fin_obj)
                 monto_neto = total_monto_bruto - total_deducciones
 
-                # Guardar en la base de datos
+                # 9. Crear y guardar la nómina
                 nueva_nomina = Nomina(
-                    Empleado_id_empleado=empleado.id_empleado,
+                    empleado=empleado,
                     fecha_inicio=fecha_inicio_obj,
                     fecha_fin=fecha_fin_obj,
                     salario_bruto=round(total_monto_bruto, 2),
                     salario_neto=round(monto_neto, 2),
                     deducciones=round(total_deducciones, 2),
-                    TipoNomina_id_tipo_nomina=id_tipo_nomina_int,
+                    tipo_nomina_relacion=tipo_nomina,
                     fecha_creacion=datetime.now()
                 )
                 db.session.add(nueva_nomina)
                 nominas_generadas_info.append(f"Nómina generada para {empleado.nombre_completo}.")
 
             db.session.commit()
-            flash('Nómina(s) generada(s) y guardada(s) exitosamente.', 'success')
+            
+            # Contar los resultados
+            nominas_exitosas = sum(1 for msg in nominas_generadas_info if "Nómina generada" in msg)
+            nominas_advertencias = sum(1 for msg in nominas_generadas_info if "Advertencia" in msg)
+            
+            # 1. Mostrar los mensajes detallados (opcional, pero ayuda a la trazabilidad)
             for msg in nominas_generadas_info:
-                flash(msg, 'info')
+                # Usamos 'warning' para las que no se generaron y 'info' para las generadas
+                categoria = 'warning' if "Advertencia" in msg else 'info' 
+                flash(msg, categoria)
+
+            # 2. Mostrar un resumen global más preciso
+            if nominas_exitosas > 0 and nominas_advertencias == 0:
+                 flash(f'¡Éxito! Se generaron {nominas_exitosas} nóminas exitosamente.', 'success')
+            elif nominas_exitosas > 0 and nominas_advertencias > 0:
+                 flash(f'Proceso completado con advertencias. Se generaron {nominas_exitosas} nóminas, pero {nominas_advertencias} no se pudieron generar (ver detalles arriba).', 'warning')
+            elif nominas_exitosas == 0 and nominas_advertencias > 0:
+                 flash(f'Proceso completado, pero no se generó ninguna nómina (ver advertencias).', 'warning')
+            else:
+                 flash('Proceso finalizado. No se generaron nuevas nóminas.', 'info')
 
             return redirect(url_for('registro_asistencia.generar_nomina',
                 fecha_inicio=fecha_inicio_seleccionada,
@@ -876,12 +897,14 @@ def generar_nomina():
 
     # --- Lógica de GET (Mostrar la Tabla de Nóminas Paginada) ---
     query_nominas_actual = Nomina.query.order_by(Nomina.fecha_creacion.desc())
+    query_nominas_actual = query_nominas_actual.join(Empleado).join(TipoNomina)
+
     if fecha_inicio_obj:
         query_nominas_actual = query_nominas_actual.filter(Nomina.fecha_inicio >= fecha_inicio_obj)
     if fecha_fin_obj:
         query_nominas_actual = query_nominas_actual.filter(Nomina.fecha_fin <= fecha_fin_obj)
     if id_tipo_nomina_int:
-        query_nominas_actual = query_nominas_actual.filter(Nomina.TipoNomina_id_tipo_nomina == id_tipo_nomina_int)
+        query_nominas_actual = query_nominas_actual.filter(Nomina.tipo_nomina_relacion.has(TipoNomina.id_tipo_nomina == id_tipo_nomina_int))
     
     nominas_paginadas = query_nominas_actual.paginate(page=page, per_page=10, error_out=False)
 
@@ -981,7 +1004,7 @@ def eliminar_nomina(id_nomina):
     try:
         db.session.delete(nomina)
         db.session.commit()
-        flash(f'Nómina con ID {id_nomina} eliminada exitosamente.', 'success')
+        flash(f'Nómina eliminada exitosamente.', 'success')
     except Exception as e:
         db.session.rollback()
         logging.exception(f"Error al eliminar la nómina con ID {id_nomina}.")

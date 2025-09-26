@@ -31,6 +31,7 @@ def create_app():
     login_manager.init_app(app)
     mail = Mail(app)
 
+
     # --- Configuración de Flask-Login ---
     # Define la vista de inicio de sesión que Flask-Login debe redirigir a los usuarios
     # no autenticados.
@@ -73,7 +74,10 @@ def create_app():
     from .routes.feriado import feriado_bp
     from .routes.accion_personal import accion_personal_bp
     from .routes.reportes import reportes_bp
-
+    from .routes.aguinaldo import aguinaldo_bp
+    from .routes.liquidacion import liquidacion_bp
+    
+    
     app.register_blueprint(login_bp, url_prefix='/auth')
     app.register_blueprint(empleado_bp, url_prefix='/auth/empleados')
     app.register_blueprint(rol_bp, url_prefix='/auth/roles')
@@ -82,6 +86,9 @@ def create_app():
     app.register_blueprint(feriado_bp, url_prefix='/auth/feriados')
     app.register_blueprint(accion_personal_bp, url_prefix='/auth/accion_personal')
     app.register_blueprint(reportes_bp, url_prefix='/auth/reportes/')
+    app.register_blueprint(aguinaldo_bp, url_prefix='/auth/aguinaldo')
+    app.register_blueprint(liquidacion_bp, url_prefix='/auth/liquidacion')
+    
 
     # --- Definición de la ruta principal ---
     # La ruta raíz de la aplicación (/) redirige al usuario a la página de login.
