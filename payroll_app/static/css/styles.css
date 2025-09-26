@@ -76,8 +76,14 @@ nav {
 }
 /* Opcional: Estilo para los enlaces de los submenús activos */
 .nav-item.active {
+    color: white !important;
     background-color: #0056b3; /* Un tono de azul más oscuro para los submenús */
-    color: white;
+    border-radius: 0.25rem;
+}
+
+.nav-item.active .nav-link {
+    color: white !important;
+     
 }
 
 /* ===================================================================================
