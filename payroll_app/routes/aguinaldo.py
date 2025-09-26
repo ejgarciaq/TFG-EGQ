@@ -58,7 +58,7 @@ def _calcular_aguinaldo_empleado(empleado, anio_fiscal):
 # -----------------------------------------------------------------
 """ calcular_aguinaldo: Vista principal para calcular y listar aguinaldos """
 @aguinaldo_bp.route('/calcular', methods=['GET', 'POST'])
-#@permiso_requerido('cal_aguinaldo') # RNF-SE-018
+@permiso_requerido('cal_aguinaldo') # RNF-SE-018
 def calcular_aguinaldo():
     
     tipos_nomina = TipoNomina.query.all()
@@ -188,7 +188,7 @@ def calcular_aguinaldo():
 
 """ ver_detalle: Muestra los detalles del cálculo del aguinaldo específico para auditoría """
 @aguinaldo_bp.route('/detalle/<int:aguinaldo_id>', methods=['GET'])
-#@permiso_requerido('cal_aguinaldo') # RNF-SE-018
+@permiso_requerido('cal_aguinaldo') # RNF-SE-018
 @login_required
 def ver_detalle(aguinaldo_id):
     """

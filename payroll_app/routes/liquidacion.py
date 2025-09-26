@@ -4,20 +4,15 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required
 from sqlalchemy import func
 import logging
-
-# Importa tus modelos y la base de datos
 from payroll_app import db
 from payroll_app.models import Empleado, Nomina, Liquidacion 
-# Si usas TipoNomina, asegúrate de que esté disponible
 from payroll_app.routes.decorators import permiso_requerido 
 
 # Define tu Blueprint para el módulo de liquidación
+""" blueprint de Liquidación """
 liquidacion_bp = Blueprint('liquidacion', __name__)
 
-# ====================================================================
-# --- CONSTANTES DE CÁLCULO (Ajusta según tu legislación, ej. Costa Rica) ---
-# ====================================================================
-
+""" Constantes para cálculos de liquidación """
 MESES_PROMEDIO_BASE = 6 
 DIAS_MES = 30 
 DIAS_AGUINALDO_POR_ANIO = 360 
@@ -33,10 +28,8 @@ def _calcular_dias_preaviso(meses_servicio):
     else: # 1 año o más
         return 30
 
+""" Cálculo de días de cesantía (simplificado) """
 def _calcular_dias_cesantia(meses_servicio):
-    """
-    Calcula los días de cesantía (simplificado, aprox. 1 mes de salario por año o proporcional).
-    """
     if meses_servicio < 6:
         return 0
     
@@ -45,16 +38,13 @@ def _calcular_dias_cesantia(meses_servicio):
     dias_cesantia = (dias_servicio / DIAS_AGUINALDO_POR_ANIO) * DIAS_MES
     return dias_cesantia
 
-# ====================================================================
-# --- FUNCIONES AUXILIARES DE CÁLCULO DE LIQUIDACIÓN ---
-# ====================================================================
-
-# MODIFICACIÓN 1: AJUSTE DEL DIVISOR DEL PROMEDIO
-def _obtener_salario_base_promedio(empleado, fecha_fin_contrato):
-    """
+""" FUNCIONES AUXILIARES DE CÁLCULO DE LIQUIDACIÓN """
+"""
     Calcula el salario promedio (bruto) de los últimos MESES_PROMEDIO_BASE meses
     para usar como base en Preaviso y Cesantía.
-    """
+"""
+def _obtener_salario_base_promedio(empleado, fecha_fin_contrato):
+
     fecha_inicio_periodo = fecha_fin_contrato - relativedelta(months=MESES_PROMEDIO_BASE)
     
     total_bruto = db.session.query(func.sum(Nomina.salario_bruto)).filter(
@@ -88,14 +78,12 @@ def _obtener_salario_base_promedio(empleado, fecha_fin_contrato):
     
     return salario_promedio_mensual
 
-# CREACIÓN 1: FUNCIÓN PARA CALCULAR SALARIO PENDIENTE
-def _calcular_salario_pendiente(empleado, fecha_fin_contrato, salario_promedio_diario):
-    """
+"""
     Calcula el salario bruto pendiente de pago desde el último día de nómina
     hasta la fecha de fin de contrato.
-    """
-    
-    # 1. Encontrar la fecha de fin de la ÚLTIMA nómina pagada.
+"""
+def _calcular_salario_pendiente(empleado, fecha_fin_contrato, salario_promedio_diario):
+    # 1 Encontrar la fecha de fin de la ÚLTIMA nómina pagada.
     # Filtramos las nóminas cuya fecha_fin sea menor o igual a la fecha de fin de contrato
     ultima_nomina = Nomina.query.filter(
                                  Nomina.Empleado_id_empleado == empleado.id_empleado,
@@ -104,7 +92,7 @@ def _calcular_salario_pendiente(empleado, fecha_fin_contrato, salario_promedio_d
                                  .order_by(Nomina.fecha_fin.desc()) \
                                  .first()
 
-    # 2. Definir la fecha de inicio del periodo pendiente
+    # Definir la fecha de inicio del periodo pendiente
     if not ultima_nomina:
         # Si no hay nóminas, el salario pendiente es desde la fecha de ingreso
         fecha_inicio_pago = empleado.fecha_ingreso
@@ -112,7 +100,7 @@ def _calcular_salario_pendiente(empleado, fecha_fin_contrato, salario_promedio_d
         # El periodo de pago pendiente inicia el día siguiente al fin de la última nómina
         fecha_inicio_pago = ultima_nomina.fecha_fin + timedelta(days=1)
         
-    # 3. Calcular los días pendientes
+    # Calcular los días pendientes
     dias_pendientes = (fecha_fin_contrato - fecha_inicio_pago).days + 1 # Incluye el día de fin de contrato
     
     if dias_pendientes <= 0:
@@ -123,14 +111,12 @@ def _calcular_salario_pendiente(empleado, fecha_fin_contrato, salario_promedio_d
     
     return round(monto_pendiente, 2)
 
-
+"""   Cálculo completo de la liquidación proporcional."""
 def _calcular_liquidacion_proporcional(empleado, fecha_fin_contrato, salario_promedio_mensual):
-    """
-    Realiza todos los cálculos de la liquidación.
-    """
+
     fecha_inicio_contrato = empleado.fecha_ingreso 
 
-    # 1. ANTIGÜEDAD Y SALARIO DIARIO
+    # ANTIGÜEDAD Y SALARIO DIARIO
     antiguedad = relativedelta(fecha_fin_contrato, fecha_inicio_contrato)
     meses_servicio = (antiguedad.years * 12) + antiguedad.months + (antiguedad.days / DIAS_MES)
     
@@ -139,19 +125,19 @@ def _calcular_liquidacion_proporcional(empleado, fecha_fin_contrato, salario_pro
     else:
         salario_promedio_diario = 0.0
     
-    # 2. CÁLCULO DE PREAVISO
+    # CÁLCULO DE PREAVISO
     dias_preaviso = _calcular_dias_preaviso(meses_servicio)
     monto_preaviso = round(dias_preaviso * salario_promedio_diario, 2)
     
-    # 3. CÁLCULO DE CESANTÍA
+    # CÁLCULO DE CESANTÍA
     dias_cesantia = _calcular_dias_cesantia(meses_servicio)
     monto_cesantia = round(dias_cesantia * salario_promedio_diario, 2)
 
-    # 4. CÁLCULO DE VACACIONES PENDIENTES
+    # CÁLCULO DE VACACIONES PENDIENTES
     dias_vacaciones_pendientes = empleado.vacaciones_disponibles or 0
     monto_vacaciones = round(dias_vacaciones_pendientes * salario_promedio_diario, 2)
     
-    # 5. CÁLCULO DE AGUINALDO PROPORCIONAL
+    # CÁLCULO DE AGUINALDO PROPORCIONAL
     
     if fecha_fin_contrato.month < 12 or (fecha_fin_contrato.month == 12 and fecha_fin_contrato.day < 1):
         anio_corte = fecha_fin_contrato.year - 1 
@@ -189,9 +175,9 @@ def _calcular_liquidacion_proporcional(empleado, fecha_fin_contrato, salario_pro
         'monto_vacaciones': monto_vacaciones,
         'dias_vacaciones': dias_vacaciones_pendientes,
         'monto_aguinaldo': monto_aguinaldo,
-        'monto_salario_pendiente': monto_salario_pendiente, # <--- AGREGADO
+        'monto_salario_pendiente': monto_salario_pendiente, 
         'salario_promedio_mensual': salario_promedio_mensual,
-        'salario_promedio_diario': salario_promedio_diario, # <--- AGREGADO para detalles
+        'salario_promedio_diario': salario_promedio_diario,
         'meses_servicio': round(meses_servicio, 2),
         'fecha_inicio_contrato': fecha_inicio_contrato,
         'fecha_fin_contrato': fecha_fin_contrato,
@@ -199,17 +185,16 @@ def _calcular_liquidacion_proporcional(empleado, fecha_fin_contrato, salario_pro
         'dias_acumulados_aguinaldo': dias_acumulados_aguinaldo,
     }
 
-# ====================================================================
-# --- RUTAS PRINCIPALES DE LIQUIDACIÓN ---
-# ====================================================================
+""" Ruta para iniciar el proceso de cálculo de liquidación """
 
+"""
+    Muestra el formulario para seleccionar el empleado y la fecha de fin.
+"""
 @liquidacion_bp.route('/calcular', methods=['GET', 'POST'])
-#@permiso_requerido('administrador') # RNF-SE-019
+@permiso_requerido('ca_liquidacion')
 @login_required
 def buscar_empleado():
-    """
-    Muestra el formulario para seleccionar el empleado y la fecha de fin.
-    """
+
     empleados = Empleado.query.filter_by(estado_empleado=True).all()
     today = datetime.now().date()
     fecha_fin_contrato = today
@@ -232,28 +217,23 @@ def buscar_empleado():
             
         return redirect(url_for('liquidacion.mostrar_calculo', empleado_id=empleado_id, fecha_fin=fecha_fin_str))
 
-    return render_template('/liquidacion.html', empleados=empleados, today=today, fecha_fin_contrato=fecha_fin_contrato)
+    return render_template('liquidacion/liquidacion.html', empleados=empleados, today=today, fecha_fin_contrato=fecha_fin_contrato)
 
-
+""" Ruta para mostrar el cálculo detallado y manejar el guardado """
 @liquidacion_bp.route('/calculo/<int:empleado_id>/<string:fecha_fin>', methods=['GET', 'POST'])
-#@permiso_requerido('administrador') # RNF-SE-019
+@permiso_requerido('ca_liquidacion')
 @login_required
 def mostrar_calculo(empleado_id, fecha_fin):
-    """
-    Realiza el cálculo, muestra el desglose y maneja el guardado.
-    """
     
     empleado = Empleado.query.get_or_404(empleado_id)
     fecha_fin_contrato = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
     
-    # ----------------------------------------------------
     # Ejecución del Cálculo
-    # ----------------------------------------------------
     try:
-        # 1. Recuperar y calcular el salario promedio
+        # Recuperar y calcular el salario promedio
         salario_promedio = _obtener_salario_base_promedio(empleado, fecha_fin_contrato)
         
-        # FA1 - Datos de cálculo incompletos
+        #  Datos de cálculo incompletos
         if salario_promedio == 0.0 and empleado.fecha_ingreso < (fecha_fin_contrato - relativedelta(months=MESES_PROMEDIO_BASE)):
             # Aquí la advertencia es válida: si no hay datos de nómina en los últimos 6 meses.
             flash(f'Advertencia (FA1): Faltan registros de nómina en los últimos {MESES_PROMEDIO_BASE} meses para calcular el salario promedio. La cesantía/preaviso se calculará con salario base $0.00.','warning')
@@ -264,7 +244,6 @@ def mostrar_calculo(empleado_id, fecha_fin):
         # ----------------------------------------------------
         # Guardado de la Liquidación (POST)
         # ----------------------------------------------------
-        # MODIFICACIÓN 3: INCLUIR SALARIO PENDIENTE EN EL MODELO
         if request.method == 'POST':
             if resultados['total_liquidacion'] > 0:
                 nueva_liquidacion = Liquidacion(
@@ -275,9 +254,6 @@ def mostrar_calculo(empleado_id, fecha_fin):
                     monto_cesantia=resultados['monto_cesantia'],
                     monto_vacaciones=resultados['monto_vacaciones'],
                     monto_aguinaldo=resultados['monto_aguinaldo'],
-                    # Asegúrate de que tu modelo 'Liquidacion' tenga un campo para 'monto_salario_pendiente'
-                    # Si no lo tiene, deberás agregarlo o este dato se perderá.
-                    # Aquí lo incluimos asumiendo que el modelo ya fue actualizado:
                     monto_salario_pendiente=resultados['monto_salario_pendiente'], 
                     Empleado_id_empleado=empleado.id_empleado
                 )
@@ -301,7 +277,7 @@ def mostrar_calculo(empleado_id, fecha_fin):
         return redirect(url_for('liquidacion.buscar_empleado'))
         
     # Presentar el desglose
-    return render_template('/detalle_liquidacion.html', 
+    return render_template('liquidacion/detalle_liquidacion.html', 
                            empleado=empleado, 
                            resultados=resultados,
                            fecha_fin_contrato=fecha_fin_contrato)

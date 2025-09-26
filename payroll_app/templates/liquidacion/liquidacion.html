@@ -11,10 +11,10 @@
         <form method="POST" action="{{ url_for('liquidacion.buscar_empleado') }}">
             <div class="mb-3">
                 <label for="empleado_id" class="form-label">Empleado:</label>
-                <select class="form-select" id="empleado_id" name="empleado_id" required>
-                    <option value="">-- Seleccione un Empleado --</option>
+                <select class="form-select select2" id="empleado_id" name="empleado_id" required>
+                    <option value="">Busca y selecciona</option>
                     {% for empleado in empleados %}
-                        <option value="{{ empleado.id_empleado }}">{{ empleado.nombre }} {{ empleado.apellido1 }} {{ empleado.apellido2 }} (Cédula: {{ empleado.cedula }})</option>
+                        <option value="{{ empleado.id_empleado }}">{{ empleado.nombre }} {{ empleado.apellido_primero }} {{ empleado.apellido_segundo }} (Cédula: {{ empleado.cedula }})</option>
                     {% endfor %}
                 </select>
             </div>

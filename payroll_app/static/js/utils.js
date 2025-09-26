@@ -422,7 +422,7 @@ if (passwordInput && generatePasswordBtn) {
 $(document).ready(function() {
     // Inicialización de Select2 en el campo de empleados
     $('.select2').select2({
-        placeholder: "Buscar y seleccionaro...",
+        placeholder: "Busca y selecciona...",
         allowClear: true,
         theme: "bootstrap-5"
     });
