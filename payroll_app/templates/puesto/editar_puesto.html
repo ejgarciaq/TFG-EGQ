@@ -16,8 +16,8 @@
                         <input type="text" class="form-control" id="tipo_puesto" name="tipo_puesto" value="{{ puesto.tipo_puesto }}" required>
                     </div>
 
-                    <button type="submit" class="btn btn-success">Guardar Cambios</button>
-                    <a href="{{ url_for('puesto.listar_puestos', page=page) }}" class="btn btn-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Guardar Cambios</button>
+                    <a href="{{ url_for('puesto.listar_puestos', page=page) }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Volver</a>
                 </form>
             </fieldset>
         </div>

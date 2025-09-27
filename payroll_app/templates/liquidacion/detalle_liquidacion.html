@@ -58,7 +58,7 @@
 
     <div class="d-flex justify-content-between">
         <a href="{{ url_for('liquidacion.buscar_empleado') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Volver a Seleccionar Empleado
+            <i class="fas fa-arrow-left"></i> Volver
         </a>
         <form method="POST" action="{{ url_for('liquidacion.mostrar_calculo', empleado_id=empleado.id_empleado, fecha_fin=fecha_fin_contrato.strftime('%Y-%m-%d')) }}">
             <button type="submit" class="btn btn-success">

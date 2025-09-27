@@ -80,14 +80,18 @@
         </td>
         <td class="text-center">
             {% if accion.documento_adjunto %}
-                <a href="{{ url_for('static', filename='uploads/' + accion.documento_adjunto) }}" target="_blank" class="btn btn-sm btn-info">Ver</a>
+                <a href="{{ url_for('static', filename='uploads/' + accion.documento_adjunto) }}" target="_blank" class="btn btn-sm btn-info">
+                    <i class="fa-solid fa-eye"></i> Ver
+                </a>
             {% else %}
                 N/A
             {% endif %}
         </td>
         <td>
             <div class="d-flex gap-2">
-                <a href="{{ url_for('accion_personal_bp.ver_detalle_ap', ap_id=accion.id_accion) }}" class="btn btn-primary btn-sm">Ver</a>
+                <a href="{{ url_for('accion_personal_bp.ver_detalle_ap', ap_id=accion.id_accion) }}" class="btn btn-primary btn-sm">
+                    <i class="fa-solid fa-eye"></i> Ver
+                </a>
                 
                 {% if accion.estado_ap == 1 %}
                     <form method="POST" action="{{ url_for('accion_personal_bp.aprobar_accion', ap_id=accion.id_accion) }}">
@@ -101,7 +105,9 @@
                 {% else %}
                     <form method="POST" action="{{ url_for('accion_personal_bp.eliminar_accion', ap_id=accion.id_accion) }}" style="display:inline-block;">
                         <input type="hidden" name="page" value="{{ pagination.page }}">
-                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que deseas eliminar esta acción? Esta acción es irreversible.');">Eliminar</button>
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que deseas eliminar esta acción? Esta acción es irreversible.');">
+                            <i class="fas fa-trash-alt"></i> Eliminar
+                        </button>
                     </form>
                 {% endif %}
             </div>

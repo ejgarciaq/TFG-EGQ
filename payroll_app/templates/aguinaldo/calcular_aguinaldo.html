@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="row mb-4">
-    <div class="col-12">
-        <h2 class="display-5 text-dark"><i class="fas fa-calculator text-primary me-2"></i> Cálculo de Aguinaldo</h2>
+<div class="row mb-2">
+    <div class="col-12 text-center">
+        <h2 class="display-5 text-dark "><i class="fas fa-calculator text-primary me-2"></i> Cálculo de Aguinaldo</h2>
         <p class="lead text-muted">Utilice esta herramienta para generar el **Aguinaldo** de los empleados. El cálculo se basa en el promedio de los últimos 12 meses de salarios brutos (Dic. año anterior a Nov. año actual).</p>
     </div>
 </div>
 
-<hr class="my-4">
+<hr class="my-2">
 
 <div class="row">
     
@@ -87,8 +87,8 @@
                             <td class="text-center">₡{{ "{:,.2f}".format(aguinaldo.monto) }}</td>
                             <td class="text-center">
                                 <form action="{{ url_for('aguinaldo.ver_detalle', aguinaldo_id=aguinaldo.id_aguinaldo) }}">
-                                    <button type="submit" class="btn btn-warning btn-sm" title="Ver Detalle de Cálculo">
-                                        Ver
+                                    <button type="submit" class="btn btn-primary btn-sm" title="Ver Detalle de Cálculo">
+                                        <i class="fa-solid fa-eye"></i> Ver
                                     </button> 
                                 </form>
                             </td>
