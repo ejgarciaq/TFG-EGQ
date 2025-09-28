@@ -10,7 +10,7 @@
         <div class="col-md-4 mb-4">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
-                    Agregar Nuevo Feriado
+                    <i class="fa-solid fa-calendar-days"></i> Agregar Nuevo Feriado
                 </div>
                 <div class="card-body">
                     <form action="{{ url_for('feriado.agregar_feriado') }}" method="POST">
@@ -28,7 +28,7 @@
                                 ¿Es de pago obligatorio?
                             </label>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100">Agregar Feriado</button>
+                        <button type="submit" class="btn btn-primary w-100"><i class="fas fa-calendar-plus"></i> Agregar Feriado</button>
                     </form>
                     
                     <hr> <form action="{{ url_for('feriado.agregar_feriados_año_actual') }}" method="POST">

@@ -132,114 +132,177 @@ document.addEventListener("DOMContentLoaded", () => {
 /* Lógica para mostrar/ocultar campos según el tipo de acción y calcular días laborales */
 document.addEventListener('DOMContentLoaded', function() {
     // Definimos todos los elementos del DOM.
+    // Usamos jQuery para elementos que serán inicializados con Select2, por consistencia.
+    // Usamos variables 'let' o 'const' y 'null' por defecto si no están presentes.
+
     const tipoApSelect = document.getElementById('tipo_ap_id');
-    const empleadoSelect = $('#empleado_id');
+    const empleadoSelect = $('#empleado_id'); // Ya es un objeto jQuery
+
+    // Campos relacionados con VACACIONES
     const vacationFields = document.getElementById('vacation_fields');
-    const incapacityLeaveFields = document.getElementById('incapacity_leave_fields');
     const saldoVacacionesInput = document.getElementById('saldo_vacaciones_input');
     const cantidadDiaVacacionesInput = document.getElementById('cantidad_dia_vac');
-    const cantidadDiaIncapacidadInput = document.getElementById('cantidad_dia_inc');
     const fechaInicioVacacionesInput = document.getElementById('fecha_inicio');
     const fechaFinVacacionesInput = document.getElementById('fecha_fin');
+
+    // Campos relacionados con INCAPACIDAD/PERMISO
+    const incapacityLeaveFields = document.getElementById('incapacity_leave_fields');
+    const cantidadDiaIncapacidadInput = document.getElementById('cantidad_dia_inc');
     const fechaInicioIncapacidadInput = document.getElementById('fecha_inicio_inc');
     const fechaFinIncapacidadInput = document.getElementById('fecha_fin_inc');
     
+    // --------------------------------------------------------------------------
+    // FUNCIONES GLOBALES (o que se usan en múltiples contextos)
+    // --------------------------------------------------------------------------
+
     // Función para actualizar el saldo de vacaciones
     function actualizarSaldoVacaciones() {
-        const selectedEmpleadoOption = empleadoSelect.find(':selected');
-        const saldoVacaciones = selectedEmpleadoOption.data('vacaciones');
-        
-        if (saldoVacaciones !== null && saldoVacaciones !== undefined) {
-            saldoVacacionesInput.value = parseInt(saldoVacaciones);
-        } else {
-            saldoVacacionesInput.value = '';
+        // Solo ejecuta si el select de empleado y el campo de destino existen
+        if (empleadoSelect.length && saldoVacacionesInput) {
+            const selectedEmpleadoOption = empleadoSelect.find(':selected');
+            const saldoVacaciones = selectedEmpleadoOption.data('vacaciones'); // Asegúrate que el atributo es 'vacaciones'
+            
+            if (saldoVacaciones !== null && saldoVacaciones !== undefined) {
+                saldoVacacionesInput.value = parseInt(saldoVacaciones);
+            } else {
+                saldoVacacionesInput.value = '';
+            }
         }
     }
 
     // Función principal para mostrar/ocultar los campos según el tipo de acción
     function actualizarCampos() {
-        const selectedOption = tipoApSelect.options[tipoApSelect.selectedIndex];
-        const nombreTipo = selectedOption.getAttribute('data-nombre-tipo');
+        // Solo ejecuta si el select de tipo de acción y los contenedores existen
+        if (tipoApSelect && vacationFields && incapacityLeaveFields) {
+            const selectedOption = tipoApSelect.options[tipoApSelect.selectedIndex];
+            const nombreTipo = selectedOption.getAttribute('data-nombre-tipo');
 
-        // Ocultar ambos contenedores primero
-        vacationFields.style.display = 'none';
-        incapacityLeaveFields.style.display = 'none';
-        
-        // Mostrar el contenedor correcto basado en el nombre del tipo de acción
-        if (nombreTipo === 'Vacaciones') {
-            vacationFields.style.display = 'block';
-            actualizarSaldoVacaciones();
-        } else if (nombreTipo === 'Incapacidad' || nombreTipo === 'Permiso c/ Goce de Salario') {
-            incapacityLeaveFields.style.display = 'block';
+            // Ocultar ambos contenedores primero
+            vacationFields.style.display = 'none';
+            incapacityLeaveFields.style.display = 'none';
+            
+            // Mostrar el contenedor correcto basado en el nombre del tipo de acción
+            if (nombreTipo === 'Vacaciones') {
+                vacationFields.style.display = 'block';
+                // Solo llama a actualizarSaldoVacaciones si es necesario
+                if (empleadoSelect.length && saldoVacacionesInput) {
+                    actualizarSaldoVacaciones();
+                }
+            } else if (nombreTipo === 'Incapacidad' || nombreTipo === 'Permiso c/ Goce de Salario') {
+                incapacityLeaveFields.style.display = 'block';
+            }
         }
     }
 
     // Función auxiliar para verificar si una fecha es feriada
     function isHoliday(date, diasFestivos) {
+        // Se ejecuta solo si diasFestivos es un array válido
+        if (!Array.isArray(diasFestivos)) return false;
         const dateString = date.toISOString().slice(0, 10);
         return diasFestivos.includes(dateString);
     }
     
     // Función para calcular días laborales para Vacaciones
     function calcularDiasLaboralesVacaciones() {
-        const fechaInicioStr = fechaInicioVacacionesInput.value;
-        const fechaFinStr = fechaFinVacacionesInput.value;
-        if (fechaInicioStr && fechaFinStr) {
-            const diasFeriados = JSON.parse(vacationFields.getAttribute('data-dias-festivos'));
-            let fechaInicio = new Date(fechaInicioStr + 'T00:00:00');
-            let fechaFin = new Date(fechaFinStr + 'T00:00:00');
-            let diasLaborales = 0;
-            let currentDate = fechaInicio;
+        // Solo ejecuta si todos los inputs necesarios y el contenedor existen
+        if (fechaInicioVacacionesInput && fechaFinVacacionesInput && cantidadDiaVacacionesInput && vacationFields) {
+            const fechaInicioStr = fechaInicioVacacionesInput.value;
+            const fechaFinStr = fechaFinVacacionesInput.value;
+            if (fechaInicioStr && fechaFinStr) {
+                // Obtener los días festivos de forma segura
+                const diasFeriadosAttr = vacationFields.getAttribute('data-dias-festivos');
+                const diasFeriados = diasFeriadosAttr ? JSON.parse(diasFeriadosAttr) : [];
 
-            while (currentDate <= fechaFin) {
-                const diaSemana = currentDate.getDay(); // 0 = Domingo, 1 = Lunes
-                if (diaSemana >= 1 && diaSemana <= 6 && !isHoliday(currentDate, diasFeriados)) {
-                    diasLaborales++;
+                let fechaInicio = new Date(fechaInicioStr + 'T00:00:00');
+                let fechaFin = new Date(fechaFinStr + 'T00:00:00');
+                let diasLaborales = 0;
+                let currentDate = fechaInicio;
+
+                while (currentDate <= fechaFin) {
+                    const diaSemana = currentDate.getDay(); // 0 = Domingo, 1 = Lunes
+                    // Excluir domingos (0) y días festivos
+                    // Si diaSemana es 1, 2, 3, 4, 5, 6, es un día laboral.
+                    if (diaSemana >= 1 && diaSemana <= 6 && !isHoliday(currentDate, diasFeriados)) { // Corregido: asumimos sabados laborales
+                        diasLaborales++;
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
                 }
-                currentDate.setDate(currentDate.getDate() + 1);
+                cantidadDiaVacacionesInput.value = diasLaborales;
             }
-            cantidadDiaVacacionesInput.value = diasLaborales;
         }
     }
 
     // Función para calcular días laborales para Incapacidad y Permiso
     function calcularDiasLaboralesIncapacidad() {
-        const fechaInicioStr = fechaInicioIncapacidadInput.value;
-        const fechaFinStr = fechaFinIncapacidadInput.value;
-        if (fechaInicioStr && fechaFinStr) {
-            const diasFeriados = JSON.parse(incapacityLeaveFields.getAttribute('data-dias-festivos'));
-            let fechaInicio = new Date(fechaInicioStr + 'T00:00:00');
-            let fechaFin = new Date(fechaFinStr + 'T00:00:00');
-            let diasLaborales = 0;
-            let currentDate = fechaInicio;
+        // Solo ejecuta si todos los inputs necesarios y el contenedor existen
+        if (fechaInicioIncapacidadInput && fechaFinIncapacidadInput && cantidadDiaIncapacidadInput && incapacityLeaveFields) {
+            const fechaInicioStr = fechaInicioIncapacidadInput.value;
+            const fechaFinStr = fechaFinIncapacidadInput.value;
+            if (fechaInicioStr && fechaFinStr) {
+                // Obtener los días festivos de forma segura
+                const diasFeriadosAttr = incapacityLeaveFields.getAttribute('data-dias-festivos');
+                const diasFeriados = diasFeriadosAttr ? JSON.parse(diasFeriadosAttr) : [];
 
-            while (currentDate <= fechaFin) {
-                const diaSemana = currentDate.getDay();
-                if (diaSemana >= 1 && diaSemana <= 5 && !isHoliday(currentDate, diasFeriados)) {
-                    diasLaborales++;
+                let fechaInicio = new Date(fechaInicioStr + 'T00:00:00');
+                let fechaFin = new Date(fechaFinStr + 'T00:00:00');
+                let diasLaborales = 0;
+                let currentDate = fechaInicio;
+
+                while (currentDate <= fechaFin) {
+                    const diaSemana = currentDate.getDay();
+                    // Excluir fines de semana (domingo=0, sabado=6) y días festivos
+                    if (diaSemana >= 1 && diaSemana <= 6 && !isHoliday(currentDate, diasFeriados)) { 
+                        diasLaborales++;
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
                 }
-                currentDate.setDate(currentDate.getDate() + 1);
+                cantidadDiaIncapacidadInput.value = diasLaborales;
             }
-            cantidadDiaIncapacidadInput.value = diasLaborales;
         }
     }
     
-    // 3. Establecer los EventListeners con la sintaxis correcta para Select2
-    // Usamos 'change' en la selección de empleado para actualizar las vacaciones disponibles
-    empleadoSelect.on('change', actualizarSaldoVacaciones); 
-    // Usamos 'change' en el tipo de acción para mostrar/ocultar los campos
-    $(tipoApSelect).on('change', actualizarCampos);
+    // --------------------------------------------------------------------------
+    // INICIALIZACIÓN DE EVENT LISTENERS (SOLO SI LOS ELEMENTOS EXISTEN)
+    // --------------------------------------------------------------------------
+
+    // Select2 para empleado_id
+    if (empleadoSelect.length) {
+        empleadoSelect.select2({
+            placeholder: "Seleccione un empleado...",
+            allowClear: true,
+            theme: "bootstrap-5",
+            width: '100%' 
+        });
+        empleadoSelect.on('change', actualizarSaldoVacaciones);
+    }
     
+    // Select2 para tipo_ap_id (si es un select2, si no, es document.getElementById)
+    if (tipoApSelect) { // tipoApSelect es un elemento JS nativo, no jQuery
+        // Si tipoApSelect NO es un select2:
+        // tipoApSelect.addEventListener('change', actualizarCampos);
+        
+        // Si tipoApSelect SI es un select2: (modificar según tu HTML si tiene la clase 'select2')
+        $(tipoApSelect).select2({ 
+            placeholder: "Seleccione un tipo de acción...",
+            allowClear: true,
+            theme: "bootstrap-5",
+            width: '100%' 
+        });
+        $(tipoApSelect).on('change', actualizarCampos);
+    }
+
     // Eventos para el cálculo de días de vacaciones
-    fechaInicioVacacionesInput.addEventListener('change', calcularDiasLaboralesVacaciones);
-    fechaFinVacacionesInput.addEventListener('change', calcularDiasLaboralesVacaciones);
+    if (fechaInicioVacacionesInput) fechaInicioVacacionesInput.addEventListener('change', calcularDiasLaboralesVacaciones);
+    if (fechaFinVacacionesInput) fechaFinVacacionesInput.addEventListener('change', calcularDiasLaboralesVacaciones);
 
     // Eventos para el cálculo de días de incapacidad
-    fechaInicioIncapacidadInput.addEventListener('change', calcularDiasLaboralesIncapacidad);
-    fechaFinIncapacidadInput.addEventListener('change', calcularDiasLaboralesIncapacidad);
+    if (fechaInicioIncapacidadInput) fechaInicioIncapacidadInput.addEventListener('change', calcularDiasLaboralesIncapacidad);
+    if (fechaFinIncapacidadInput) fechaFinIncapacidadInput.addEventListener('change', calcularDiasLaboralesIncapacidad);
 
-    // 4. Inicializar el estado del formulario al cargar la página
-    actualizarCampos();
+    // Inicializar el estado del formulario al cargar la página, solo si los elementos existen
+    if (tipoApSelect && vacationFields && incapacityLeaveFields) {
+        actualizarCampos();
+    }
 });
 
 /* Lógica para validar los requisitos de la contraseña y controlar el envío del formulario */
@@ -359,7 +422,7 @@ if (passwordInput && generatePasswordBtn) {
 $(document).ready(function() {
     // Inicialización de Select2 en el campo de empleados
     $('.select2').select2({
-        placeholder: "Buscar y seleccionaro...",
+        placeholder: "Busca y selecciona...",
         allowClear: true,
         theme: "bootstrap-5"
     });

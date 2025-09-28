@@ -51,9 +51,13 @@
                     </td>
 
                     <td class="text-center">
-                        <a href="{{ url_for('registro_asistencia.editar_asistencia', registro_id=registro.id_registro_asistencia) }}" class="btn btn-sm btn-warning">Editar</a>
+                        <a href="{{ url_for('registro_asistencia.editar_asistencia', registro_id=registro.id_registro_asistencia) }}" class="btn btn-sm btn-warning">
+                            <i class="fas fa-edit"></i> Editar
+                        </a>
                         <form action="{{ url_for('registro_asistencia.eliminar_asistencia', registro_id=registro.id_registro_asistencia) }}" method="POST" style="display:inline;">
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de que deseas eliminar este registro?');">Eliminar</button>
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de que deseas eliminar este registro?');">
+                                <i class="fas fa-trash-alt"></i> Eliminar
+                            </button>
                         </form>
                     </td>
                 </tr>
@@ -99,8 +103,12 @@
     </nav>
     
     <div class="d-flex justify-content-end">
-        <button type="submit" name="accion_masiva" value="aprobar_masiva" class="btn btn-success me-2">Aprobar Seleccionados</button>
-        <button type="submit" name="accion_masiva" value="rechazar_masiva" class="btn btn-danger">Rechazar Seleccionados</button>
+        <button type="submit" name="accion_masiva" value="aprobar_masiva" class="btn btn-success me-2">
+            <i class="fas fa-check-circle"></i> Aprobar Seleccionados
+        </button>
+        <button type="submit" name="accion_masiva" value="rechazar_masiva" class="btn btn-danger">
+            <i class="fas fa-times-circle"></i> Rechazar Seleccionados
+        </button>
     </div>
     </form>
     {% else %}

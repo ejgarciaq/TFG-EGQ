@@ -1,42 +1,35 @@
 from datetime import datetime
-import calendar
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required
 from sqlalchemy import func
-import logging
+import logging, calendar
 from datetime import datetime
-
-
-# Importa tus modelos y la base de datos
 from payroll_app import db
 from payroll_app.models import Empleado, TipoNomina, Nomina, Aguinaldo
-# Nota: La línea de importación de decoradores se ha movido/ajustado desde el error anterior
 from payroll_app.routes.decorators import permiso_requerido 
 
-# Define tu Blueprint para el módulo de nómina
+""" Módulo de Cálculo de Aguinaldo"""
 aguinaldo_bp = Blueprint('aguinaldo', __name__)
 
-# --- CONSTANTES DE CÁLCULO (Ajusta según tu legislación, ej. Costa Rica) ---
-# Periodo de cálculo: 1 de Diciembre del año anterior al 30 de Noviembre del año en curso
+"""CONSTANTES DE CÁLCULO (Ajusta según tu legislación, ej. Costa Rica) ---
+ Periodo de cálculo: 1 de Diciembre del año anterior al 30 de Noviembre del año en curso """
 MES_INICIO_CALCULO = 12 
 DIA_INICIO_CALCULO = 1
 MES_FIN_CALCULO = 11
 DIA_FIN_CALCULO = 30
 MESES_PROMEDIO = 12
 
-# --- FUNCIONES AUXILIARES DE CÁLCULO ---
+""" FUNCIONES AUXILIARES DE CÁLCULO """
+""" Calcula el aguinaldo para un empleado en un año fiscal dado. """
 @login_required
 def _calcular_aguinaldo_empleado(empleado, anio_fiscal):
-    """
-    Calcula el aguinaldo para un empleado en un año fiscal dado.
-    """
-    # 1. Definir el período de cálculo: Dic. del año anterior a Nov. del año actual
+    # Definir el período de cálculo: Dic. del año anterior a Nov. del año actual
     anio_anterior = anio_fiscal - 1
     
     fecha_inicio_periodo = datetime(anio_anterior, MES_INICIO_CALCULO, DIA_INICIO_CALCULO).date()
     fecha_fin_periodo = datetime(anio_fiscal, MES_FIN_CALCULO, DIA_FIN_CALCULO).date()
     
-    # 2. Obtener la suma de salarios brutos de las nóminas en el período
+    # Obtener la suma de salarios brutos de las nóminas en el período
     # Utilizamos la tabla 'Nomina' para obtener el 'salario_bruto' ya calculado
     total_bruto = db.session.query(func.sum(Nomina.salario_bruto)).filter(
         Nomina.empleado == empleado,
@@ -44,7 +37,7 @@ def _calcular_aguinaldo_empleado(empleado, anio_fiscal):
         Nomina.fecha_fin <= fecha_fin_periodo
     ).scalar() or 0.0
 
-    # 3. Obtener el número de meses con registros (para el cálculo proporcional)
+    # Obtener el número de meses con registros (para el cálculo proporcional)
     # Contamos la cantidad de nóminas en el período, usando GROUP BY si la periodicidad es menor a mensual
     # Para la práctica, contaremos cuántas nóminas existen
     meses_con_nomina = db.session.query(Nomina.fecha_inicio).filter(
@@ -53,7 +46,7 @@ def _calcular_aguinaldo_empleado(empleado, anio_fiscal):
         Nomina.fecha_fin <= fecha_fin_periodo
     ).distinct().count()
 
-    # 4. Calcular el monto final
+    # Calcular el monto final
     if meses_con_nomina == 0 or total_bruto == 0:
         return 0.0, 0, fecha_inicio_periodo, fecha_fin_periodo # Monto, Meses, Inicio, Fin
     
@@ -63,9 +56,9 @@ def _calcular_aguinaldo_empleado(empleado, anio_fiscal):
     return monto_aguinaldo, meses_con_nomina, fecha_inicio_periodo, fecha_fin_periodo
 
 # -----------------------------------------------------------------
-
+""" calcular_aguinaldo: Vista principal para calcular y listar aguinaldos """
 @aguinaldo_bp.route('/calcular', methods=['GET', 'POST'])
-#@permiso_requerido('administrador') # RNF-SE-018
+@permiso_requerido('cal_aguinaldo') # RNF-SE-018
 def calcular_aguinaldo():
     
     tipos_nomina = TipoNomina.query.all()
@@ -188,15 +181,14 @@ def calcular_aguinaldo():
         .paginate(page=page, per_page=per_page, error_out=False) # error_out=False para evitar 404 si la página no existe
     
     # 3. Pasar el objeto de paginación a la plantilla
-    return render_template('calcular_aguinaldo.html', 
+    return render_template('aguinaldo/calcular_aguinaldo.html', 
                             tipos_nomina=tipos_nomina, 
                             aguinaldos_paginados=aguinaldos_paginados, # 💡 Se cambió el nombre de la variable
                             anio_actual=anio_actual)
 
-
-
+""" ver_detalle: Muestra los detalles del cálculo del aguinaldo específico para auditoría """
 @aguinaldo_bp.route('/detalle/<int:aguinaldo_id>', methods=['GET'])
-#@permiso_requerido('administrador') # RNF-SE-018
+@permiso_requerido('cal_aguinaldo') # RNF-SE-018
 @login_required
 def ver_detalle(aguinaldo_id):
     """
@@ -234,7 +226,7 @@ def ver_detalle(aguinaldo_id):
     else:
         promedio_calculado = 0.0
 
-    return render_template('detalle_aguinaldo.html',
+    return render_template('aguinaldo/detalle_aguinaldo.html',
                            aguinaldo=aguinaldo,
                            empleado=empleado,
                            registros_nomina=registros_nomina,

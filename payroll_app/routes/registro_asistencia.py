@@ -8,15 +8,15 @@ import os, logging
 from werkzeug.utils import secure_filename # Importar para nombres de archivo seguros
 from sqlalchemy.orm import joinedload
 
-# El nombre del blueprint es 'registro_asistencia'
+""" Blueprint para el módulo de Registro de Asistencia """
 registro_asistencia_bp = Blueprint('registro_asistencia', __name__)
 
-# Configuración de la carpeta de subida de documentos
+""" Configuración de carga de archivos """
 UPLOAD_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static', 'uploads'))
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# Extensiones de archivo permitidas
+""" Define las extensiones permitidas para los archivos subidos """
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx'}
 
 def allowed_file(filename):
@@ -24,7 +24,7 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# --- PARÁMETROS CONFIGURABLES (IDEALMENTE DESDE LA BASE DE DATOS) ---
+""" Configuración global para el módulo de Registro de Asistencia """
 # Si estos valores NO van a ser configurables por el usuario, déjalos aquí.
 # Si SÍ van a ser configurables, deberías cargarlos desde tu tabla de configuracion.
 HORAS_POR_JORNADA_NORMAL = 8.0 # Horas de una jornada normal por día
@@ -36,9 +36,7 @@ JORNADA_MINIMA_PAUSA_OBLIGATORIA = timedelta(hours=6)
 MIN_TIEMPO_ENTRE_MARCAS = timedelta(minutes=1) # Para evitar marcas inmediatas
 MIN_DURACION_JORNADA = timedelta(minutes=30) # Para evitar salidas finales muy rápidas
 
-# --- CONFIGURACIÓN (Tasas de deducción) ---
-# Centraliza las tasas para fácil mantenimiento
-
+""" Porcentajes y límites para cálculos de nómina """
 PORCENTAJE_CCSS_SEM = 0.0550
 PORCENTAJE_CCSS_IVM = 0.0417
 PORCENTAJE_LPT = 0.0100
@@ -50,11 +48,11 @@ TRAMOS_ISR = [
     {'limite': float('inf'), 'porcentaje': 0.25}
 ]
 
-# ------------------------- Lógica de Aprobación ------------------------------
 
+""" Rutas y lógica para el módulo de Registro de Asistencia"""
 @registro_asistencia_bp.route('/procesar_aprobacion', methods=['POST'])
-#@permiso_requerido('aprobar_horas_extras')
 @login_required
+@permiso_requerido('listar_asistencia')
 def procesar_aprobacion():
     """Procesa la aprobación masiva o individual de registros de horas extras."""
     try:
@@ -82,10 +80,9 @@ def procesar_aprobacion():
     
     return redirect(url_for('registro_asistencia.listar_asistencia'))
 
-# ------------------------- Aprobar Horas Extras ------------------------------
-
+""" Vista para aprobar horas extras ----------------------------------------------------------------"""
 @registro_asistencia_bp.route('/aprobar_horas_extras')
-#@permiso_requerido('aprobar_horas_extras')
+@permiso_requerido('listar_asistencia')
 @login_required
 def aprobar_horas_extras():
     """
@@ -107,7 +104,7 @@ def aprobar_horas_extras():
         flash(f'Ocurrió un error al cargar los registros de horas extras: {str(e)}', 'danger')
         return redirect(url_for('registro_asistencia.listar_asistencia'))
 
-# Ver asistencia pantalla control de marcas ----------------------------------------------------
+""" Vista principal de registro de asistencia --------------------------------------------------------------"""
 @registro_asistencia_bp.route('/asistencia', methods=['GET'])
 @login_required
 def ver_asistencia():
@@ -182,11 +179,11 @@ def ver_asistencia():
         RegistroAsistencia.fecha_registro >= fecha_inicio_rango
     ).order_by(RegistroAsistencia.fecha_registro.desc(), RegistroAsistencia.hora_entrada.desc()).all()
 
-    return render_template('registro_asistencia.html', 
+    return render_template('asistencia/registro_asistencia.html', 
                            estado_actual=estado_actual,
                            registros=registros_asistencia_display)
 
-# registrar asistencia -------------------------------
+""" Acción para registrar la asistencia ------------------------------------------------"""
 @registro_asistencia_bp.route('/asistencia/registrar', methods=['POST'])
 @login_required 
 def registrar_asistencia(registro_id):
@@ -430,10 +427,9 @@ def registrar_asistencia(registro_id):
     
     return redirect(url_for('registro_asistencia.ver_asistencia'))
 
-#----------- Mantenimiento ------------------------------
-
-# listar registros-----------------------------------------
-
+""" --------------------------------------------------------------------------------------
+    RUTAS DE MANTENIMIENTO DE REGISTRO DE ASISTENCIA"""
+""" Vista para listar registros de asistencia ------------------------------------------------"""
 @registro_asistencia_bp.route('/listar_asistencia')
 @permiso_requerido('listar_asistencia')
 @login_required
@@ -443,14 +439,10 @@ def listar_asistencia():
     registros = RegistroAsistencia.query.order_by(RegistroAsistencia.fecha_registro.desc()).paginate(
         page=page, per_page=14, error_out=False
     )
-    return render_template('listar_asistencia.html', registros=registros)
+    return render_template('asistencia/listar_asistencia.html', registros=registros)
 
-# Editar registro de asistencia ---------------------------------------------------------------------------
 
-# ----------------------------------------------------------------------
-# FUNCIONES AUXILIARES
-# ----------------------------------------------------------------------
-
+""" Funciones auxiliares para manejo de tiempos y cálculos """
 def _parse_time_or_none(time_str):
     """Convierte un string 'HH:MM:SS' a datetime.time, manejando None o string vacío."""
     if time_str and time_str.strip():
@@ -461,6 +453,7 @@ def _parse_time_or_none(time_str):
             return None
     return None
 
+""" Función para calcular monto, horas extra y horas feriado """
 def _calculate_monto(registro, empleado, costo_hora_normal):
     """Calcula el monto de pago, horas extra y horas feriado."""
     
@@ -490,10 +483,7 @@ def _calculate_monto(registro, empleado, costo_hora_normal):
     
     registro.monto_pago = round(monto_pago_calculado, 2)
 
-# ----------------------------------------------------------------------
-# VISTA PRINCIPAL
-# ----------------------------------------------------------------------
-
+""" Vista para editar un registro de asistencia ------------------------------------------------"""
 @registro_asistencia_bp.route('/editar/<int:registro_id>', methods=['GET', 'POST'])
 @permiso_requerido('editar_asistencia')
 @login_required
@@ -630,11 +620,11 @@ def editar_asistencia(registro_id):
             flash(f'Ocurrió un error inesperado al actualizar el registro: {str(e)}', 'danger')
             return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **request.args))
     
-    return render_template('editar_asistencia.html', 
+    return render_template('asistencia/editar_asistencia.html', 
                            registro=registro,
                            page=request.args.get('page', 1, type=int))
-#Eliminar registro --------------------------------------------------------------
 
+""" Función para eliminar un registro de asistencia ------------------------------------------------"""
 @registro_asistencia_bp.route('/eliminar/<int:registro_id>', methods=['POST'])
 @permiso_requerido('eliminar_asistencia')
 @login_required
@@ -651,9 +641,9 @@ def eliminar_asistencia(registro_id):
 
     return redirect(url_for('registro_asistencia.listar_asistencia'))
 
-# -------------------------   Generar Nomina ---------------------------------------
+"""" Vista para generar nóminas ------------------------------------------------"""
 
-# --- FUNCIONES AUXILIARES PARA CÁLCULOS ---
+""" Constantes y tramos ISR """
 @permiso_requerido('listar_nominas')
 @login_required
 def calcular_isr(monto_bruto_periodo, fecha_inicio_obj, fecha_fin_obj):
@@ -689,8 +679,8 @@ def calcular_isr(monto_bruto_periodo, fecha_inicio_obj, fecha_fin_obj):
             
     return round(isr_calculado, 2)
 
-# -----------------------------------------------------------------
 
+""" Vista de generar nóminas ------------------------------------------------"""
 @registro_asistencia_bp.route('/generar_nomina', methods=['GET', 'POST'])
 @permiso_requerido('listar_nominas')
 @login_required
@@ -909,7 +899,7 @@ def generar_nomina():
     nominas_paginadas = query_nominas_actual.paginate(page=page, per_page=10, error_out=False)
 
     return render_template(
-        'generar_nomina.html',
+        'nomina/generar_nomina.html',
         nominas=nominas_paginadas.items,
         paginated_nominas=nominas_paginadas,
         tipos_nomina=tipos_nomina,
@@ -917,10 +907,8 @@ def generar_nomina():
         fecha_fin_seleccionada=fecha_fin_seleccionada,
         id_tipo_nomina_seleccionado=id_tipo_nomina_seleccionado
     )
-
-
-# -----------------------------------------------------------------------------------------------        
-
+    
+""" Vista para listar nóminas con paginación y filtros ------------------------------------------------"""
 @registro_asistencia_bp.route('/listar_nominas')
 @permiso_requerido('listar_nominas')
 @login_required
@@ -976,7 +964,7 @@ def listar_nominas():
         tipos_nomina = TipoNomina.query.all()
         
         return render_template(
-            'generar_nomina.html',
+            'nomina/generar_nomina.html',
             nominas=paginated_nominas.items,       # Los ítems (registros) de la página actual
             paginated_nominas=paginated_nominas,   # El objeto paginador completo para los controles
             tipos_nomina=tipos_nomina,
@@ -989,11 +977,11 @@ def listar_nominas():
         flash(f'Ocurrió un error al cargar las nóminas: {str(e)}', 'danger')
         tipos_nomina = TipoNomina.query.all()
         # En caso de error, devolver una lista vacía y un paginador nulo
-        return render_template('generar_nomina.html', nominas=[], tipos_nomina=tipos_nomina, paginated_nominas=None)
+        return render_template('nomina/generar_nomina.html', nominas=[], tipos_nomina=tipos_nomina, paginated_nominas=None)
     
-# -----------------------------------------------------------------------------------------------
-
+""" Función para eliminar una nómina ------------------------------------------------"""
 @registro_asistencia_bp.route('/nomina/eliminar/<int:id_nomina>', methods=['POST'])
+@permiso_requerido('listar_nominas')
 @login_required
 def eliminar_nomina(id_nomina):
     """

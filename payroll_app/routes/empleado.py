@@ -1,42 +1,16 @@
-import re
-import secrets
-import string
-from flask import ( 
-    Blueprint,
-    render_template,
-    request,
-    redirect,
-    url_for,
-    flash,
-    current_app,
-)
+import re , secrets, string
+from flask import ( Blueprint, render_template, request, redirect, url_for, flash, current_app,)
 from werkzeug.security import generate_password_hash
-from payroll_app.models import (
-    db,
-    Usuario,
-    Rol,
-    Empleado,
-    Puesto,
-    RegistroAsistencia,
-    Nomina,
-    TipoNomina,
-)
+from payroll_app.models import ( db, Usuario, Rol, Empleado, Puesto, RegistroAsistencia, Nomina, TipoNomina,)
 from datetime import datetime
 from flask_login import login_required, current_user
 from payroll_app.routes.decorators import permiso_requerido
 import logging
 
-# Se crea un objeto Blueprint llamado 'empleado', que permite modularizar la aplicación Flask.
+""" Blueprint para gestionar las rutas relacionadas con los empleados."""
 empleado_bp = Blueprint("empleado", __name__, template_folder="templates")
 
-
-# ---------------------------------------------------------------------------------
-
-@empleado_bp.route("/listar_empleado")
-@permiso_requerido('listar_empleados')
-@login_required
-def listar_empleado():
-    """ Muestra una lista de todos los empleados.
+""" Muestra una lista de todos los empleados.
     
     Esta función recupera todos los registros de empleados de la base de datos
     y los pasa a la plantilla 'listar_empleado.html' para su renderizado en una tabla.
@@ -44,6 +18,11 @@ def listar_empleado():
     Returns:
         Rendered template: Una página HTML que muestra la lista de empleados.
     """
+@empleado_bp.route("/listar_empleado")
+@permiso_requerido('listar_empleados')
+@login_required
+def listar_empleado():
+
     page = request.args.get('page', 1, type=int)
 
     # Crea la consulta base, ordenada alfabéticamente por el nombre del empleado
@@ -52,10 +31,14 @@ def listar_empleado():
     # Aplica la paginación a la consulta ordenada
     pagination = query.paginate(page=page, per_page=10, error_out=False)
 
-    return render_template('listar_empleado.html', pagination=pagination)
+    return render_template('empleado/listar_empleado.html', pagination=pagination)
 
-#------------------------------------------------------------------------------------
 
+"""   Crea un nuevo empleado en el sistema.
+
+    Returns:
+        _type_: Rendered template: Una página HTML con el formulario para crear un nuevo empleado.
+"""
 @empleado_bp.route("/crear_empleado", methods=["GET", "POST"])
 @permiso_requerido('crear_empleado')
 @login_required
@@ -151,18 +134,24 @@ def crear_empleado():
             db.session.rollback()
             flash(f"Error al crear el empleado: {str(e)}", "danger")
             return render_template(
-                "crear_empleado.html",
+                "empleado/crear_empleado.html",
                 puestos=puestos,
                 roles=roles,
                 tipos_nomina=tipos_nomina,
             )
 
     return render_template(
-        "crear_empleado.html", puestos=puestos, roles=roles, tipos_nomina=tipos_nomina
+        "empleado/crear_empleado.html", puestos=puestos, roles=roles, tipos_nomina=tipos_nomina
     )
 
-# ---------------------------------------------------------------------------------
+""" Edita la información de un empleado existente.
 
+    Args:
+        id (int): El ID del empleado a editar.
+
+    Returns:
+        Rendered template: Una página HTML con el formulario para editar el empleado.
+"""
 @empleado_bp.route("/editar_empleado/<int:id>", methods=["GET", "POST"])
 @permiso_requerido('editar_emplado')
 @login_required
@@ -227,7 +216,7 @@ def editar_empleado(id):
                     for error in errores:
                         flash(error, "danger")
                     return render_template(
-                        "editar_empleado.html",
+                        "empleado/editar_empleado.html",
                         empleado=empleado,
                         roles=roles,
                         puestos=puestos,
@@ -268,7 +257,7 @@ def editar_empleado(id):
                 logging.error(f"Error al actualizar el empleado: {str(e)}")
                 flash(f"Ocurrió un error al actualizar el empleado: {str(e)}", "danger")
                 return render_template(
-                    "editar_empleado.html",
+                    "empleado/editar_empleado.html",
                     empleado=empleado,
                     roles=roles,
                     puestos=puestos,
@@ -298,16 +287,9 @@ def editar_empleado(id):
                 return redirect(url_for("empleado.editar_empleado", id=empleado.id_empleado))
 
     # Renderizar la plantilla en el método GET
-    return render_template(
-        "editar_empleado.html",
-        empleado=empleado,
-        roles=roles,
-        puestos=puestos,
-        tipos_nomina=tipos_nomina,
-    )
+    return render_template( "empleado/editar_empleado.html", empleado=empleado, roles=roles, puestos=puestos, tipos_nomina=tipos_nomina, )
 
-# --------------------------------------------------------------------------------
-
+""" Muestra el perfil de un empleado específico. """
 @empleado_bp.route("/ver_perfil_empleado/<int:empleado_id>", methods=["GET"])
 @login_required
 def ver_perfil_empleado(empleado_id):
@@ -329,7 +311,7 @@ def ver_perfil_empleado(empleado_id):
             flash("Acceso denegado. No tiene los permisos necesarios para ver esta información.", "danger")
             return redirect(url_for("empleado.listar_empleado"))
             
-        return render_template("ver_perfil_empleado.html", empleado=empleado_perfil)
+        return render_template("empleado/ver_perfil_empleado.html", empleado=empleado_perfil)
     
     except Exception as e:
         logging.error(f"Error al cargar el perfil del empleado {empleado_id}: {str(e)}")
@@ -337,10 +319,14 @@ def ver_perfil_empleado(empleado_id):
         flash("Error al cargar el perfil. Por favor, inténtelo de nuevo.", "danger")
         return redirect(url_for("empleado.listar_empleado"))
 
+""" Elimina un empleado y todos sus datos asociados del sistema.
 
+    Args:
+        id (int): El ID del empleado a eliminar.
 
-# -------------------------------------------------------------------------------
-
+    Returns:
+        Redirect: Redirige a la página de listado de empleados después de la eliminación.
+"""
 @empleado_bp.route("/eliminar_empleado/<int:id>", methods=["POST"])
 @permiso_requerido('eliminar_emplado')
 @login_required

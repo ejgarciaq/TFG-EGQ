@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Reporte de Aguinaldos{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-12"> 
+            <fieldset class="shadow border p-3 rounded border-primary">
+            <legend class="float-none w-auto px-1 fs-3 text-center">Reporte de Pagos de Aguinaldos</legend>
+            <span class="text-muted">Filtre por año para visualizar todos los aguinaldos calculados.</span>
+                
+                <form method="GET" action="{{ url_for('reportes_bp.mostrar_reporte_aguinaldos') }}" class="mb-3">
+                    <div class="mb-3">
+                        <label for="ano_aguinaldo" class="form-label">Año del Aguinaldo:</label>
+                        <input type="number" class="form-control" id="ano_aguinaldo" name="ano_aguinaldo" 
+                            value="{{ ano_filtrado if ano_filtrado else current_year }}" required min="2000" max="{{ current_year + 5 }}">
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary"><i class="fas fa-search"></i> Generar Reporte</button>
+                    <a href="{{ url_for('auth.base') }}" class="btn btn-outline-secondary"><i class="fa fa-arrow-left"></i> Volver a Inicio</a>
+                </form>
+           </fieldset>
+        </div>
+    </div>
+
+    {% if tabla_aguinaldos_html %}
+
+        <fieldset class="shadow border p-3 rounded border-primary mt-3">
+        <legend class="float-none w-auto px-1 fs-3 text-center">Resultados de Aguinaldos (Página {{ paginated_records.page }} de {{ paginated_records.pages }})</legend>
+            
+            <div class="mb-3 text-end">
+                <a href="{{ url_for('reportes_bp.exportar_aguinaldos', ano=ano_filtrado, formato='csv') }}" class="btn btn-outline-info me-2">
+                    <i class="fas fa-file-csv"></i> Exportar CSV
+                </a>
+                <a href="{{ url_for('reportes_bp.exportar_aguinaldos', ano=ano_filtrado, formato='excel') }}" class="btn btn-outline-success me-2">
+                    <i class="fas fa-file-excel"></i> Exportar Excel
+                </a>
+                <a href="{{ url_for('reportes_bp.exportar_aguinaldos', ano=ano_filtrado, formato='pdf') }}" class="btn btn-outline-danger">
+                    <i class="fas fa-file-pdf"></i> Exportar PDF
+                </a>
+            </div>
+
+            <div class="table-responsive">
+                {{ tabla_aguinaldos_html | safe }} 
+            </div>
+
+            {% if paginated_records.pages > 1 %}
+                <nav aria-label="Navegación de páginas" class="d-flex justify-content-center mt-3">
+                    <ul class="pagination">
+                        {% set query_params = {'ano_aguinaldo': ano_filtrado} %}
+
+                        <li class="page-item {% if not paginated_records.has_prev %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('reportes_bp.mostrar_reporte_aguinaldos', page=paginated_records.prev_num, **query_params) }}" tabindex="-1" aria-disabled="true">Anterior</a>
+                        </li>
+                        
+                        {% for p in paginated_records.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                            {% if p %}
+                                <li class="page-item {% if p == paginated_records.page %}active{% endif %}">
+                                    <a class="page-link" href="{{ url_for('reportes_bp.mostrar_reporte_aguinaldos', page=p, **query_params) }}">{{ p }}</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled"><a class="page-link">...</a></li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <li class="page-item {% if not paginated_records.has_next %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('reportes_bp.mostrar_reporte_aguinaldos', page=paginated_records.next_num, **query_params) }}">Siguiente</a>
+                        </li>
+                    </ul>
+                </nav>
+            {% endif %}
+            
+        </fieldset>
+
+    {% elif ano_filtrado is not none %}
+
+        <div class="alert alert-info mt-3" role="alert">
+            No se encontraron registros de aguinaldos para el año **{{ ano_filtrado }}**.
+        </div>
+
+    {% endif %}
+</div>
+{% endblock %}

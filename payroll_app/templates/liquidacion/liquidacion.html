@@ -11,10 +11,10 @@
         <form method="POST" action="{{ url_for('liquidacion.buscar_empleado') }}">
             <div class="mb-3">
                 <label for="empleado_id" class="form-label">Empleado:</label>
-                <select class="form-select" id="empleado_id" name="empleado_id" required>
-                    <option value="">-- Seleccione un Empleado --</option>
+                <select class="form-select select2" id="empleado_id" name="empleado_id" required>
+                    <option value="">Busca y selecciona</option>
                     {% for empleado in empleados %}
-                        <option value="{{ empleado.id_empleado }}">{{ empleado.nombre }} {{ empleado.apellido1 }} {{ empleado.apellido2 }} (Cédula: {{ empleado.cedula }})</option>
+                        <option value="{{ empleado.id_empleado }}">{{ empleado.nombre }} {{ empleado.apellido_primero }} {{ empleado.apellido_segundo }} (Cédula: {{ empleado.cedula }})</option>
                     {% endfor %}
                 </select>
             </div>
@@ -22,7 +22,7 @@
                 <label for="fecha_fin_contrato" class="form-label">Fecha de Finalización del Contrato:</label>
                 <input type="date" class="form-control" id="fecha_fin_contrato" name="fecha_fin_contrato" value="{{ today.strftime('%Y-%m-%d') }}" required>
             </div>
-            <button type="submit" class="btn btn-primary">Calcular Liquidación</button>
+            <button type="submit" class="btn btn-primary "><i class="fa-solid fa-calculator"></i> Calcular Liquidación</button>
         </form>
     </div>
 </div>

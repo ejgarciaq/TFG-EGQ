@@ -4,19 +4,16 @@ from payroll_app.models import db, Rol, Permiso, Usuario # ✅ Asegúrate de imp
 from flask_login import current_user, login_required
 import logging
 
-# instancia de Blueprint
+""" Blueprint para la gestión de roles."""
 rol_bp = Blueprint('rol', __name__, url_prefix='/roles')
 
 #--------------------------------------------------------------------------------
-
+""" listas roles con paginación """
 @rol_bp.route('/')
 @permiso_requerido('listar_roles') # Protege la ruta con un permiso específico
 @login_required
 def listar_roles():
-    """
-    Muestra una lista de todos los roles existentes.
-    Requiere el permiso 'listar_roles'.
-    """
+
     page = request.args.get('page', 1, type=int)
     per_page = 10  # Define el número de registros por página
     
@@ -26,8 +23,9 @@ def listar_roles():
     # Aplica la paginación a la consulta
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     
-    return render_template('listar_roles.html', pagination=pagination)
+    return render_template('rol/listar_roles.html', pagination=pagination)
 
+""" Crear un nuevo rol"""
 @rol_bp.route('/crear', methods=['GET', 'POST'])
 @permiso_requerido('crear_rol')
 @login_required
@@ -60,11 +58,9 @@ def crear_rol():
         else:
             flash('El nombre y la descripción del rol no pueden estar vacíos.', 'error')
     
-    return render_template('crear_rol.html', permisos=permisos)
+    return render_template('rol/crear_rol.html', permisos=permisos)
 
-
-# -------------------------------------------------------------------------
-
+""" Editar un rol existente"""
 @rol_bp.route('/editar/<int:id>', methods=['GET', 'POST'])
 @permiso_requerido('editar_rol')
 @login_required
@@ -103,16 +99,13 @@ def editar_rol(id):
 
     # En el GET, recupera la página para el enlace "Regresar" o la URL de la vista
     page = request.args.get('page', 1, type=int)
-    return render_template('editar_rol.html', rol=rol_a_editar, permisos=permisos, page=page)
+    return render_template('rol/editar_rol.html', rol=rol_a_editar, permisos=permisos, page=page)
 
+""" Eliminar un rol existente"""
 @rol_bp.route('/eliminar/<int:id>', methods=['POST'])
 @permiso_requerido('eliminar_rol') # Protege la ruta con el permiso 'eliminar_rol'
 @login_required
 def eliminar_rol(id):
-    """
-    Elimina un rol de la base de datos.
-    Requiere el permiso 'eliminar_rol'.
-    """
     rol = Rol.query.get_or_404(id)
 
     page = request.form.get('page', 1, type=int)

@@ -6,7 +6,7 @@
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4>Lista de Puestos</h4>
-        <a href="{{ url_for('puesto.crear_puesto') }}" class="btn btn-primary">Crear Nuevo Puesto</a>
+        <a href="{{ url_for('puesto.crear_puesto') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Crear Puesto</a>
     </div>
 
     {% if pagination.items %}
@@ -23,12 +23,12 @@
                 <td>{{ puesto.tipo_puesto }}</td>
                 <td class="text-center">
                     <a href="{{ url_for('puesto.editar_puesto', id=puesto.id_puesto, page=pagination.page) }}" class="btn btn-warning btn-sm">
-                        Editar
+                        <i class="fas fa-edit"></i> Editar
                     </a>
                     <form action="{{ url_for('puesto.eliminar_puesto', id=puesto.id_puesto) }}" method="POST" style="display:inline-block;">
                         <input type="hidden" name="page" value="{{ pagination.page }}">
                         <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Está seguro de que desea eliminar este puesto?');">
-                            Eliminar
+                            <i class="fas fa-trash-alt"></i> Eliminar
                         </button>
                     </form>
                 </td>

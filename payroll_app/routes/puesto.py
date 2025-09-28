@@ -4,14 +4,14 @@ from payroll_app import db
 from flask_login import current_user, login_required
 from payroll_app.routes.decorators import permiso_requerido
 
+""" Blueprint para la gestión de puestos. """
 puesto_bp = Blueprint('puesto', __name__)
 
+""" Muestra una lista de todos los puestos. """
 @puesto_bp.route('/puestos')
 @permiso_requerido('listar_puestos')
 @login_required
 def listar_puestos():
-    """Muestra una lista de todos los puestos."""
-    # CORRECCIÓN: Ordenar los puestos por su ID de forma ascendente
     # Obtiene el número de página de la URL, por defecto es 1
     page = request.args.get('page', 1, type=int)
     per_page = 10  # Define el número de registros por página
@@ -22,15 +22,13 @@ def listar_puestos():
     # Aplica la paginación a la consulta ordenada
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
-    return render_template('listar_puestos.html', pagination=pagination)
+    return render_template('puesto/listar_puestos.html', pagination=pagination)
 
-# Crear Puesto -----------------------------------------------------
-
+""" Crea un nuevo puesto. """
 @puesto_bp.route('/puestos/crear', methods=['GET', 'POST'])
 @permiso_requerido('crear_puesto')
 @login_required
 def crear_puesto():
-    """Crea un nuevo puesto."""
     if request.method == 'POST':
         tipo_puesto = request.form['tipo_puesto']
 
@@ -52,11 +50,11 @@ def crear_puesto():
             flash(f'Error al crear el puesto: {e}', 'danger')
             return redirect(url_for('puesto.crear_puesto'))
     
-    return render_template('crear_puesto.html'
+    return render_template('puesto/crear_puesto.html'
                            )
-# ----------------------------
 
-@puesto_bp.route('/puestos/editar/<int:id>', methods=['GET', 'POST'])
+""" Edita un puesto existente."""
+@puesto_bp.route('/editar/<int:id>', methods=['GET', 'POST'])
 @permiso_requerido('editar_puesto')
 @login_required
 def editar_puesto(id):
@@ -86,15 +84,13 @@ def editar_puesto(id):
             return redirect(url_for('puesto.editar_puesto', id=id, page=page))
 
     page = request.args.get('page', 1, type=int)
-    return render_template('editar_puesto.html', puesto=puesto_a_editar, page=page)
+    return render_template('puesto/editar_puesto.html', puesto=puesto_a_editar, page=page)
 
-# ----------------------------------------------------------
-
+""" Elimina un puesto existente."""
 @puesto_bp.route('/puestos/eliminar/<int:id>', methods=['POST'])
 @permiso_requerido('eliminar_puesto')
 @login_required
 def eliminar_puesto(id):
-    """Elimina un puesto existente."""
     puesto_a_eliminar = Puesto.query.get_or_404(id)
     db.session.delete(puesto_a_eliminar)
     

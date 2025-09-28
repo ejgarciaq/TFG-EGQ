@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Mi Historial de Acciones de Personal{% endblock %} 
+{% block content %}
+<div class="container-fluid">
+
+    <fieldset class="shadow border p-2 mb-0 rounded border-primary">
+        <legend class="float-none w-auto px-1 fs-3 text-center">Mi Historial de Acciones de Personal</legend>
+    
+        <div>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination">
+                        {% if pagination.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('accion_personal_bp.ver_historial_apu', page=pagination.prev_num) }}">Anterior</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Anterior</span>
+                        </li>
+                        {% endif %} 
+                        
+                        {% for page_num in pagination.iter_pages() %} 
+                        {% if page_num %} 
+                        {% if pagination.page == page_num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% else %}
+                        <li class="page-item">
+                            <a
+                                class="page-link"
+                                href="{{ url_for('accion_personal_bp.ver_historial_apu', page=page_num) }}">{{ page_num }}</a
+                            >
+                        </li>
+                        {% endif %} 
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %} 
+                        {% endfor %} 
+                        
+                        {% if pagination.has_next %}
+                        <li class="page-item">
+                            <a
+                                class="page-link"
+                                href="{{ url_for('accion_personal_bp.ver_historial_apu', page=pagination.next_num) }}"
+                                >Siguiente</a
+                            >
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Siguiente</span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            <div class="d-flex justify-content-end">
+                <a href="{{ url_for('accion_personal_bp.accion_personal') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Regresar</a>
+            </div>
+        </div>
+
+
+        <div class="row">
+            <div class="col-12">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Tipo de Acción</th>
+                                <th>Fecha de Solicitud</th>
+                                <th>Cantidad de Días</th>
+                                <th>Fecha de Inicio</th>
+                                <th>Fecha de Fin</th>
+                                <th>Estado</th>
+                                <th>Documento</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for accion in pagination.items %}
+                            <tr>
+                                <td>{{ accion.tipo_ap.nombre_tipo }}</td>
+                                <td>{{ accion.fecha_accion.strftime('%d-%m-%Y') }}</td>
+                                <td>
+                                    {{ accion.cantidad_dia if accion.cantidad_dia else 'N/A' }}
+                                </td>
+                                <td>
+                                    {{ accion.fecha_inicio.strftime('%d-%m-%Y') if accion.fecha_inicio else 'N/A' }}
+                                </td>
+                                <td>
+                                    {{ accion.fecha_fin.strftime('%d-%m-%Y') if accion.fecha_fin else 'N/A' }}
+                                </td>
+                                <td>
+                                    {% if accion.estado_ap == 1 %}
+                                    <span class="badge bg-warning text-dark">Pendiente</span>
+                                    {% elif accion.estado_ap == 2 %}
+                                    <span class="badge bg-success">Aprobada</span>
+                                    {% elif accion.estado_ap == 3 %}
+                                    <span class="badge bg-danger">Rechazada</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if accion.documento_adjunto %}
+                                    <a
+                                        href="{{ url_for('static', filename='uploads/' + accion.documento_adjunto) }}"
+                                        target="_blank"
+                                        class="btn btn-sm btn-info"
+                                        >Ver</a
+                                    >
+                                    {% else %} N/A {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('accion_personal_bp.ver_detalle_ap', ap_id=accion.id_accion) }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-eye"></i> Ver</a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center">
+                                    No hay acciones de personal registradas.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </fieldset>
+</div>
+{% endblock %}
