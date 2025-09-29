@@ -16,8 +16,8 @@
                         <input type="number" class="form-control" id="ano_aguinaldo" name="ano_aguinaldo" 
                             value="{{ ano_filtrado if ano_filtrado else current_year }}" required min="2000" max="{{ current_year + 5 }}">
                     </div>
-                    <button type="submit" class="btn btn-outline-primary"><i class="fas fa-search"></i> Generar Reporte</button>
-                    <a href="{{ url_for('auth.base') }}" class="btn btn-outline-secondary"><i class="fa fa-arrow-left"></i> Volver a Inicio</a>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Generar Reporte</button>
+                    <a href="{{ url_for('auth.base') }}" class="btn btn-secondary"><i class="fa fa-arrow-left"></i> Volver a Inicio</a>
                 </form>
            </fieldset>
         </div>
@@ -29,13 +29,13 @@
         <legend class="float-none w-auto px-1 fs-3 text-center">Resultados de Aguinaldos (Página {{ paginated_records.page }} de {{ paginated_records.pages }})</legend>
             
             <div class="mb-3 text-end">
-                <a href="{{ url_for('reportes_bp.exportar_aguinaldos', ano=ano_filtrado, formato='csv') }}" class="btn btn-outline-info me-2">
+                <a href="{{ url_for('reportes_bp.exportar_aguinaldos', ano=ano_filtrado, formato='csv') }}" class="btn btn-info me-2">
                     <i class="fas fa-file-csv"></i> Exportar CSV
                 </a>
-                <a href="{{ url_for('reportes_bp.exportar_aguinaldos', ano=ano_filtrado, formato='excel') }}" class="btn btn-outline-success me-2">
+                <a href="{{ url_for('reportes_bp.exportar_aguinaldos', ano=ano_filtrado, formato='excel') }}" class="btn btn-success me-2">
                     <i class="fas fa-file-excel"></i> Exportar Excel
                 </a>
-                <a href="{{ url_for('reportes_bp.exportar_aguinaldos', ano=ano_filtrado, formato='pdf') }}" class="btn btn-outline-danger">
+                <a href="{{ url_for('reportes_bp.exportar_aguinaldos', ano=ano_filtrado, formato='pdf') }}" class="btn btn-danger">
                     <i class="fas fa-file-pdf"></i> Exportar PDF
                 </a>
             </div>
