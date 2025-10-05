@@ -58,11 +58,32 @@
                 </a>
             </li>
 
+            <li class="nav-item dropdown {% if request.blueprint in ['reportes_bp'] %}active{% endif %}">
+                <a class="nav-link dropdown-toggle" href="#" id="dropdownMenuButton" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-chart-bar"></i> Reportes
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    <li>
+                        <a class="dropdown-item {% if request.endpoint == 'reportes_bp.mostrar_pagina_reporte' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_pagina_reporte') }}">Reportes Asistencia</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item {% if request.endpoint == 'reportes_bp.mostrar_pagina_reporte_nomina' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_pagina_reporte_nomina') }}">Reporte de Nómina</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item {% if request.endpoint == 'reportes_bp.mostrar_reporte_aguinaldos' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_reporte_aguinaldos') }}">Reporte de Aguinaldos</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item {% if request.endpoint == 'reportes_bp.mostrar_reporte_liquidaciones' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_reporte_liquidaciones') }}">Reporte de Liquidaciones</a>
+                    </li>
+
+                </ul>
+            </li>
+
             <hr class="border border-primary m-2">
             
             <li class="nav-item dropdown {% if request.blueprint in ['empleado', 'rol', 'puesto', 'feriado',] %}active{% endif %}">
                 <a class="nav-link dropdown-toggle" href="#" id="dropdownMenuButton" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                   <i class="fas fa-tools"></i> Administración
+                   <i class="fas fa-tools"></i> Mantenimiento
                 </a>
                 <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
                     <li>
@@ -87,27 +108,7 @@
             </li>
 
             <hr class="border border-primary m-2">
-            
-            <li class="nav-item dropdown {% if request.blueprint in ['reportes_bp'] %}active{% endif %}">
-                <a class="nav-link dropdown-toggle" href="#" id="dropdownMenuButton" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-chart-bar"></i> Reportes
-                </a>
-                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                    <li>
-                        <a class="dropdown-item {% if request.endpoint == 'reportes_bp.mostrar_pagina_reporte' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_pagina_reporte') }}">Reportes Asistencia</a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item {% if request.endpoint == 'reportes_bp.mostrar_pagina_reporte_nomina' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_pagina_reporte_nomina') }}">Reporte de Nómina</a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item {% if request.endpoint == 'reportes_bp.mostrar_reporte_aguinaldos' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_reporte_aguinaldos') }}">Reporte de Aguinaldos</a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item {% if request.endpoint == 'reportes_bp.mostrar_reporte_liquidaciones' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_reporte_liquidaciones') }}">Reporte de Liquidaciones</a>
-                    </li>
 
-                </ul>
-            </li>
         </ul>
 
         <ul class="nav flex-column mt-auto">
