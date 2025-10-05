@@ -64,7 +64,7 @@
                                 {% for liquidacion, empleado in liquidaciones %}
                                 <tr>
                                     <td>{{ empleado.cedula }}</td>
-                                    <td>{{ empleado.nombre }} {{ empleado.apellido1 }} {{ empleado.apellido2 }}</td>
+                                    <td>{{ empleado.nombre }} {{ empleado.apellido_primero }} {{ empleado.apellido_segundo }}</td>
                                     <td>{{ liquidacion.fecha_fin_contrato.strftime('%Y-%m-%d') }}</td>
                                     <td>{{ liquidacion.fecha_pago.strftime('%Y-%m-%d') }}</td>
                                     <td class="fw-bold">₡{{ "%.2f"|format(liquidacion.total_monto) }}</td>

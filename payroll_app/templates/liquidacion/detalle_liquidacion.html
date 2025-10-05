@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4">Detalle de Liquidación para {{ empleado.nombre }} {{ empleado.apellido1 }} {{ empleado.apellido2 }}</h2>
+    <h2 class="mb-4">Detalle de Liquidación para {{ empleado.nombre }} {{ empleado.apellido_primero }} {{ empleado.apellido_segundo }}</h2>
     <h5 class="text-muted">Cédula: {{ empleado.cedula }} - Fecha de Ingreso: {{ empleado.fecha_ingreso.strftime('%Y-%m-%d') }}</h5>
     <h5 class="text-muted">Fecha de Fin de Contrato Considerada: {{ fecha_fin_contrato.strftime('%Y-%m-%d') }}</h5>
 
@@ -43,7 +43,7 @@
                 <span>₡{{ "%.2f"|format(resultados.monto_aguinaldo) }}</span>
             </li>
             
-            {# 🌟 LÍNEA AGREGADA: Salario Pendiente 🌟 #}
+            {# LÍNEA AGREGADA: Salario Pendiente #}
             <li class="list-group-item d-flex justify-content-between align-items-center">
                 Monto por Salario Pendiente de Pago:
                 <span>₡{{ "%.2f"|format(resultados.monto_salario_pendiente) }}</span>

@@ -3,11 +3,11 @@
 {% block title %}Seleccionar Empleado para Liquidación{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2 class="mb-4">Seleccionar Empleado para Liquidación</h2>
+<div class="container">
     
+    <fieldset class="shadow border p-4 rounded border-primary">
+    <legend class="float-none w-auto px-1 fs-3 text-center">Cálculo de Liquidación</legend>
 
-    <div class="card p-4 shadow">
         <form method="POST" action="{{ url_for('liquidacion.buscar_empleado') }}">
             <div class="mb-3">
                 <label for="empleado_id" class="form-label">Empleado:</label>
@@ -24,6 +24,8 @@
             </div>
             <button type="submit" class="btn btn-primary "><i class="fa-solid fa-calculator"></i> Calcular Liquidación</button>
         </form>
-    </div>
+
+    </fieldset>
+
 </div>
 {% endblock %}

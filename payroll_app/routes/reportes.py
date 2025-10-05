@@ -542,7 +542,7 @@ def mostrar_reporte_aguinaldos():
         current_year=datetime.now().year,
         # Necesitas una lista de años para el filtro de selección
         anos_disponibles=range(datetime.now().year, 2020, -1),
-        tabla_aguinaldos_html=tabla_aguinaldos_html  # 🛑 CORRECCIÓN: Pasar la variable al template
+        tabla_aguinaldos_html=tabla_aguinaldos_html
     )
    
 """ Función de exportación para aguinaldos en varios formatos (CSV, Excel, PDF). """
@@ -696,7 +696,7 @@ def mostrar_reporte_liquidaciones():
 """ Función de exportación para liquidaciones en formato CSV (RNF-US-020) """
 @reportes_bp.route('/exportar_liquidaciones/<string:fecha_inicio>/<string:fecha_fin>')
 @login_required
-@permiso_requerido('administrador')
+@permiso_requerido('rp_liquidacion')
 def exportar_liquidaciones_csv(fecha_inicio, fecha_fin):
     try:
         fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
@@ -745,7 +745,7 @@ def exportar_liquidaciones_csv(fecha_inicio, fecha_fin):
     
 @reportes_bp.route('/exportar_liquidaciones/<string:fecha_inicio>/<string:fecha_fin>/<string:formato>')
 @login_required
-@permiso_requerido('administrador')
+@permiso_requerido('rp_liquidacion')
 def exportar_liquidaciones(fecha_inicio, fecha_fin, formato):
     try:
         fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()

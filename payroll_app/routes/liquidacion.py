@@ -5,7 +5,7 @@ from flask_login import login_required
 from sqlalchemy import func
 import logging
 from payroll_app import db
-from payroll_app.models import Empleado, Nomina, Liquidacion 
+from payroll_app.models import Empleado, Nomina, Liquidacion, Usuario 
 from payroll_app.routes.decorators import permiso_requerido 
 
 # Define tu Blueprint para el módulo de liquidación
@@ -227,6 +227,13 @@ def mostrar_calculo(empleado_id, fecha_fin):
     
     empleado = Empleado.query.get_or_404(empleado_id)
     fecha_fin_contrato = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+
+
+    try:
+        usuario = Usuario.query.get(empleado.Usuario_id_usuario)
+    except ArithmeticError:
+        usuario = None
+        logging.warning(f"No se pudo encontrar el objeto Usuario para el empleado {empleado_id}")
     
     # Ejecución del Cálculo
     try:
@@ -258,14 +265,18 @@ def mostrar_calculo(empleado_id, fecha_fin):
                     Empleado_id_empleado=empleado.id_empleado
                 )
                 db.session.add(nueva_liquidacion)
+
+                if usuario:
+                    usuario.estado_usuario = False
                 # Actualizar el estado del empleado
+                empleado.estado_usuario = False
                 empleado.estado_empleado = False
                 empleado.fecha_salida = fecha_fin_contrato
                 
                 db.session.commit()
                 flash('¡Éxito! Liquidación calculada y guardada en el historial. El estado del empleado ha sido actualizado.', 'success')
                 # Asumo que la ruta 'empleado.ver_perfil' existe y usa 'empleado_id'
-                return redirect(url_for('empleado.ver_perfil_empleado', empleado_id=empleado.id_empleado))
+                return redirect(url_for('liquidacion.buscar_empleado', empleado_id=empleado.id_empleado))
             else:
                 flash('Liquidación no guardada. El monto total es $0.00.', 'info')
                 
