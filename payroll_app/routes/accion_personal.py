@@ -102,7 +102,7 @@ def accion_personal():
                 
                 fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
                 fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
-            
+            #edson
                 if fecha_inicio > fecha_fin:
                     flash('La fecha de fin no puede ser anterior a la fecha de inicio.', 'danger')
                     return redirect(url_for('accion_personal_bp.accion_personal'))
@@ -110,13 +110,6 @@ def accion_personal():
             if cantidad_dia_str:
                 cantidad_dia = int(cantidad_dia_str)
             
-            if tipo_ap.nombre_tipo == 'vacaciones':
-                dias_diponibles = empleado.vacaciones_disponibles
-
-                if cantidad_dia > dias_diponibles:
-                    flash(f'No tienes suficientes días de vacaciones disponibles. Días disponibles: {dias_diponibles}. Días solicitados: {cantidad_dia}.', 'danger')
-                    return redirect(url_for('accion_personal_bp.accion_personal'))
-
             documento_adjunto = request.files.get('documento_adjunto')
             nombre_archivo = None
             
