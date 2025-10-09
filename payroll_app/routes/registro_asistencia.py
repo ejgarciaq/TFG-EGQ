@@ -186,10 +186,9 @@ def ver_asistencia():
 """ Acción para registrar la asistencia ------------------------------------------------"""
 @registro_asistencia_bp.route('/asistencia/registrar', methods=['POST'])
 @login_required 
-def registrar_asistencia(registro_id):
-    registro = RegistroAsistencia.query.get_or_404(registro_id)
-    empleado = Empleado.query.filter_by(Usuario_id_usuario=current_user.id_usuario).first()
+def registrar_asistencia():
 
+    empleado = Empleado.query.filter_by(Usuario_id_usuario=current_user.id_usuario).first()
 
     if not empleado:
         flash('Error de autenticación: No se encontró el empleado asociado a tu cuenta. Contacta al administrador.', 'danger')
