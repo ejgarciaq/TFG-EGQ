@@ -109,6 +109,13 @@ def accion_personal():
             
             if cantidad_dia_str:
                 cantidad_dia = int(cantidad_dia_str)
+            
+            if tipo_ap.nombre_tipo == 'vacaciones':
+                dias_diponibles = empleado.vacaciones_disponibles
+
+                if cantidad_dia > dias_diponibles:
+                    flash(f'No tienes suficientes días de vacaciones disponibles. Días disponibles: {dias_diponibles}. Días solicitados: {cantidad_dia}.', 'danger')
+                    return redirect(url_for('accion_personal_bp.accion_personal'))
 
             documento_adjunto = request.files.get('documento_adjunto')
             nombre_archivo = None
@@ -226,7 +233,6 @@ def acciones_administrativas():
     
     return render_template('accion_personal/historial_acciones.html', 
                            pagination=paginated_acciones)
-
 
 """ Ruta para aprobar una acción de personal """
 @accion_personal_bp.route('/aprobar_accion/<int:ap_id>', methods=['POST'])
