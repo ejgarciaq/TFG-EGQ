@@ -12,13 +12,49 @@ from payroll_app.routes.decorators import permiso_requerido
 """ Rutas y lógica para generación de reportes en varios formatos (HTML, CSV, Excel, PDF)."""
 reportes_bp = Blueprint('reportes_bp', __name__)
 
+
+# FUNCIÓN AUXILIAR PARA LA GENERACIÓN DE ARCHIVOS EN SEGUNDO PLANO
+def generate_file_in_thread(df_download, format, filename):
+    """
+    Genera el archivo CSV/Excel/PDF en un hilo separado 
+    y lo guarda en una ubicación temporal.
+    """
+    temp_dir = os.path.join(current_app.root_path, 'temp_downloads')
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+        
+    filepath = os.path.join(temp_dir, filename)
+
+    try:
+        if format == 'csv':
+            df_download.to_csv(filepath, index=False)
+        elif format == 'excel':
+            df_download.to_excel(filepath, index=False, engine='openpyxl')
+        elif format == 'pdf':
+            # Nota: Esto asume que tienes todo el código de weasyprint disponible
+            from weasyprint import HTML, CSS 
+            html_reporte_pdf = "..." # Reconstruye tu HTML para el PDF aquí
+            css_path = os.path.join(current_app.root_path, 'static', 'css', 'reportes.css')
+            HTML(string=html_reporte_pdf).write_pdf(filepath, stylesheets=[CSS(filename=css_path)])
+            
+        print(f"Archivo '{filename}' generado con éxito en: {filepath}")
+
+    except Exception as e:
+        print(f"Error en el hilo al generar el archivo {filename}: {e}")
+        # Aquí deberías manejar el error, quizás loggeándolo o notificando al usuario.
+
 """Renderiza la página del formulario para generar reportes."""
 @reportes_bp.route('/asistencia', methods=['GET'])
 @permiso_requerido('rp_asistencia')
 @login_required # Proteger esta ruta con login y roles si es necesario
 def mostrar_pagina_reporte():
     empleados = Empleado.query.all()
-    return render_template( 'reporte/rp_asistencia.html', empleados=empleados, empleado_id_seleccionado='todos', echa_inicio_seleccionada='', fecha_fin_seleccionada='' )
+    return render_template( 
+        'reporte/rp_asistencia.html',
+        empleados=empleados,
+        empleado_id_seleccionado='todos',
+        fecha_inicio_seleccionada='',
+        fecha_fin_seleccionada='' )
 
 """ Genera y descarga el reporte de asistencia en el formato solicitado."""
 @reportes_bp.route('/asistencia', methods=['GET', 'POST'])
@@ -28,19 +64,17 @@ def generar_reporte():
     
     empleados = Empleado.query.all()
     reporte_html = None
-    paginated_records = None
     
-    # Obtener los valores del formulario o de los parámetros de la URL
+    # --- 1. OBTENER PARÁMETROS ---
     empleado_id_seleccionado = request.form.get('empleado_id', request.args.get('empleado_id', 'todos'))
     fecha_inicio_str = request.form.get('fecha_inicio', request.args.get('fecha_inicio', ''))
     fecha_fin_str = request.form.get('fecha_fin', request.args.get('fecha_fin', ''))
-    descargar_formato = request.form.get('descargar', request.args.get('descargar', 'html'))
-    page = request.args.get('page', 1, type=int)
-
-    # Bandera para controlar si el reporte fue exitoso o si debe ir a render_template con error
-    reporte_exitoso = False
-
-    # --- Lógica principal para generar el reporte ---
+    descargar_formato = request.form.get('descargar', request.args.get('descargar', 'html')) 
+    
+    # Flag para saber si se intenta una descarga
+    is_download_request = descargar_formato in ['csv', 'excel', 'pdf']
+    
+    # --- 2. LÓGICA DE REPORTE ---
     if fecha_inicio_str and fecha_fin_str:
         try:
             fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
@@ -48,11 +82,8 @@ def generar_reporte():
 
             if fecha_inicio > fecha_fin:
                 flash('La fecha de inicio no puede ser posterior a la fecha de fin.', 'warning')
-                # NO REDIRIGIR: Deja que la función termine y renderice la plantilla con el mensaje.
-                # Establecer reporte_exitoso = False (ya está por defecto)
-            
             else:
-                # --- CONSTRUCCIÓN DE LA CONSULTA ---
+                # --- CONSTRUCCIÓN DE LA CONSULTA BASE (Se mantiene) ---
                 base_query = db.session.query(RegistroAsistencia).join(Empleado).filter(
                     RegistroAsistencia.fecha_registro.between(fecha_inicio, fecha_fin)
                 ).order_by(RegistroAsistencia.fecha_registro.asc(), Empleado.nombre.asc())
@@ -60,21 +91,11 @@ def generar_reporte():
                 if empleado_id_seleccionado != 'todos':
                     base_query = base_query.filter(RegistroAsistencia.Empleado_id_empleado == int(empleado_id_seleccionado))
 
-                # --- Lógica de descarga o visualización en HTML ---
-                if descargar_formato == 'html':
-                    registros_por_pagina = 10
-                    paginated_records = base_query.paginate(page=page, per_page=registros_por_pagina, error_out=False)
-                    registros = paginated_records.items
-                else: # Para CSV, Excel, PDF, queremos todos los registros
-                    registros = base_query.all()
+                # Obtener todos los registros de una vez
+                registros = base_query.all()
                 
-                if not registros:
-                    flash('No se encontraron registros de asistencia para los criterios de búsqueda.', 'info')
-                    # NO REDIRIGIR: Deja que la función termine y renderice la plantilla.
-                    # Establecer reporte_exitoso = False (ya está por defecto)
-                
-                else:
-                    # Preparar los datos para Pandas
+                if registros:
+                    # Generación de la DATA (necesaria para la vista y la descarga)
                     data = [{
                         'Empleado': registro.empleado.nombre_completo if registro.empleado else 'N/A',
                         'Fecha': registro.fecha_registro,
@@ -87,86 +108,73 @@ def generar_reporte():
                         'Horas Feriado': f"{registro.hora_feriado:.2f}" if registro.hora_feriado is not None else '0.00',
                         'Aprobado': 'Sí' if registro.aprobacion_registro else 'No',
                     } for registro in registros]
-                    df = pd.DataFrame(data)
-
-                    # Lógica de descarga y generación de HTML
-                    if descargar_formato == 'html':
-                        reporte_html = df.to_html(classes='table table-striped table-bordered table-hover mt-3', index=False)
-                        reporte_exitoso = True # ¡Reporte HTML generado con éxito!
+                    df_download = pd.DataFrame(data)
                     
-                    elif descargar_formato == 'csv':
-                        # ... (Lógica de descarga CSV, ya está correcta con return send_file) ...
+                    # Generamos el HTML para la vista (solo si NO es una solicitud de descarga)
+                    if not is_download_request:
+                        reporte_html = df_download.to_html(classes='table table-striped table-bordered table-hover mt-3', index=False)
+                    
+                    # --- Lógica de descarga (SÍNCRONA) ---
+                    if descargar_formato == 'csv':
                         csv_buffer = io.StringIO()
-                        df.to_csv(csv_buffer, index=False)
+                        df_download.to_csv(csv_buffer, index=False)
                         csv_buffer.seek(0)
-                        return send_file(
-                            io.BytesIO(csv_buffer.getvalue().encode('utf-8')),
-                            mimetype='text/csv',
-                            as_attachment=True,
-                            download_name=f'reporte_asistencia_{fecha_inicio_str}_a_{fecha_fin_str}.csv'
-                        )
+                        # 🛑 Retorna el archivo directamente 🛑
+                        return send_file(io.BytesIO(csv_buffer.getvalue().encode('utf-8')), 
+                                         mimetype='text/csv', 
+                                         as_attachment=True, 
+                                         download_name=f'reporte_asistencia_{fecha_inicio_str}_a_{fecha_fin_str}.csv')
                     
                     elif descargar_formato == 'excel':
-                        # ... (Lógica de descarga Excel, ya está correcta con return send_file) ...
                         excel_buffer = io.BytesIO()
-                        df.to_excel(excel_buffer, index=False, engine='openpyxl')
+                        df_download.to_excel(excel_buffer, index=False, engine='openpyxl')
                         excel_buffer.seek(0)
-                        return send_file(
-                            excel_buffer,
-                            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                            as_attachment=True,
-                            download_name=f'reporte_asistencia_{fecha_inicio_str}_a_{fecha_fin_str}.xlsx'
-                        )
+                        # 🛑 Retorna el archivo directamente 🛑
+                        return send_file(excel_buffer, 
+                                         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+                                         as_attachment=True, 
+                                         download_name=f'reporte_asistencia_{fecha_inicio_str}_a_{fecha_fin_str}.xlsx')
 
                     elif descargar_formato == 'pdf':
-                        # ... (Lógica de descarga PDF, ya está correcta con return send_file) ...
-                        logo_url = url_for('static', filename='img/logo.webp', _external=True)
-                        html_reporte = f"""
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <meta charset="UTF-8">
-                            <title>Reporte de Asistencia</title>
-                            <link rel="stylesheet" href="{url_for('static', filename='css/reportes.css')}">
-                        </head>
-                        <body>
-                            <div class="logo-container">
-                                <img src="{logo_url}" alt="Logo de la empresa">
-                            </div>
-                            <h1>Reporte de Asistencia</h1>
-                            {df.to_html(classes='table table-striped table-bordered', index=False)}
-                        </body>
-                        </html>
-                        """
-                        # NOTA: Asegúrate de que 'reporte_asistencia.css' exista en tu carpeta static/css
-                        css_path = os.path.join(current_app.root_path, 'static', 'css', 'reportes.css')
-                        pdf_buffer = io.BytesIO()
-                        
-                        # Asumo que tienes importado HTML y CSS de weasyprint
                         from weasyprint import HTML, CSS 
                         
-                        HTML(string=html_reporte).write_pdf(
-                            pdf_buffer, 
-                            stylesheets=[CSS(filename=css_path)]
-                        )
+                        empleado_obj = Empleado.query.get(int(empleado_id_seleccionado)) if empleado_id_seleccionado.isdigit() else None
+                        empleado_info = empleado_obj.nombre_completo if empleado_obj else 'Todos'
+                        logo_url = url_for('static', filename='img/logo.webp', _external=True)
+
+                        html_reporte_pdf = f"""<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reporte de Asistencia</title></head><body>
+                                            <div class="header-pdf" style="text-align: center; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
+                                                <img src="{logo_url}" width="100" style="float: left;">
+                                                <h1 style="margin-top: 0;">Reporte de Asistencia</h1>
+                                                <p><strong>Desde:</strong> {fecha_inicio_str} &nbsp;&nbsp; <strong>Hasta:</strong> {fecha_fin_str}</p>
+                                                <p><strong>Empleado:</strong> {empleado_info}</p>
+                                            </div>
+                                            {df_download.to_html(classes='table table-striped table-bordered', index=False)}
+                                            </body></html>"""
+                        
+                        css_path = os.path.join(current_app.root_path, 'static', 'css', 'reportes.css')
+                        pdf_buffer = io.BytesIO()
+                        HTML(string=html_reporte_pdf).write_pdf(pdf_buffer, stylesheets=[CSS(filename=css_path)])
                         pdf_buffer.seek(0)
-                        return send_file(
-                            pdf_buffer,
-                            mimetype='application/pdf',
-                            as_attachment=True,
-                            download_name=f'reporte_asistencia_{fecha_inicio_str}_a_{fecha_fin_str}.pdf'
-                        )
+                        # 🛑 Retorna el archivo directamente 🛑
+                        return send_file(pdf_buffer, 
+                                         mimetype='application/pdf', 
+                                         as_attachment=True, 
+                                         download_name=f'reporte_asistencia_{fecha_inicio_str}_a_{fecha_fin_str}.pdf')
+                    
+                else:
+                    # No hay registros en total
+                    flash('No se encontraron registros de asistencia para los criterios de búsqueda.', 'info')
+                    reporte_html = None 
+                    
+                # Si es una solicitud de descarga, pero no se pudo generar (ej. error interno), 
+                # la función simplemente continúa para renderizar la página con el mensaje de error.
 
-
-        except ValueError:
-            flash('Formato de fecha inválido. Por favor, seleccione fechas del calendario.', 'danger')
-        
         except Exception as e:
             print(f"Error al generar el reporte: {e}")
             flash('Ocurrió un error técnico al generar el reporte. Por favor, inténtelo de nuevo.', 'danger')
             
-    # Renderiza la página final con el reporte HTML o solo el formulario
-    # Esta es la ruta de salida única para todos los render_template
+    # --- 3. RENDERIZADO FINAL ---
     return render_template(
         'reporte/rp_asistencia.html',
         empleados=empleados,
@@ -174,8 +182,11 @@ def generar_reporte():
         fecha_inicio_seleccionada=fecha_inicio_str,
         fecha_fin_seleccionada=fecha_fin_str,
         reporte_html=reporte_html,
-        paginated_records=paginated_records
     )
+
+# ====================================================================
+# --- REPORTE DE NOMINA ---
+# ====================================================================
 
 """ Rutas y lógica para generación de reportes de nómina en varios formatos (HTML, CSV, Excel, PDF)."""
 @reportes_bp.route('/nomina', methods=['GET'])

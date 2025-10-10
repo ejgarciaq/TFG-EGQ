@@ -10,6 +10,8 @@
 
             <fieldset class="shadow border p-3 rounded border-primary">
                 <legend class="float-none w-auto px-1 fs-3 text-center">Reporte de Asistencia</legend>
+                    
+                    {# El formulario sigue enviando los filtros por POST #}
                     <form method="POST" action="{{ url_for('reportes_bp.generar_reporte') }}">
                         <div class="row">
                             <div class="col-md-4 mb-1">
@@ -17,8 +19,9 @@
 
                                 <select class="form-control select2" id="empleado_id" name="empleado_id" required>
                                     <option value="todos" {% if empleado_id_seleccionado == 'todos' %}selected{% endif %}>Todos los empleados</option>
+                                    {# Asegúrate de que empleado_id_seleccionado es el tipo correcto (int/str) para la comparación #}
                                     {% for empleado in empleados %}
-                                        <option value="{{ empleado.id_empleado }}" {% if empleado_id_seleccionado|int == empleado.id_empleado %}selected{% endif %}>{{ empleado.nombre_completo }}</option>
+                                        <option value="{{ empleado.id_empleado }}" {% if empleado_id_seleccionado|string == empleado.id_empleado|string %}selected{% endif %}>{{ empleado.nombre_completo }}</option>
                                     {% endfor %}
                                 </select>
 
@@ -44,57 +47,37 @@
                     </form>
             </fieldset>
 
-        {% if reporte_html %}
+        
+        {# 🛑 BLOQUE DE RESULTADOS CON SCROLL 🛑 #}
+        {# report_html solo existe si hay registros filtrados #}
+        {% if reporte_html %} 
 
-            <div class="container-fluid mt-0">
+            <div class="container-fluid mt-4">
                 
                 <fieldset class="shadow border p-3 rounded border-primary">
                     <legend class="float-none w-auto px-1 fs-3 text-center">Resultados de Asistencia</legend>
-                        {% if paginated_records and paginated_records.pages > 1 %}
-                            {# Crea un diccionario con los parámetros de la URL para la paginación #}
-                            {% set query_params = {
-                                'empleado_id': empleado_id_seleccionado,
-                                'fecha_inicio': fecha_inicio_seleccionada,
-                                'fecha_fin': fecha_fin_seleccionada,
-                                'descargar': 'html'
-                            } %}
-                            {# El formato html es el que se usa para mostrar en la web #}
-
-                            <nav aria-label="Navegación de páginas" class="d-flex justify-content-left">
-                                <ul class="pagination">
-                                    <li class="page-item {% if not paginated_records.has_prev %}disabled{% endif %}">
-                                        <a class="page-link" href="{{ url_for('reportes_bp.generar_reporte', page=paginated_records.prev_num, **query_params) }}" tabindex="-1" aria-disabled="true">Anterior</a>
-                                    </li>
-                                    
-                                    {% for p in paginated_records.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
-                                        {% if p %}
-                                            <li class="page-item {% if p == paginated_records.page %}active{% endif %}">
-                                                <a class="page-link" href="{{ url_for('reportes_bp.generar_reporte', page=p, **query_params) }}">{{ p }}</a>
-                                            </li>
-                                        {% else %}
-                                            <li class="page-item disabled"><a class="page-link">...</a></li>
-                                        {% endif %}
-                                    {% endfor %}
-                                    
-                                    <li class="page-item {% if not paginated_records.has_next %}disabled{% endif %}">
-                                        <a class="page-link" href="{{ url_for('reportes_bp.generar_reporte', page=paginated_records.next_num, **query_params) }}">Siguiente</a>
-                                    </li>
-                                </ul>
-                            </nav>
-
-                        <div class="table-responsive mt-4">
+                        
+                    {# CLAVE 1: table-responsive (Bootstrap) para el SCROLL HORIZONTAL (LATERAL) #}
+                    <div class="table-responsive">
+                        
+                        {# CLAVE 2: Estilo inline para el SCROLL VERTICAL FIJO (max-height) #}
+                        <div style="max-height: 500px; overflow-y: auto;">
+                            
+                            {# Muestra la tabla generada por Python/Pandas #}
                             {{ reporte_html | safe }}
+                            
                         </div>
+                        
+                    </div>
 
-                        {% endif %}
                 </fieldset>
-
-
             </div>
-        </div>
+            
+        {# Muestra este mensaje solo si se intentó filtrar (hay fechas) pero no hubo resultados #}
+        {% elif fecha_inicio_seleccionada and fecha_fin_seleccionada %}
+            <div class="alert alert-info mt-4">No se encontraron registros de asistencia para los criterios de búsqueda.</div>
+        {% endif %}
+
     </div>
 </div>
-
-{% endif %}
-
-{% endblock %}}
+{% endblock %}

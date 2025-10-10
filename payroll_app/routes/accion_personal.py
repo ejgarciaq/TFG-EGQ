@@ -175,7 +175,7 @@ def accion_personal():
             tipos_ap = Tipo_AP.query.all()
             empleados_para_form = Empleado.query.all()
         else:
-            allowed_types = ['Incapacidad', 'Vacaciones', 'Permiso c/ Goce de Salario', 'Permiso s/ Goce de Salario', 'Renuncia']
+            allowed_types = ['Incapacidad', 'Vacaciones']
             tipos_ap = Tipo_AP.query.filter(Tipo_AP.nombre_tipo.in_(allowed_types)).all()
             empleados_para_form = [current_user.empleado] if current_user.empleado else []
         
@@ -186,6 +186,10 @@ def accion_personal():
                                tipos_ap=tipos_ap, 
                                dias_feriados=dias_feriados,
                                fecha_accion_actual=datetime.utcnow().date())
+
+
+
+
 
 """ Ruta para ver el historial de acciones de personal del usuario actual """
 @accion_personal_bp.route('/ver_historial', methods=['GET'])
