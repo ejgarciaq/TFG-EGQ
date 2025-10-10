@@ -50,11 +50,13 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="fecha_inicio" class="form-label">Fecha de Inicio</label>
-                        <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio">
+                        <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required
+                            min="{{ fecha_minima }}"> 
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="fecha_fin" class="form-label">Fecha de Fin</label>
-                        <input type="date" class="form-control" id="fecha_fin" name="fecha_fin">
+                        <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required
+                            min="{{ fecha_minima }}">
                     </div>
                 </div>
             </div>
@@ -63,11 +65,13 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="fecha_inicio_inc" class="form-label">Fecha de Inicio</label>
-                        <input type="date" class="form-control" id="fecha_inicio_inc" name="fecha_inicio_inc">
+                        <input type="date" class="form-control" id="fecha_inicio_inc" name="fecha_inicio_inc" required
+                            min="{{ fecha_minima }}"> 
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="fecha_fin_inc" class="form-label">Fecha de Fin</label>
-                        <input type="date" class="form-control" id="fecha_fin_inc" name="fecha_fin_inc">
+                        <input type="date" class="form-control" id="fecha_fin_inc" name="fecha_fin_inc" required
+                            min="{{ fecha_minima }}">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="cantidad_dia_inc" class="form-label">Cantidad de Días</label>
@@ -85,7 +89,9 @@
                 <input type="file" class="form-control" id="documento_adjunto" name="documento_adjunto">
             </div>
 
-            <button type="submit" class="btn btn-primary "><i class="fa fa-file-invoice"></i> Registrar Acción</button>
+            <button type="submit" class="btn btn-primary" id="btn_registrar_accion">
+                <i class="fa fa-file-invoice"></i> Registrar Acción
+            </button>
             <a href="{{ url_for('accion_personal_bp.ver_historial_apu') }}" class="btn btn-outline-primary">
                 <i class="fa-solid fa-clock-rotate-left"></i> Ver mi Historial
             </a>
@@ -94,4 +100,5 @@
     </fieldset>
 
 </div>
+
 {% endblock %}

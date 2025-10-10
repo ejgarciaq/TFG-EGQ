@@ -85,6 +85,7 @@ def accion_personal():
             cantidad_dia = None
             cantidad_dia_str = None 
             
+            # Lógica de Extracción de Datos de Fecha/Días
             if tipo_ap.nombre_tipo in ['Vacaciones', 'Permiso c/ Goce de Salario', 'Permiso s/ Goce de Salario']:
                 fecha_inicio_str = request.form.get('fecha_inicio')
                 fecha_fin_str = request.form.get('fecha_fin')
@@ -95,7 +96,8 @@ def accion_personal():
                 fecha_fin_str = request.form.get('fecha_fin_inc')
                 cantidad_dia_str = request.form.get('cantidad_dia_inc')
             
-            if tipo_ap.nombre_tipo in ['Vacaciones', 'Incapacidad', 'Permiso c/ Goce de Salario']:
+            # Conversión de fechas y validación básica de fechas
+            if tipo_ap.nombre_tipo in ['Vacaciones', 'Incapacidad', 'Permiso c/ Goce de Salario', 'Permiso s/ Goce de Salario']:
                 if not fecha_inicio_str or not fecha_fin_str:
                     flash('Las fechas de inicio y fin son obligatorias para este tipo de acción.', 'danger')
                     return redirect(url_for('accion_personal_bp.accion_personal'))
@@ -110,6 +112,19 @@ def accion_personal():
             if cantidad_dia_str:
                 cantidad_dia = int(cantidad_dia_str)
             
+            # 🛑 VALIDACIÓN CLAVE DE VACACIONES 🛑
+            if tipo_ap.nombre_tipo == 'Vacaciones':
+                # Asegura que cantidad_dia no sea None si estamos en Vacaciones (debe ser calculado por JS o tener un valor)
+                if cantidad_dia is None or cantidad_dia <= 0:
+                    flash('Error: La cantidad de días de vacaciones solicitados es inválida.', 'danger')
+                    return redirect(url_for('accion_personal_bp.accion_personal'))
+                
+                # Valida que el saldo disponible no sea menor a lo solicitado
+                if empleado.vacaciones_disponibles is None or empleado.vacaciones_disponibles < cantidad_dia:
+                    flash('Error: Los días solicitados exceden el saldo de vacaciones disponible.', 'danger')
+                    return redirect(url_for('accion_personal_bp.accion_personal'))
+
+            # --- Manejo de Archivos ---
             documento_adjunto = request.files.get('documento_adjunto')
             nombre_archivo = None
             
@@ -134,6 +149,7 @@ def accion_personal():
                 ruta_completa = os.path.join(upload_folder, nombre_archivo)
                 documento_adjunto.save(ruta_completa)
             
+            # --- Creación de Acción y Commit ---
             nueva_accion = Accion_Personal(
                 Empleado_id_empleado=empleado_id,
                 Tipo_Ap_id_tipo_ap=tipo_ap_id,
@@ -149,6 +165,7 @@ def accion_personal():
             db.session.add(nueva_accion)
             db.session.commit()
             
+            # --- Envío de Correos ---
             correo_admin = 'edson.garcia.cr@outlook.com'
             asunto_admin = f'Nueva Solicitud de {tipo_ap.nombre_tipo} Pendiente'
             cuerpo_admin = f'Una nueva solicitud de {tipo_ap.nombre_tipo} de {empleado.nombre_completo} ha sido enviada. Por favor, revísela.'
@@ -169,6 +186,7 @@ def accion_personal():
             return redirect(url_for('accion_personal_bp.accion_personal'))
     
     else: 
+        # --- Lógica del Método GET (Preparación de datos para el template) ---
         is_admin = current_user.rol.tipo_rol == 'administrador'
         
         if is_admin:
@@ -180,16 +198,15 @@ def accion_personal():
             empleados_para_form = [current_user.empleado] if current_user.empleado else []
         
         dias_feriados = [f.fecha_feriado.strftime('%Y-%m-%d') for f in Feriado.query.all()]
+
+        hoy_formato_min = datetime.utcnow().date().strftime('%Y-%m-%d')
         
         return render_template('accion_personal/accion_personal.html', 
-                               empleados=empleados_para_form, 
-                               tipos_ap=tipos_ap, 
-                               dias_feriados=dias_feriados,
-                               fecha_accion_actual=datetime.utcnow().date())
-
-
-
-
+                                empleados=empleados_para_form, 
+                                tipos_ap=tipos_ap, 
+                                dias_feriados=dias_feriados,
+                                fecha_minima=hoy_formato_min, 
+                                fecha_accion_actual=datetime.utcnow().date())
 
 """ Ruta para ver el historial de acciones de personal del usuario actual """
 @accion_personal_bp.route('/ver_historial', methods=['GET'])
