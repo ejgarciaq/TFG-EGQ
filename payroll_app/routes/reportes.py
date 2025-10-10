@@ -143,20 +143,25 @@ def generar_reporte():
                         logo_url = url_for('static', filename='img/logo.webp', _external=True)
 
                         html_reporte_pdf = f"""<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reporte de Asistencia</title></head><body>
-                                            <div class="header-pdf" style="text-align: center; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
-                                                <img src="{logo_url}" width="100" style="float: left;">
-                                                <h1 style="margin-top: 0;">Reporte de Asistencia</h1>
-                                                <p><strong>Desde:</strong> {fecha_inicio_str} &nbsp;&nbsp; <strong>Hasta:</strong> {fecha_fin_str}</p>
-                                                <p><strong>Empleado:</strong> {empleado_info}</p>
-                                            </div>
-                                            {df_download.to_html(classes='table table-striped table-bordered', index=False)}
-                                            </body></html>"""
+                                                
+                                                <div class="logo-container">
+                                                    <img src="{logo_url}">
+                                                </div>
+
+                                                <div class="header-content-wrapper">
+                                                    <h1>Reporte de Asistencia</h1>
+                                                    <p><strong>Desde:</strong> {fecha_inicio_str} &nbsp;&nbsp; <strong>Hasta:</strong> {fecha_fin_str}</p>
+                                                    <p><strong>Empleado:</strong> {empleado_info}</p>
+                                                </div>
+                                                
+                                                {df_download.to_html(classes='table table-striped table-bordered', index=False)}
+                                                </body></html>"""
                         
                         css_path = os.path.join(current_app.root_path, 'static', 'css', 'reportes.css')
                         pdf_buffer = io.BytesIO()
                         HTML(string=html_reporte_pdf).write_pdf(pdf_buffer, stylesheets=[CSS(filename=css_path)])
                         pdf_buffer.seek(0)
-                        # 🛑 Retorna el archivo directamente 🛑
+                        #  Retorna el archivo directamente 
                         return send_file(pdf_buffer, 
                                          mimetype='application/pdf', 
                                          as_attachment=True, 
