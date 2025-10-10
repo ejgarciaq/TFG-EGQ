@@ -48,6 +48,8 @@ TRAMOS_ISR = [
     {'limite': float('inf'), 'porcentaje': 0.25}
 ]
 
+PER_PAGE = 10 # Número de registros por página 
+
 
 """ Rutas y lógica para el módulo de Registro de Asistencia"""
 @registro_asistencia_bp.route('/procesar_aprobacion', methods=['POST'])
@@ -203,7 +205,7 @@ def registrar_asistencia():
     try:
         # --- Lógica para 'entrada' ---
         if accion == 'entrada':
-            # Buscar un registro incompleto del día actual (salida_final is NULL)
+            # ... (Toda la lógica de 'entrada' se mantiene igual ya que no usa los campos de almuerzo) ...
             registro_incompleto_hoy = RegistroAsistencia.query.filter(
                 RegistroAsistencia.Empleado_id_empleado == empleado.id_empleado,
                 RegistroAsistencia.fecha_registro == fecha_registro,
@@ -214,7 +216,6 @@ def registrar_asistencia():
                 flash('Ya tienes una jornada activa para hoy. Si necesitas marcar una pausa o finalizar, usa el botón correspondiente.', 'warning')
                 return redirect(url_for('registro_asistencia.ver_asistencia'))
 
-            # Buscar un registro incompleto de un día anterior
             registro_incompleto_anterior = RegistroAsistencia.query.filter(
                 RegistroAsistencia.Empleado_id_empleado == empleado.id_empleado,
                 RegistroAsistencia.fecha_registro < fecha_registro,
@@ -223,7 +224,6 @@ def registrar_asistencia():
             if registro_incompleto_anterior:
                 flash(f'Advertencia: Tienes una jornada sin finalizar del día {registro_incompleto_anterior.fecha_registro.strftime("%d/%m/%Y")}. Por favor, contacta al administrador para resolverlo. Registrando tu entrada de hoy.', 'warning')
             
-            # Buscar si ya se completó una jornada hoy
             registro_finalizado_hoy = RegistroAsistencia.query.filter(
                 RegistroAsistencia.Empleado_id_empleado == empleado.id_empleado,
                 RegistroAsistencia.fecha_registro == fecha_registro,
@@ -241,10 +241,10 @@ def registrar_asistencia():
                 fecha_registro=fecha_registro,
                 hora_entrada=hora_registro,
                 Feriado_id_feriado=feriado_id,
-                aprobacion_registro=False, # Por defecto requiere aprobación si no tiene lógica compleja
+                aprobacion_registro=False,
                 hora_entrada_almuerzo=None,
                 hora_salida_almuerzo=None,
-                total_horas=0.0, # Inicializar para evitar None en futuros cálculos
+                total_horas=0.0,
                 hora_extra=0.0,
                 hora_feriado=0.0,
                 monto_pago=0.0
@@ -253,46 +253,51 @@ def registrar_asistencia():
             db.session.commit()
             flash('¡Entrada registrada exitosamente! Tu jornada ha comenzado.', 'success')
 
-        # --- Lógica para 'salida_almuerzo' ---
+        # --- Lógica para 'salida_almuerzo' (INICIO de la pausa) ---
         elif accion == 'salida_almuerzo':
             registro_activo = RegistroAsistencia.query.filter(
                 RegistroAsistencia.Empleado_id_empleado == empleado.id_empleado,
                 RegistroAsistencia.fecha_registro == fecha_registro,
                 RegistroAsistencia.hora_entrada.isnot(None),
                 RegistroAsistencia.hora_salida.is_(None),
-                RegistroAsistencia.hora_entrada_almuerzo.is_(None) # No debe haber marcado ya la salida al almuerzo
+                RegistroAsistencia.hora_salida_almuerzo.is_(None) # <-- Usar hora_salida_almuerzo (INICIO de pausa)
             ).first()
 
             if registro_activo:
                 dt_entrada = datetime.combine(registro_activo.fecha_registro, registro_activo.hora_entrada)
-                if ahora - dt_entrada < MIN_TIEMPO_ENTRE_MARCAS: # Evitar marcas instantáneas
+                if ahora - dt_entrada < MIN_TIEMPO_ENTRE_MARCAS:
                     flash(f'No puedes marcar la salida al almuerzo tan pronto después de la entrada (mínimo {int(MIN_TIEMPO_ENTRE_MARCAS.total_seconds() / 60)} minuto).', 'warning')
                     return redirect(url_for('registro_asistencia.ver_asistencia'))
 
-                registro_activo.hora_entrada_almuerzo = hora_registro
+                # 🛑 CORRECCIÓN 1: Asigna la hora de SALIDA (inicio) al campo hora_salida_almuerzo de la DB.
+                registro_activo.hora_salida_almuerzo = hora_registro
                 db.session.commit()
                 flash('¡Salida para el almuerzo registrada!', 'info')
             else:
                 flash('No puedes marcar la salida al almuerzo. Asegúrate de haber iniciado tu jornada y no haber marcado ya el almuerzo.', 'warning')
 
-        # --- Lógica para 'regreso_almuerzo' ---
+        # --- Lógica para 'regreso_almuerzo' (FIN de la pausa) ---
         elif accion == 'regreso_almuerzo':
             registro_activo = RegistroAsistencia.query.filter(
                 RegistroAsistencia.Empleado_id_empleado == empleado.id_empleado,
                 RegistroAsistencia.fecha_registro == fecha_registro,
                 RegistroAsistencia.hora_entrada.isnot(None),
                 RegistroAsistencia.hora_salida.is_(None),
-                RegistroAsistencia.hora_entrada_almuerzo.isnot(None), # Debe haber marcado salida al almuerzo
-                RegistroAsistencia.hora_salida_almuerzo.is_(None)      # No debe haber marcado ya el regreso
+                RegistroAsistencia.hora_salida_almuerzo.isnot(None),  # <-- Debe haber marcado salida (INICIO)
+                RegistroAsistencia.hora_entrada_almuerzo.is_(None)    # <-- No debe haber marcado ya el regreso (FIN)
             ).first()
 
             if registro_activo:
-                dt_entrada_almuerzo = datetime.combine(registro_activo.fecha_registro, registro_activo.hora_entrada_almuerzo)
-                if ahora < dt_entrada_almuerzo + MIN_TIEMPO_ENTRE_MARCAS: # Evitar marcas instantáneas
+                # Usamos la hora de SALIDA al almuerzo (INICIO de pausa) para la validación de tiempo mínimo
+                dt_salida_almuerzo = datetime.combine(registro_activo.fecha_registro, registro_activo.hora_salida_almuerzo)
+                
+                # Usar MIN_TIEMPO_ENTRE_MARCAS como duración mínima del almuerzo
+                if ahora < dt_salida_almuerzo + MIN_TIEMPO_ENTRE_MARCAS:
                     flash(f'La hora de regreso del almuerzo no puede ser anterior o demasiado cercana a la hora de salida (mínimo {int(MIN_TIEMPO_ENTRE_MARCAS.total_seconds() / 60)} minuto).', 'warning')
                     return redirect(url_for('registro_asistencia.ver_asistencia'))
 
-                registro_activo.hora_salida_almuerzo = hora_registro
+                # 🛑 CORRECCIÓN 2: Asigna la hora de REGRESO (fin) al campo hora_entrada_almuerzo de la DB.
+                registro_activo.hora_entrada_almuerzo = hora_registro
                 db.session.commit()
                 flash('¡Regreso del almuerzo registrado!', 'info')
             else:
@@ -300,7 +305,7 @@ def registrar_asistencia():
 
         # --- Lógica para 'salida_final' ---
         elif accion == 'salida_final':
-            # Buscar el registro activo (sin hora_salida) para hoy o ayer (jornadas nocturnas)
+            # ... (Lógica de búsqueda y validación inicial se mantiene igual) ...
             registro_activo = RegistroAsistencia.query.filter(
                 RegistroAsistencia.Empleado_id_empleado == empleado.id_empleado,
                 RegistroAsistencia.hora_salida.is_(None),
@@ -311,11 +316,10 @@ def registrar_asistencia():
                 flash('No hay una entrada de jornada activa para registrar la salida. Por favor, asegúrate de haber marcado tu entrada.', 'warning')
                 return redirect(url_for('registro_asistencia.ver_asistencia'))
 
-            # Validación de tiempo mínimo de jornada
+            # ... (Validación de duración mínima de jornada y asignación de hora_salida se mantienen igual) ...
             dt_entrada = datetime.combine(registro_activo.fecha_registro, registro_activo.hora_entrada)
             dt_salida_actual_temp = datetime.combine(fecha_registro, hora_registro)
             
-            # Ajustar dt_salida_actual_temp si es anterior a dt_entrada (implica jornada que pasó la medianoche)
             if dt_salida_actual_temp < dt_entrada:
                 dt_salida_actual_temp += timedelta(days=1)
             
@@ -324,7 +328,8 @@ def registrar_asistencia():
                 return redirect(url_for('registro_asistencia.ver_asistencia'))
 
             # Validación de regreso de almuerzo (si marcó salida a almuerzo)
-            if registro_activo.hora_entrada_almuerzo and not registro_activo.hora_salida_almuerzo:
+            # Debe haber marcado INICIO de pausa (hora_salida_almuerzo) pero no FIN de pausa (hora_entrada_almuerzo)
+            if registro_activo.hora_salida_almuerzo and not registro_activo.hora_entrada_almuerzo:
                 flash('Debes registrar el regreso del almuerzo antes de finalizar la jornada.', 'warning')
                 return redirect(url_for('registro_asistencia.ver_asistencia'))
 
@@ -332,40 +337,43 @@ def registrar_asistencia():
 
             # --- CÁLCULO DE TIEMPOS DE JORNADA ---
             dt_entrada = datetime.combine(registro_activo.fecha_registro, registro_activo.hora_entrada)
-            dt_salida = datetime.combine(fecha_registro, hora_registro) # La hora de salida final puede ser del día siguiente
-            if dt_salida < dt_entrada: # Si la salida es antes de la entrada (el mismo día), asume que es al día siguiente
+            dt_salida = datetime.combine(fecha_registro, hora_registro)
+            if dt_salida < dt_entrada:
                 dt_salida += timedelta(days=1)
 
             total_time_bruto = dt_salida - dt_entrada
 
             pausa_real_almuerzo = timedelta(minutes=0)
+            
+            # Hora_salida_almuerzo es el INICIO de pausa, hora_entrada_almuerzo es el FIN de pausa
             if registro_activo.hora_entrada_almuerzo and registro_activo.hora_salida_almuerzo:
-                dt_entrada_almuerzo = datetime.combine(registro_activo.fecha_registro, registro_activo.hora_entrada_almuerzo)
-                dt_salida_almuerzo = datetime.combine(registro_activo.fecha_registro, registro_activo.hora_salida_almuerzo)
+                dt_regreso_almuerzo = datetime.combine(registro_activo.fecha_registro, registro_activo.hora_entrada_almuerzo) # FIN
+                dt_salida_almuerzo = datetime.combine(registro_activo.fecha_registro, registro_activo.hora_salida_almuerzo)   # INICIO
                 
-                # Ajuste si el almuerzo pasó la medianoche (poco común, pero por si acaso)
-                if dt_salida_almuerzo < dt_entrada_almuerzo:
-                    dt_salida_almuerzo += timedelta(days=1)
+                # Ajuste si el almuerzo pasó la medianoche
+                if dt_regreso_almuerzo < dt_salida_almuerzo:
+                    dt_regreso_almuerzo += timedelta(days=1)
                 
-                pausa_real_almuerzo = dt_salida_almuerzo - dt_entrada_almuerzo
+                # 🛑 CORRECCIÓN 3: El cálculo es FIN (dt_regreso_almuerzo) - INICIO (dt_salida_almuerzo)
+                pausa_real_almuerzo = dt_regreso_almuerzo - dt_salida_almuerzo
             
             total_time_neto = total_time_bruto
             if pausa_real_almuerzo > timedelta(minutes=0):
                 total_time_neto -= pausa_real_almuerzo
-            elif total_time_bruto > JORNADA_MINIMA_PAUSA_OBLIGATORIA: # <-- JORNADA_MINIMA_PAUSA_OBLIGATORIA DEBE ESTAR DEFINIDA
-                # Deduce 1 hora si trabajó más de la jornada mínima y no marcó el almuerzo
+            elif total_time_bruto > JORNADA_MINIMA_PAUSA_OBLIGATORIA:
                 total_time_neto -= timedelta(minutes=60) 
             
             registro_activo.total_horas = round(total_time_neto.total_seconds() / 3600, 2)
 
+            # ... (El resto del cálculo de costo por hora, horas extra y monto de pago se mantiene igual) ...
+
             # --- VERIFICAR Feriado para el día de la ENTRADA ---
-            # El feriado se basa en la fecha de registro (entrada)
             es_feriado_hoy = Feriado.query.filter_by(fecha_feriado=registro_activo.fecha_registro).first()
             registro_activo.Feriado_id_feriado = es_feriado_hoy.id_feriado if es_feriado_hoy else None
 
             # --- CÁLCULO DEL COSTO POR HORA SEGÚN LA PERIODICIDAD DEL SALARIO ---
             costo_por_hora_normal = 0
-            horas_periodo_calculo = 0 # Inicializar aquí
+            horas_periodo_calculo = 0
 
             if empleado.salario_base is not None and float(empleado.salario_base) > 0:
                 if empleado.periodicidad_salario == 'MENSUAL':
@@ -376,7 +384,7 @@ def registrar_asistencia():
                     horas_periodo_calculo = HORAS_SEMANA_ESTANDAR
                 else:
                     logging.warning(f"Periodicidad de salario inesperada para empleado {empleado.id_empleado}: {empleado.periodicidad_salario}. Asumiendo mensual estándar para cálculo de hora.")
-                    horas_periodo_calculo = HORAS_MES_ESTANDAR # Valor por defecto
+                    horas_periodo_calculo = HORAS_MES_ESTANDAR
 
                 if horas_periodo_calculo > 0:
                     costo_por_hora_normal = float(empleado.salario_base) / horas_periodo_calculo
@@ -407,11 +415,11 @@ def registrar_asistencia():
 
             registro_activo.monto_pago = round(monto_pago_calculado, 2)
 
-            # Lógica de aprobación: requiere aprobación si hay extras o feriado
+            # Lógica de aprobación
             if registro_activo.hora_extra > 0 or registro_activo.hora_feriado > 0:
                 registro_activo.aprobacion_registro = False
             else:
-                registro_activo.aprobacion_registro = True # Se aprueba automáticamente si solo son horas normales
+                registro_activo.aprobacion_registro = True
 
             db.session.commit()
             flash('¡Salida registrada exitosamente! Tu jornada ha finalizado.', 'success')
@@ -433,13 +441,60 @@ def registrar_asistencia():
 @permiso_requerido('listar_asistencia')
 @login_required
 def listar_asistencia():
-    # Obtener todos los registros de asistencia ordenados por fecha con paginación
+    # 1. Parámetros de paginación y filtros
     page = request.args.get('page', 1, type=int)
-    registros = RegistroAsistencia.query.order_by(RegistroAsistencia.fecha_registro.desc()).paginate(
-        page=page, per_page=14, error_out=False
-    )
-    return render_template('asistencia/listar_asistencia.html', registros=registros)
+    fecha_inicio_filtro = request.args.get('fecha_inicio')
+    fecha_fin_filtro = request.args.get('fecha_fin')
+    empleado_id_filtro = request.args.get('empleado_id') # Viene como string (o 'all' o None)
+    aprobacion_filtro = request.args.get('aprobacion') # Viene como string ('approved', 'pending', 'all')
 
+    # Base de la consulta, incluyendo la carga de empleado y tipo_nomina
+    # Esto es importante para mostrar la información del empleado en la lista
+    query = RegistroAsistencia.query \
+        .options(joinedload(RegistroAsistencia.empleado).joinedload(Empleado.tipo_nomina_relacion)) \
+        .order_by(RegistroAsistencia.fecha_registro.desc())
+
+    # 2. Aplicar filtros
+    if fecha_inicio_filtro:
+        try:
+            query = query.filter(RegistroAsistencia.fecha_registro >= datetime.strptime(fecha_inicio_filtro, '%Y-%m-%d').date())
+        except ValueError:
+            flash('Formato de fecha de inicio inválido para el filtro.', 'danger')
+            fecha_inicio_filtro = None # Resetear el filtro si es inválido
+    
+    if fecha_fin_filtro:
+        try:
+            query = query.filter(RegistroAsistencia.fecha_registro <= datetime.strptime(fecha_fin_filtro, '%Y-%m-%d').date())
+        except ValueError:
+            flash('Formato de fecha de fin inválido para el filtro.', 'danger')
+            fecha_fin_filtro = None # Resetear el filtro si es inválido
+    
+    if empleado_id_filtro and empleado_id_filtro != 'all':
+        try:
+            empleado_id_int = int(empleado_id_filtro)
+            query = query.filter(RegistroAsistencia.Empleado_id_empleado == empleado_id_int)
+        except ValueError:
+            flash('ID de empleado inválido para el filtro.', 'danger')
+            empleado_id_filtro = 'all' # Resetear el filtro si es inválido
+    
+    if aprobacion_filtro and aprobacion_filtro != 'all':
+        is_approved = aprobacion_filtro == 'approved'
+        query = query.filter(RegistroAsistencia.aprobacion_registro == is_approved)
+
+    # 3. Paginación de los resultados
+    registros = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
+
+    # 4. Obtener todos los empleados para el filtro del select en la plantilla
+    todos_empleados = Empleado.query.order_by(Empleado.nombre).all()
+    
+    # 5. Renderizar la plantilla, pasando todos los filtros y el objeto de paginación
+    return render_template('asistencia/listar_asistencia.html',
+                           registros=registros, # Objeto de paginación (contiene .items, .has_next, etc.)
+                           todos_empleados=todos_empleados,
+                           fecha_inicio_filtro=fecha_inicio_filtro,
+                           fecha_fin_filtro=fecha_fin_filtro,
+                           empleado_id_filtro=empleado_id_filtro, # Pasar el string original para el select
+                           aprobacion_filtro=aprobacion_filtro)
 
 """ Funciones auxiliares para manejo de tiempos y cálculos """
 def _parse_time_or_none(time_str):
@@ -451,6 +506,12 @@ def _parse_time_or_none(time_str):
             # Si el formato es incorrecto, devolvemos None; el bloque principal lo manejará.
             return None
     return None
+
+# 🟢 Asegúrate de que esta función esté aquí 🟢
+def _get_empleado_with_nomina(empleado_id):
+    """Obtiene un empleado con su tipo de nómina relacionado, incluyendo el TipoNomina."""
+    # Asegúrate de que 'Empleado' y 'joinedload' estén correctamente importados
+    return Empleado.query.options(joinedload(Empleado.tipo_nomina_relacion)).get(empleado_id) 
 
 """ Función para calcular monto, horas extra y horas feriado """
 def _calculate_monto(registro, empleado, costo_hora_normal):
@@ -484,58 +545,68 @@ def _calculate_monto(registro, empleado, costo_hora_normal):
 
 """ Vista para editar un registro de asistencia ------------------------------------------------"""
 @registro_asistencia_bp.route('/editar/<int:registro_id>', methods=['GET', 'POST'])
-@permiso_requerido('editar_asistencia')
 @login_required
-def editar_asistencia(registro_id):
+def editar_asistencia(registro_id):    
     registro = RegistroAsistencia.query.get_or_404(registro_id)
-    empleado = Empleado.query.options(joinedload(Empleado.tipo_nomina_relacion)).get(registro.Empleado_id_empleado)
+    empleado = _get_empleado_with_nomina(registro.Empleado_id_empleado)
 
     if not empleado:
         flash('Error: No se encontró el empleado asociado al registro de asistencia.', 'danger')
         return redirect(url_for('registro_asistencia.listar_asistencia'))
 
+    # Parámetros de la URL para la paginación y filtros
+    page = request.args.get('page', 1, type=int) 
+    fecha_inicio_filtro = request.args.get('fecha_inicio')
+    fecha_fin_filtro = request.args.get('fecha_fin')
+    empleado_id_filtro = request.args.get('empleado_id') # Viene como string (o None/all)
+    aprobacion_filtro = request.args.get('aprobacion')
+
+    # Diccionario para construir la redirección con todos los filtros
+    redirect_params = {
+        'page': page,
+        'fecha_inicio': fecha_inicio_filtro,
+        'fecha_fin': fecha_fin_filtro,
+        'empleado_id': empleado_id_filtro,
+        'aprobacion': aprobacion_filtro
+    }
+
     if request.method == 'POST':
-        
-        # Inicializar variables de URL fuera del try para evitar 'is not defined'
-        page = request.args.get('page', 1, type=int) 
-        fecha_inicio_filtro = request.args.get('fecha_inicio')
-        fecha_fin_filtro = request.args.get('fecha_fin')
-        empleado_id_filtro = request.args.get('empleado_id')
-        aprobacion_filtro = request.args.get('aprobacion')
-        
         try:
-            # --- 1. Obtención y Saneamiento de Datos ---
+            # --- 1. Obtención y Saneamiento de Datos del Formulario ---
             nueva_fecha_registro = datetime.strptime(request.form['fecha'], '%Y-%m-%d').date()
             aprobado_form = 'aprobado' in request.form
 
-            # Usamos la función auxiliar para manejar la conversión segura
             nueva_hora_entrada = _parse_time_or_none(request.form.get('hora_entrada'))
             nueva_hora_salida = _parse_time_or_none(request.form.get('hora_salida'))
-            nueva_hora_salida_almuerzo = _parse_time_or_none(request.form.get('hora_salida_almuerzo'))
-            nueva_hora_regreso_almuerzo = _parse_time_or_none(request.form.get('hora_regreso_almuerzo'))
+            
+            # Obtener los valores de los campos del formulario con los names CORRECTOS del HTML
+            hora_salida_almuerzo_form = _parse_time_or_none(request.form.get('hora_salida_almuerzo')) # Del campo "Salida a Almuerzo"
+            hora_regreso_almuerzo_form = _parse_time_or_none(request.form.get('hora_regreso_almuerzo')) # Del campo "Regreso de Almuerzo"
 
             # --- 2. Validaciones Críticas ---
             if not nueva_hora_entrada:
                 flash('Error: La hora de entrada es obligatoria.', 'danger')
-                return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **request.args))
+                return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **redirect_params))
             
             if not empleado.salario_base or float(empleado.salario_base) <= 0:
-                flash(f'Error: El salario base del empleado {empleado.nombre} no es válido.', 'danger')
-                return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **request.args))
+                flash(f'Error: El salario base del empleado {empleado.nombre} no es válido. Actualice el perfil del empleado.', 'danger')
+                return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **redirect_params))
 
-            # --- 3. Asignación al Registro ---
+            # --- 3. Asignación al Registro (Aplicando la lógica inversa de tu DB) ---
             registro.fecha_registro = nueva_fecha_registro
             registro.hora_entrada = nueva_hora_entrada
             registro.hora_salida = nueva_hora_salida
-            registro.hora_entrada_almuerzo = nueva_hora_salida_almuerzo 
-            registro.hora_salida_almuerzo = nueva_hora_regreso_almuerzo 
+            
+            # Asignación a los campos de la DB según tu lógica inversa:
+            registro.hora_salida_almuerzo = hora_salida_almuerzo_form   
+            registro.hora_entrada_almuerzo = hora_regreso_almuerzo_form 
+            
             registro.aprobacion_registro = aprobado_form
 
             # --- 4. Lógica de Cálculo de Tiempos y Monto ---
             if registro.hora_salida: 
-                
-                # CÁLCULO DEL COSTO POR HORA (necesario antes del monto)
-                horas_periodo_calculo = HORAS_MES_ESTANDAR # Valor por defecto
+                # CÁLCULO DEL COSTO POR HORA
+                horas_periodo_calculo = HORAS_MES_ESTANDAR 
                 periodicidad = empleado.tipo_nomina_relacion.nombre_tipo if empleado.tipo_nomina_relacion else None
                 if periodicidad == 'Quincenal':
                     horas_periodo_calculo = HORAS_QUINCENA_ESTANDAR
@@ -557,32 +628,33 @@ def editar_asistencia(registro_id):
                 
                 if total_time_bruto < timedelta(minutes=0):
                     flash('Error: La hora de salida principal no puede ser anterior a la hora de entrada.','danger')
-                    return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **request.args))
+                    return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **redirect_params))
 
                 pausa_real_almuerzo = timedelta(minutes=0)
                 pausa_obligatoria_deducida = timedelta(minutes=0) 
                 
-                if registro.hora_entrada_almuerzo and registro.hora_salida_almuerzo:
-                    dt_salida_almuerzo = datetime.combine(nueva_fecha_registro, registro.hora_entrada_almuerzo)
-                    dt_regreso_almuerzo = datetime.combine(nueva_fecha_registro, registro.hora_salida_almuerzo)
+                # Si ambos campos de pausa están llenos en la DB, calcular la pausa real
+                if registro.hora_salida_almuerzo and registro.hora_entrada_almuerzo:
+                    dt_inicio_pausa_db = datetime.combine(nueva_fecha_registro, registro.hora_salida_almuerzo) 
+                    dt_fin_pausa_db = datetime.combine(nueva_fecha_registro, registro.hora_entrada_almuerzo)   
                     
-                    if dt_regreso_almuerzo < dt_salida_almuerzo:
-                         dt_regreso_almuerzo += timedelta(days=1)
+                    if dt_fin_pausa_db < dt_inicio_pausa_db:
+                           dt_fin_pausa_db += timedelta(days=1)
                     
-                    pausa_real_almuerzo = dt_regreso_almuerzo - dt_salida_almuerzo
+                    pausa_real_almuerzo = dt_fin_pausa_db - dt_inicio_pausa_db
 
                     if pausa_real_almuerzo < timedelta(minutes=0):
                         flash('Error: La hora de regreso del almuerzo no puede ser anterior a la de salida.','danger')
-                        return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **request.args))
+                        return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **redirect_params))
                 
                 else:
                     # Aplicar Pausa Obligatoria SOLO si NO se registró pausa real y la jornada es larga
                     if total_time_bruto > JORNADA_MINIMA_PAUSA_OBLIGATORIA:
-                         pausa_obligatoria_deducida = timedelta(minutes=60)
+                           pausa_obligatoria_deducida = timedelta(minutes=60)
 
                 # Cálculo final del tiempo neto
                 total_time_neto = total_time_bruto - pausa_real_almuerzo - pausa_obligatoria_deducida
-                         
+                            
                 if total_time_neto < timedelta(minutes=0):
                     total_time_neto = timedelta(minutes=0)
 
@@ -600,28 +672,56 @@ def editar_asistencia(registro_id):
             db.session.commit()
             flash('Registro de asistencia actualizado exitosamente.', 'success')
 
-            return redirect(url_for('registro_asistencia.listar_asistencia',
-                                     page=page,
-                                     fecha_inicio=fecha_inicio_filtro,
-                                     fecha_fin=fecha_fin_filtro,
-                                     empleado_id=empleado_id_filtro,
-                                     aprobacion=aprobacion_filtro))
+            # ----------------------------------------------------------------------------------
+            # --- Lógica de Paginación Inteligente para Redirección (La sección clave) ---
+            # ----------------------------------------------------------------------------------
+            query_check = RegistroAsistencia.query.order_by(RegistroAsistencia.fecha_registro.desc())
+            
+            if fecha_inicio_filtro:
+                query_check = query_check.filter(RegistroAsistencia.fecha_registro >= datetime.strptime(fecha_inicio_filtro, '%Y-%m-%d').date())
+            if fecha_fin_filtro:
+                query_check = query_check.filter(RegistroAsistencia.fecha_registro <= datetime.strptime(fecha_fin_filtro, '%Y-%m-%d').date())
+            
+            # 🛑 CORRECCIÓN: Convertir a INT para la comparación con el ID de la base de datos
+            if empleado_id_filtro and empleado_id_filtro != 'all':
+                try:
+                    empleado_id_int = int(empleado_id_filtro)
+                    query_check = query_check.filter(RegistroAsistencia.Empleado_id_empleado == empleado_id_int)
+                except ValueError:
+                    logging.warning(f"Filtro empleado_id_filtro no es un entero válido: {empleado_id_filtro}")
+
+            if aprobacion_filtro and aprobacion_filtro != 'all':
+                is_approved = aprobacion_filtro == 'approved'
+                query_check = query_check.filter(RegistroAsistencia.aprobacion_registro == is_approved)
+            
+            total_items_filtered = query_check.count()
+            
+            # Usamos PER_PAGE, que debe estar definido como una constante global (e.g., 20)
+            max_pages = (total_items_filtered + PER_PAGE - 1) // PER_PAGE if total_items_filtered > 0 else 1
+
+            # Ajustar la página si la actual excede el nuevo máximo
+            if redirect_params['page'] > max_pages:
+                redirect_params['page'] = max_pages
+            
+            return redirect(url_for('registro_asistencia.listar_asistencia', **redirect_params))
+            # ----------------------------------------------------------------------------------
         
         except ValueError as e:
             db.session.rollback()
             logging.exception(f"Error de formato al actualizar registro {registro_id}: {e}")
             flash(f'Ocurrió un error de formato. Revise que las horas tengan el formato HH:MM:SS.', 'danger')
-            return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **request.args))
+            return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **redirect_params))
             
         except Exception as e:
             db.session.rollback()
             logging.exception(f"Error inesperado al actualizar el registro de asistencia {registro_id}: {e}")
             flash(f'Ocurrió un error inesperado al actualizar el registro: {str(e)}', 'danger')
-            return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **request.args))
+            return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **redirect_params))
     
+    # Si es GET, simplemente renderiza el formulario
     return render_template('asistencia/editar_asistencia.html', 
-                           registro=registro,
-                           page=request.args.get('page', 1, type=int))
+                             registro=registro,
+                             **redirect_params)
 
 """ Función para eliminar un registro de asistencia ------------------------------------------------"""
 @registro_asistencia_bp.route('/eliminar/<int:registro_id>', methods=['POST'])
@@ -677,7 +777,6 @@ def calcular_isr(monto_bruto_periodo, fecha_inicio_obj, fecha_fin_obj):
             break
             
     return round(isr_calculado, 2)
-
 
 """ Vista de generar nóminas ------------------------------------------------"""
 @registro_asistencia_bp.route('/generar_nomina', methods=['GET', 'POST'])

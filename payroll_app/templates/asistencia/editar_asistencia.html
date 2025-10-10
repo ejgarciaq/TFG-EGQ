@@ -6,61 +6,106 @@
 <div class="container">
     <h4 class="text-center mb-4">Editar Registro de Asistencia</h4>
 
-    <div class="card shadow mx-auto" style="max-width: 500px;">
-        <div class="card-header bg-warning text-white text-center">
-            Registro para {{ registro.empleado.nombre }} del {{ registro.fecha_registro.strftime('%Y-%m-%d') }}
-        </div>
-        <div class="card-body">
-            <form action="{{ url_for('registro_asistencia.editar_asistencia', registro_id=registro.id_registro_asistencia) }}" method="POST">
-                
-                {# Campo de Fecha #}
-                <div class="mb-3">
-                    <label for="fecha" class="form-label">Fecha</label>
-                    <input type="date" class="form-control" id="fecha" name="fecha" value="{{ registro.fecha_registro.strftime('%Y-%m-%d') }}" required>
+    {# INICIAMOS LA FILA (ROW) DE BOOTSTRAP AQUÍ #}
+    <div class="row justify-content-center">
+        
+        {# COLUMNA 1: FORMULARIO #}
+        <div class="col-md-5 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white text-center">
+                    Registro para {{ registro.empleado.nombre }} del {{ registro.fecha_registro.strftime('%Y-%m-%d') }}
                 </div>
-                
-                {# Campo de Hora de Entrada #}
-                <div class="mb-3">
-                    <label for="hora_entrada" class="form-label">Hora de Entrada</label>
-                    <input type="time" class="form-control" id="hora_entrada" name="hora_entrada" value="{{ registro.hora_entrada.strftime('%H:%M:%S') }}" step="1" required>
-                </div>
-                
-                {# NUEVO CAMPO: Hora de Salida a Almuerzo #}
-                <div class="mb-3">
-                    <label for="hora_salida_almuerzo" class="form-label">Hora de Salida a Almuerzo</label>
-                    <input type="time" class="form-control" id="hora_salida_almuerzo" name="hora_salida_almuerzo" 
-                        value="{{ registro.hora_entrada_almuerzo.strftime('%H:%M:%S') if registro.hora_entrada_almuerzo else '' }}" step="1"> 
-                    {# Note: Usamos hora_entrada_almuerzo para la salida a almuerzo #}
-                    {# El campo no es requerido, por si el empleado no tuvo almuerzo #}
-                </div>
+                <div class="card-body">
+                    
+                    {# CAMBIO CLAVE 1: La acción del formulario debe pasar los parámetros de redirección #}
+                    <form action="{{ url_for('registro_asistencia.editar_asistencia', 
+                                         registro_id=registro.id_registro_asistencia,
+                                         page=page, 
+                                         fecha_inicio=fecha_inicio_filtro, 
+                                         fecha_fin=fecha_fin_filtro,
+                                         empleado_id=empleado_id_filtro, 
+                                         aprobacion=aprobacion_filtro) }}" 
+                          method="POST">
+                        
+                        {# Campo de Fecha y Hora de Entrada (Mantenido) #}
+                        <div class="mb-3">
+                            <label for="fecha" class="form-label">Fecha</label>
+                            <input type="date" class="form-control" id="fecha" name="fecha" value="{{ registro.fecha_registro.strftime('%Y-%m-%d') }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="hora_entrada" class="form-label">Hora de Entrada</label>
+                            <input type="time" class="form-control" id="hora_entrada" name="hora_entrada" value="{{ registro.hora_entrada.strftime('%H:%M:%S') }}" step="1" required>
+                        </div>
+                        
+                        <div>
+                            <label for="hora_salida_almuerzo" class="form-label">Hora de Salida a Almuerzo</label>
+                            <input type="time" class="form-control" id="hora_salida_almuerzo" name="hora_salida_almuerzo" 
+                                value="{{ registro.hora_salida_almuerzo.strftime('%H:%M:%S') if registro.hora_salida_almuerzo else '' }}" step="1">   
+                        </div>
 
-                {# NUEVO CAMPO: Hora de Regreso de Almuerzo #}
-                <div class="mb-3">
-                    <label for="hora_regreso_almuerzo" class="form-label">Hora de Regreso de Almuerzo</label>
-                    <input type="time" class="form-control" id="hora_regreso_almuerzo" name="hora_regreso_almuerzo" 
-                    value="{{ registro.hora_salida_almuerzo.strftime('%H:%M:%S') if registro.hora_salida_almuerzo else '' }}" step="1">    
-                    {# Note: Usamos hora_salida_almuerzo para el regreso de almuerzo #}
-                    {# El campo no es requerido #}
+                        <div class="mb-3">
+                            <label for="hora_regreso_almuerzo" class="form-label">Hora de Regreso de Almuerzo</label>
+                            <input type="time" class="form-control" id="hora_regreso_almuerzo" name="hora_regreso_almuerzo" 
+                            value="{{ registro.hora_entrada_almuerzo.strftime('%H:%M:%S') if registro.hora_entrada_almuerzo else '' }}" step="1"> 
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="hora_salida" class="form-label">Hora de Salida Final</label>
+                            <input type="time" class="form-control" id="hora_salida" name="hora_salida" 
+                            value="{{ registro.hora_salida.strftime('%H:%M:%S') if registro.hora_salida else '' }}" step="1">
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="aprobado" name="aprobado" {% if registro.aprobacion_registro %}checked{% endif %}>
+                            <label class="form-check-label" for="aprobado">Aprobado</label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-warning w-100"><i class="fa-solid fa-floppy-disk"></i> Guardar Cambios</button>
+                        
+                        <a href="{{ url_for('registro_asistencia.listar_asistencia', 
+                                 page=page, 
+                                 fecha_inicio=fecha_inicio_filtro, 
+                                 fecha_fin=fecha_fin_filtro,
+                                 empleado_id=empleado_id_filtro, 
+                                 aprobacion=aprobacion_filtro) }}" 
+                           class="btn btn-secondary w-100 mt-2"><i class="fa-solid fa-arrow-left"></i> Volver</a>
+                    </form>
                 </div>
-                
-                {# Campo de Hora de Salida Final #}
-                <div class="mb-3">
-                    <label for="hora_salida" class="form-label">Hora de Salida Final</label>
-                    <input type="time" class="form-control" id="hora_salida" name="hora_salida" value="{{ registro.hora_salida.strftime('%H:%M:%S') if registro.hora_salida else '' }}" step="1">
-                    {# Se hizo este campo no requerido, ya que el registro podría estar activo #}
-                </div>
-                
-                {# Checkbox de Aprobado #}
-                <div class="mb-3 form-check">
-                    <input type="checkbox" class="form-check-input" id="aprobado" name="aprobado" {% if registro.aprobacion_registro %}checked{% endif %}>
-                    <label class="form-check-label" for="aprobado">Aprobado</label>
-                </div>
-                
-                {# Botones de acción #}
-                <button type="submit" class="btn btn-warning w-100">Guardar Cambios</button>
-                <a href="{{ url_for('registro_asistencia.listar_asistencia') }}" class="btn btn-secondary w-100 mt-2">Cancelar</a>
-            </form>
+            </div>
         </div>
+        
+
+        <div class="col-md-5 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    Resumen de Cálculo Actual
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>Horas Totales Netas:</strong>
+                            <span class="badge bg-info text-dark">{{ registro.total_horas | default(0.00) }} hrs</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>Horas Extra:</strong>
+                            <span class="badge bg-warning text-dark">{{ registro.hora_extra | default(0.00) }} hrs</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>Horas Feriado:</strong>
+                            <span class="badge bg-danger">{{ registro.hora_feriado | default(0.00) }} hrs</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>Monto Total a Pagar:</strong>
+                            <span class="badge bg-success">
+                                ₡{{ (registro.monto_pago | default(0) | float) | format(target="0.00") }}
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
     </div>
 </div>
 {% endblock %}

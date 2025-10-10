@@ -6,9 +6,65 @@
 <div class="container-fluid">
     <h4 class="text-center mb-3">Listado de Asistencias</h4>
 
+    {# ========================================================= #}
+    {#  NUEVA SECCIÓN: FORMULARIO DE FILTROS  #}
+    {# Es crucial para que los parámetros se envíen y se mantengan #}
+    {# ========================================================= #}
+    <div class="card mb-2 j">
+        <div class="card-header">Filtros de Búsqueda</div>
+        <div class="card-body">
+            <form action="{{ url_for('registro_asistencia.listar_asistencia') }}" method="GET">
+                <div class="row g-3 align-items-end justify-content-center">
+                    <div class="col-md-2">
+                        <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                        <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" 
+                               value="{{ fecha_inicio_filtro if fecha_inicio_filtro else '' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="fecha_fin" class="form-label">Fecha Fin</label>
+                        <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" 
+                               value="{{ fecha_fin_filtro if fecha_fin_filtro else '' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="empleado_id" class="form-label">Empleado</label>
+                        {# Usamos 'select2' en la clase para que el script lo identifique #}
+                        <select class="form-select select2" id="empleado_id_filtro" name="empleado_id">
+                            <option value="all" {% if empleado_id_filtro == 'all' or not empleado_id_filtro %}selected{% endif %}>Todos</option>
+                            
+                            {# Importante: Asegúrate de que el nombre de la variable de iteración sea correcto #}
+                            {% for emp in todos_empleados %} 
+                                <option value="{{ emp.id_empleado }}" 
+                                        {% if empleado_id_filtro and empleado_id_filtro|string == emp.id_empleado|string %}selected{% endif %}>
+                                    
+                                    {# Muestra el nombre completo para que se pueda buscar #}
+                                    {{ emp.nombre }} {{ emp.apellido_primero }} {{ emp.apellido_segundo }} 
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="aprobacion" class="form-label">Estado Aprobación</label>
+                        <select class="form-select" id="aprobacion" name="aprobacion">
+                            <option value="all" {% if aprobacion_filtro == 'all' or not aprobacion_filtro %}selected{% endif %}>Todos</option>
+                            <option value="approved" {% if aprobacion_filtro == 'approved' %}selected{% endif %}>Aprobados</option>
+                            <option value="pending" {% if aprobacion_filtro == 'pending' %}selected{% endif %}>Pendientes</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-filter"></i> Aplicar Filtros</button>
+                        <a href="{{ url_for('registro_asistencia.listar_asistencia') }}" class="btn btn-secondary"><i class="fa-solid fa-filter-circle-xmark"></i> Limpiar Filtros</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    {# ========================================================= #}
+    {# TABLA DE REGISTROS #}
+    {# ========================================================= #}
     {% if registros.items %}
     <form action="{{ url_for('registro_asistencia.procesar_aprobacion') }}" method="POST">
-    <div class="table-responsive"  >
+    <div class="table-responsive"  >
         <table class="table table-striped table-hover">
             <thead>
                 <tr class="text-center">
@@ -34,8 +90,8 @@
                     <td>{{ registro.empleado.nombre }} {{ registro.empleado.apellido_primero }} {{ registro.empleado.apellido_segundo }}</td>
                     <td class="text-center">{{ registro.fecha_registro.strftime('%Y-%m-%d') }}</td>
                     <td class="text-center">{{ registro.hora_entrada.strftime('%H:%M:%S') }}</td>
-                    <td class="text-center">{{ registro.hora_entrada_almuerzo.strftime('%H:%M:%S') if registro.hora_entrada_almuerzo else 'N/A' }}</td>
                     <td class="text-center">{{ registro.hora_salida_almuerzo.strftime('%H:%M:%S') if registro.hora_salida_almuerzo else 'N/A' }}</td>
+                    <td class="text-center">{{ registro.hora_entrada_almuerzo.strftime('%H:%M:%S') if registro.hora_entrada_almuerzo else 'N/A' }}</td>
                     <td class="text-center">{{ registro.hora_salida.strftime('%H:%M:%S') if registro.hora_salida else 'N/A' }}</td>
                     <td class="text-center">{{ registro.total_horas | default('N/A', True) }}</td>
                     <td class="text-center">{{ registro.hora_extra | default('N/A', True) }}</td>
@@ -51,7 +107,14 @@
                     </td>
 
                     <td class="text-center">
-                        <a href="{{ url_for('registro_asistencia.editar_asistencia', registro_id=registro.id_registro_asistencia) }}" class="btn btn-sm btn-warning">
+                        <a href="{{ url_for('registro_asistencia.editar_asistencia', 
+                                         registro_id=registro.id_registro_asistencia,
+                                         page=registros.page,
+                                         fecha_inicio=fecha_inicio_filtro,
+                                         fecha_fin=fecha_fin_filtro,
+                                         empleado_id=empleado_id_filtro,
+                                         aprobacion=aprobacion_filtro) }}" 
+                           class="btn btn-sm btn-warning">
                             <i class="fas fa-edit"></i> Editar
                         </a>
                         <form action="{{ url_for('registro_asistencia.eliminar_asistencia', registro_id=registro.id_registro_asistencia) }}" method="POST" style="display:inline;">
@@ -66,22 +129,47 @@
         </table>
     </div>
 
+    {# ========================================================= #}
+    {# Reemplazamos 'request.endpoint' y añadimos todos los filtros #}
+    {# ========================================================= #}
     <nav aria-label="Navegación de páginas">
         <ul class="pagination justify-content-left">
+            
+            {# Primera Página #}
             {% if registros.page > 1 %}
                 <li class="page-item">
-                    <a class="page-link" href="{{ url_for(request.endpoint, page=1) }}">Primera</a>
+                    <a class="page-link" 
+                       href="{{ url_for('registro_asistencia.listar_asistencia', 
+                               page=1,
+                               fecha_inicio=fecha_inicio_filtro, 
+                               fecha_fin=fecha_fin_filtro,
+                               empleado_id=empleado_id_filtro, 
+                               aprobacion=aprobacion_filtro) }}">Primera</a>
                 </li>
             {% endif %}
 
+            {# Anterior #}
             <li class="page-item {% if not registros.has_prev %}disabled{% endif %}">
-                <a class="page-link" href="{{ url_for(request.endpoint, page=registros.prev_num) }}">Anterior</a>
+                <a class="page-link" 
+                   href="{{ url_for('registro_asistencia.listar_asistencia', 
+                           page=registros.prev_num if registros.has_prev else registros.page,
+                           fecha_inicio=fecha_inicio_filtro, 
+                           fecha_fin=fecha_fin_filtro,
+                           empleado_id=empleado_id_filtro, 
+                           aprobacion=aprobacion_filtro) }}">Anterior</a>
             </li>
 
+            {# Botones Numéricos #}
             {% for p in registros.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=3) %}
                 {% if p %}
                     <li class="page-item {% if p == registros.page %}active{% endif %}">
-                        <a class="page-link" href="{{ url_for(request.endpoint, page=p) }}">{{ p }}</a>
+                        <a class="page-link" 
+                           href="{{ url_for('registro_asistencia.listar_asistencia', 
+                                   page=p,
+                                   fecha_inicio=fecha_inicio_filtro, 
+                                   fecha_fin=fecha_fin_filtro,
+                                   empleado_id=empleado_id_filtro, 
+                                   aprobacion=aprobacion_filtro) }}">{{ p }}</a>
                     </li>
                 {% else %}
                     <li class="page-item disabled">
@@ -90,13 +178,27 @@
                 {% endif %}
             {% endfor %}
 
+            {# Siguiente #}
             <li class="page-item {% if not registros.has_next %}disabled{% endif %}">
-                <a class="page-link" href="{{ url_for(request.endpoint, page=registros.next_num) }}">Siguiente</a>
+                <a class="page-link" 
+                   href="{{ url_for('registro_asistencia.listar_asistencia', 
+                           page=registros.next_num if registros.has_next else registros.page,
+                           fecha_inicio=fecha_inicio_filtro, 
+                           fecha_fin=fecha_fin_filtro,
+                           empleado_id=empleado_id_filtro, 
+                           aprobacion=aprobacion_filtro) }}">Siguiente</a>
             </li>
 
+            {# Última Página #}
             {% if registros.page < registros.pages %}
                 <li class="page-item">
-                    <a class="page-link" href="{{ url_for(request.endpoint, page=registros.pages) }}">Última</a>
+                    <a class="page-link" 
+                       href="{{ url_for('registro_asistencia.listar_asistencia', 
+                               page=registros.pages,
+                               fecha_inicio=fecha_inicio_filtro, 
+                               fecha_fin=fecha_fin_filtro,
+                               empleado_id=empleado_id_filtro, 
+                               aprobacion=aprobacion_filtro) }}">Última</a>
                 </li>
             {% endif %}
         </ul>

@@ -102,7 +102,7 @@ def accion_personal():
                 
                 fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
                 fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
-            #edson
+
                 if fecha_inicio > fecha_fin:
                     flash('La fecha de fin no puede ser anterior a la fecha de inicio.', 'danger')
                     return redirect(url_for('accion_personal_bp.accion_personal'))
