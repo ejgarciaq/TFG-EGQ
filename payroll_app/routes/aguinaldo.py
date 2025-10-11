@@ -89,7 +89,8 @@ def calcular_aguinaldo():
         
         if not empleados_a_procesar:
             flash('No se encontraron empleados para el filtro seleccionado.', 'warning')
-            return redirect(url_for('aguinaldo.calcular_aguinaldo'))
+            # Redirigir al GET, manteniendo los filtros seleccionados
+            return redirect(url_for('aguinaldo.calcular_aguinaldo', anio_fiscal=anio_str, tipo_nomina_id=tipo_nomina_id_str))
             
         nominas_procesadas = []
         aguinaldos_generados = 0
@@ -163,28 +164,54 @@ def calcular_aguinaldo():
             flash('No se pudo calcular el aguinaldo. Por favor, intente de nuevo.', 'danger')
             return redirect(url_for('aguinaldo.calcular_aguinaldo'))
             
-    # --- GET: Cargar la vista inicial (RNF-US-018) ---
+    # --- GET: Cargar la vista inicial y aplicar paginación con filtros (CORREGIDO) ---
     
-    # 1. Obtener el año actual para pre-seleccionar en el formulario
+    # 1. Obtener el año actual y capturar los filtros de la URL
     anio_actual = datetime.now().year
     
-    # 💡 IMPLEMENTACIÓN DE PAGINACIÓN:
-    # 1. Obtener el número de página de la URL (por defecto, es la página 1)
+    # 💡 Capturar filtros de la URL (para la tabla paginada y para mantener el estado)
+    # Usamos el año actual como predeterminado si no hay filtro en la URL.
+    anio_str = request.args.get('anio_fiscal', str(anio_actual))
+    tipo_nomina_id_str = request.args.get('tipo_nomina_id')
+    
+    anio_fiscal = None
+    tipo_nomina_id = None
+    
+    try:
+        anio_fiscal = int(anio_str) if anio_str else None
+        tipo_nomina_id = int(tipo_nomina_id_str) if tipo_nomina_id_str else None
+    except ValueError:
+        pass 
+
+    # 2. Implementación de Paginación y Consulta
     page = request.args.get('page', 1, type=int)
-    per_page = 5  # Define el número de registros por página (ej. 10)
+    per_page = 5
     
-    # 2. Realizar la consulta con .paginate()
-    # Usamos db.session.query(Aguinaldo, Empleado).join(Empleado) para obtener la tupla necesaria.
-    aguinaldos_paginados = db.session.query(Aguinaldo, Empleado) \
-        .join(Empleado) \
+    # Base de la consulta
+    query_aguinaldos = db.session.query(Aguinaldo, Empleado).join(Empleado)
+    
+    # 💡 APLICACIÓN DE FILTROS EN LA CONSULTA PAGINADA
+    if anio_fiscal:
+        # Filtra por el año de pago del aguinaldo
+        query_aguinaldos = query_aguinaldos.filter(db.extract('year', Aguinaldo.fecha_pago) == anio_fiscal)
+    
+    if tipo_nomina_id:
+        # Filtra por el tipo de nómina del empleado
+        query_aguinaldos = query_aguinaldos.filter(Empleado.TipoNomina_id_tipo_nomina == tipo_nomina_id)
+
+    # Ejecutar la consulta paginada
+    aguinaldos_paginados = query_aguinaldos \
         .order_by(Aguinaldo.fecha_pago.desc(), Aguinaldo.id_aguinaldo.desc()) \
-        .paginate(page=page, per_page=per_page, error_out=False) # error_out=False para evitar 404 si la página no existe
+        .paginate(page=page, per_page=per_page, error_out=False) 
     
-    # 3. Pasar el objeto de paginación a la plantilla
+    # 3. Pasar el objeto de paginación y los valores de filtro a la plantilla
     return render_template('aguinaldo/calcular_aguinaldo.html', 
                             tipos_nomina=tipos_nomina, 
-                            aguinaldos_paginados=aguinaldos_paginados, # 💡 Se cambió el nombre de la variable
-                            anio_actual=anio_actual)
+                            aguinaldos_paginados=aguinaldos_paginados, 
+                            anio_actual=anio_actual,
+                            # 💡 Variables para mantener el estado del formulario
+                            anio_fiscal_seleccionado=anio_fiscal,
+                            tipo_nomina_id_seleccionado=tipo_nomina_id)
 
 """ ver_detalle: Muestra los detalles del cálculo del aguinaldo específico para auditoría """
 @aguinaldo_bp.route('/detalle/<int:aguinaldo_id>', methods=['GET'])
@@ -234,3 +261,33 @@ def ver_detalle(aguinaldo_id):
                            promedio_calculado=promedio_calculado,
                            periodo_inicio=fecha_inicio_periodo,
                            periodo_fin=fecha_fin_periodo)
+
+""" eliminar_aguinaldo: Elimina un registro de Aguinaldo """
+@aguinaldo_bp.route('/eliminar/<int:aguinaldo_id>', methods=['POST'])
+@permiso_requerido('cal_aguinaldo') # Asumiendo que el mismo permiso es necesario para eliminar
+@login_required
+def eliminar_aguinaldo(aguinaldo_id):
+    # 1. Obtener el registro de aguinaldo o mostrar 404
+    aguinaldo = Aguinaldo.query.get_or_404(aguinaldo_id)
+    
+    # 2. Capturar los filtros actuales de la URL (para volver a la misma página filtrada)
+    anio_fiscal = request.args.get('anio_fiscal')
+    tipo_nomina_id = request.args.get('tipo_nomina_id')
+    page = request.args.get('page', 1, type=int)
+
+    try:
+        # 3. Eliminar el registro
+        db.session.delete(aguinaldo)
+        db.session.commit()
+        flash(f'El registro de aguinaldo para {aguinaldo.empleado_relacion.nombre_completo} ha sido eliminado exitosamente.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.exception(f"Error al eliminar el aguinaldo ID {aguinaldo_id}")
+        flash('Ocurrió un error al intentar eliminar el registro de aguinaldo.', 'danger')
+
+    # 4. Redirigir de vuelta a la vista de cálculo (manteniendo filtros y paginación)
+    return redirect(url_for('aguinaldo.calcular_aguinaldo', 
+                            anio_fiscal=anio_fiscal, 
+                            tipo_nomina_id=tipo_nomina_id,
+                            page=page))

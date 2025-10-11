@@ -134,13 +134,13 @@ def ver_asistencia():
         # Determinar el estado basándose en los campos del registro activo
         if not registro_activo.hora_entrada_almuerzo:
             estado_actual = 'salida_almuerzo' 
-            print(f"DEBUG (ver_asistencia): Estado determinado: '{estado_actual}' (No ha marcado salida a almuerzo).")
+            #print(f"DEBUG (ver_asistencia): Estado determinado: '{estado_actual}' (No ha marcado salida a almuerzo).")
         elif registro_activo.hora_entrada_almuerzo and not registro_activo.hora_salida_almuerzo:
             estado_actual = 'regreso_almuerzo' 
-            print(f"DEBUG (ver_asistencia): Estado determinado: '{estado_actual}' (Salió a almorzar, aún no regresó).")
+            #print(f"DEBUG (ver_asistencia): Estado determinado: '{estado_actual}' (Salió a almorzar, aún no regresó).")
         elif registro_activo.hora_entrada_almuerzo and registro_activo.hora_salida_almuerzo and not registro_activo.hora_salida:
             estado_actual = 'salida_final' 
-            print(f"DEBUG (ver_asistencia): Estado determinado: '{estado_actual}' (Regresó del almuerzo, aún no finalizó).")
+            #print(f"DEBUG (ver_asistencia): Estado determinado: '{estado_actual}' (Regresó del almuerzo, aún no finalizó).")
         else:
             # Esto NO debería pasar si 'hora_salida.is_(None)' es correcto
             # Si un registro está aquí, significa que tiene hora_entrada, ambas de almuerzo, y NO hora_salida.
@@ -546,7 +546,7 @@ def _calculate_monto(registro, empleado, costo_hora_normal):
 """ Vista para editar un registro de asistencia ------------------------------------------------"""
 @registro_asistencia_bp.route('/editar/<int:registro_id>', methods=['GET', 'POST'])
 @login_required
-def editar_asistencia(registro_id):    
+def editar_asistencia(registro_id):
     registro = RegistroAsistencia.query.get_or_404(registro_id)
     empleado = _get_empleado_with_nomina(registro.Empleado_id_empleado)
 
@@ -555,10 +555,10 @@ def editar_asistencia(registro_id):
         return redirect(url_for('registro_asistencia.listar_asistencia'))
 
     # Parámetros de la URL para la paginación y filtros
-    page = request.args.get('page', 1, type=int) 
+    page = request.args.get('page', 1, type=int)
     fecha_inicio_filtro = request.args.get('fecha_inicio')
     fecha_fin_filtro = request.args.get('fecha_fin')
-    empleado_id_filtro = request.args.get('empleado_id') # Viene como string (o None/all)
+    empleado_id_filtro = request.args.get('empleado_id') 
     aprobacion_filtro = request.args.get('aprobacion')
 
     # Diccionario para construir la redirección con todos los filtros
@@ -572,18 +572,17 @@ def editar_asistencia(registro_id):
 
     if request.method == 'POST':
         try:
-            # --- 1. Obtención y Saneamiento de Datos del Formulario ---
+            # --- 1. Obtención y Saneamiento de Datos del Formulario (SIN CAMBIOS) ---
+            # ... (Código 1, 2 y 3: Obtención de datos, validaciones y asignación al registro) ...
             nueva_fecha_registro = datetime.strptime(request.form['fecha'], '%Y-%m-%d').date()
             aprobado_form = 'aprobado' in request.form
-
+            
             nueva_hora_entrada = _parse_time_or_none(request.form.get('hora_entrada'))
             nueva_hora_salida = _parse_time_or_none(request.form.get('hora_salida'))
             
-            # Obtener los valores de los campos del formulario con los names CORRECTOS del HTML
-            hora_salida_almuerzo_form = _parse_time_or_none(request.form.get('hora_salida_almuerzo')) # Del campo "Salida a Almuerzo"
-            hora_regreso_almuerzo_form = _parse_time_or_none(request.form.get('hora_regreso_almuerzo')) # Del campo "Regreso de Almuerzo"
-
-            # --- 2. Validaciones Críticas ---
+            hora_salida_almuerzo_form = _parse_time_or_none(request.form.get('hora_salida_almuerzo'))
+            hora_regreso_almuerzo_form = _parse_time_or_none(request.form.get('hora_regreso_almuerzo'))
+            
             if not nueva_hora_entrada:
                 flash('Error: La hora de entrada es obligatoria.', 'danger')
                 return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **redirect_params))
@@ -591,33 +590,28 @@ def editar_asistencia(registro_id):
             if not empleado.salario_base or float(empleado.salario_base) <= 0:
                 flash(f'Error: El salario base del empleado {empleado.nombre} no es válido. Actualice el perfil del empleado.', 'danger')
                 return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **redirect_params))
-
-            # --- 3. Asignación al Registro (Aplicando la lógica inversa de tu DB) ---
+                
             registro.fecha_registro = nueva_fecha_registro
             registro.hora_entrada = nueva_hora_entrada
             registro.hora_salida = nueva_hora_salida
-            
-            # Asignación a los campos de la DB según tu lógica inversa:
-            registro.hora_salida_almuerzo = hora_salida_almuerzo_form   
-            registro.hora_entrada_almuerzo = hora_regreso_almuerzo_form 
-            
+            registro.hora_salida_almuerzo = hora_salida_almuerzo_form
+            registro.hora_entrada_almuerzo = hora_regreso_almuerzo_form
             registro.aprobacion_registro = aprobado_form
-
-            # --- 4. Lógica de Cálculo de Tiempos y Monto ---
-            if registro.hora_salida: 
-                # CÁLCULO DEL COSTO POR HORA
-                horas_periodo_calculo = HORAS_MES_ESTANDAR 
-                periodicidad = empleado.tipo_nomina_relacion.nombre_tipo if empleado.tipo_nomina_relacion else None
-                if periodicidad == 'Quincenal':
-                    horas_periodo_calculo = HORAS_QUINCENA_ESTANDAR
-                elif periodicidad == 'Semanal':
-                    horas_periodo_calculo = HORAS_SEMANA_ESTANDAR
+            
+            # --- 4. Lógica de Cálculo de Tiempos y Monto (BLOQUE CORREGIDO) ---
+            if registro.hora_salida:
+                
+                # 🛑 CORRECCIÓN CLAVE: CÁLCULO UNIFICADO DEL COSTO POR HORA
+                # Asumimos que 'empleado.salario_base' contiene el monto MENSUAL.
+                # Utilizamos siempre las horas estándar MENSUALES (HORAS_MES_ESTANDAR)
+                # para una base de cálculo consistente, eliminando la dependencia de la periodicidad
+                # en esta parte específica.
                 
                 costo_por_hora_normal = 0
-                if horas_periodo_calculo > 0:
-                    costo_por_hora_normal = float(empleado.salario_base) / horas_periodo_calculo
+                if HORAS_MES_ESTANDAR > 0:
+                    costo_por_hora_normal = float(empleado.salario_base) / HORAS_MES_ESTANDAR
 
-                # CÁLCULO DEL TIEMPO TRABAJADO
+                # CÁLCULO DEL TIEMPO TRABAJADO (SIN CAMBIOS)
                 dt_entrada = datetime.combine(nueva_fecha_registro, registro.hora_entrada)
                 dt_salida = datetime.combine(nueva_fecha_registro, registro.hora_salida)
 
@@ -631,15 +625,15 @@ def editar_asistencia(registro_id):
                     return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **redirect_params))
 
                 pausa_real_almuerzo = timedelta(minutes=0)
-                pausa_obligatoria_deducida = timedelta(minutes=0) 
+                pausa_obligatoria_deducida = timedelta(minutes=0)
                 
                 # Si ambos campos de pausa están llenos en la DB, calcular la pausa real
                 if registro.hora_salida_almuerzo and registro.hora_entrada_almuerzo:
-                    dt_inicio_pausa_db = datetime.combine(nueva_fecha_registro, registro.hora_salida_almuerzo) 
-                    dt_fin_pausa_db = datetime.combine(nueva_fecha_registro, registro.hora_entrada_almuerzo)   
+                    dt_inicio_pausa_db = datetime.combine(nueva_fecha_registro, registro.hora_salida_almuerzo)
+                    dt_fin_pausa_db = datetime.combine(nueva_fecha_registro, registro.hora_entrada_almuerzo)
                     
                     if dt_fin_pausa_db < dt_inicio_pausa_db:
-                           dt_fin_pausa_db += timedelta(days=1)
+                               dt_fin_pausa_db += timedelta(days=1)
                     
                     pausa_real_almuerzo = dt_fin_pausa_db - dt_inicio_pausa_db
 
@@ -650,17 +644,17 @@ def editar_asistencia(registro_id):
                 else:
                     # Aplicar Pausa Obligatoria SOLO si NO se registró pausa real y la jornada es larga
                     if total_time_bruto > JORNADA_MINIMA_PAUSA_OBLIGATORIA:
-                           pausa_obligatoria_deducida = timedelta(minutes=60)
+                               pausa_obligatoria_deducida = timedelta(minutes=60)
 
                 # Cálculo final del tiempo neto
                 total_time_neto = total_time_bruto - pausa_real_almuerzo - pausa_obligatoria_deducida
-                            
+                        
                 if total_time_neto < timedelta(minutes=0):
                     total_time_neto = timedelta(minutes=0)
 
                 registro.total_horas = round(total_time_neto.total_seconds() / 3600, 2)
                 
-                # CÁLCULO DEL MONTO FINAL
+                # CÁLCULO DEL MONTO FINAL (Ahora usa el costo_por_hora_normal CORRECTO)
                 _calculate_monto(registro, empleado, costo_por_hora_normal)
                 
             else: # No hay hora de salida, resetear campos
@@ -673,8 +667,8 @@ def editar_asistencia(registro_id):
             flash('Registro de asistencia actualizado exitosamente.', 'success')
 
             # ----------------------------------------------------------------------------------
-            # --- Lógica de Paginación Inteligente para Redirección (La sección clave) ---
-            # ----------------------------------------------------------------------------------
+            # --- Lógica de Paginación Inteligente para Redirección (SIN CAMBIOS) ---
+            # ... (Código para redirección) ...
             query_check = RegistroAsistencia.query.order_by(RegistroAsistencia.fecha_registro.desc())
             
             if fecha_inicio_filtro:
@@ -719,9 +713,9 @@ def editar_asistencia(registro_id):
             return redirect(url_for('registro_asistencia.editar_asistencia', registro_id=registro_id, **redirect_params))
     
     # Si es GET, simplemente renderiza el formulario
-    return render_template('asistencia/editar_asistencia.html', 
-                             registro=registro,
-                             **redirect_params)
+    return render_template('asistencia/editar_asistencia.html',
+                           registro=registro,
+                           **redirect_params)
 
 """ Función para eliminar un registro de asistencia ------------------------------------------------"""
 @registro_asistencia_bp.route('/eliminar/<int:registro_id>', methods=['POST'])

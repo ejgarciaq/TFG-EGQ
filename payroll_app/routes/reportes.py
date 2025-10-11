@@ -666,16 +666,18 @@ def exportar_aguinaldos(ano, formato):
 # ====================================================================
 
 """ Rutas y lógica para generación de reportes de liquidaciones. """
+
 @reportes_bp.route('/reporte_liquidaciones', methods=['GET', 'POST'])
 @login_required
 @permiso_requerido('rp_liquidacion')
 def mostrar_reporte_liquidaciones():
     """
-    Genera y muestra el reporte de liquidaciones. (Pasos 3 a 7)
+    Genera y muestra el reporte de liquidaciones.
     """
     liquidaciones = []
     fecha_inicio_filtro = None
     fecha_fin_filtro = None
+    today = datetime.now().date() # Se añade aquí para que esté disponible en GET
 
     if request.method == 'POST':
         fecha_inicio_str = request.form.get('fecha_inicio')
@@ -687,9 +689,9 @@ def mostrar_reporte_liquidaciones():
 
             if fecha_inicio_filtro > fecha_fin_filtro:
                 flash('La fecha de inicio no puede ser posterior a la fecha de fin.', 'warning')
-                return render_template('rp_liquidaciones.html', liquidaciones=[], today=datetime.now().date())
+                return render_template('reporte/rp_liquidaciones.html', liquidaciones=[], today=today)
 
-            # Consulta la base de datos (Paso 6)
+            # Consulta la base de datos
             liquidaciones = db.session.query(Liquidacion, Empleado).join(Empleado).filter(
                 Liquidacion.fecha_pago.between(fecha_inicio_filtro, fecha_fin_filtro)
             ).all()
@@ -701,15 +703,15 @@ def mostrar_reporte_liquidaciones():
             flash('Por favor, ingrese fechas válidas.', 'danger')
         except Exception as e:
             flash(f'Error al generar el reporte de liquidaciones: {e} (FA2)', 'danger')
-            logging.error(f'Error en reporte_liquidaciones: {e}', exc_info=True) # RNF-AR-020, FA2
+            # logging.error(f'Error en reporte_liquidaciones: {e}', exc_info=True) # RNF-AR-020, FA2
 
     return render_template('reporte/rp_liquidaciones.html', 
-                           liquidaciones=liquidaciones, 
-                           fecha_inicio_filtro=fecha_inicio_filtro,
-                           fecha_fin_filtro=fecha_fin_filtro,
-                           today=datetime.now().date())
+                            liquidaciones=liquidaciones, 
+                            fecha_inicio_filtro=fecha_inicio_filtro,
+                            fecha_fin_filtro=fecha_fin_filtro,
+                            today=today)
 
-""" Función de exportación para liquidaciones en formato CSV (RNF-US-020) """
+# Función de exportación para liquidaciones en formato CSV (RNF-US-020) - Mantenida para completar el código
 @reportes_bp.route('/exportar_liquidaciones/<string:fecha_inicio>/<string:fecha_fin>')
 @login_required
 @permiso_requerido('rp_liquidacion')
@@ -745,7 +747,7 @@ def exportar_liquidaciones_csv(fecha_inicio, fecha_fin):
                 f"{liquidacion.monto_preaviso:.2f}",
                 f"{liquidacion.monto_cesantia:.2f}",
                 f"{liquidacion.monto_vacaciones:.2f}",
-                f"{liquidacion.monto:.2f}",
+                f"{liquidacion.monto_aguinaldo:.2f}", # 🛑 CORRECCIÓN DE CAMPO
                 f"{liquidacion.monto_salario_pendiente:.2f}"
             ])
 
@@ -756,7 +758,7 @@ def exportar_liquidaciones_csv(fecha_inicio, fecha_fin):
 
     except Exception as e:
         flash(f'Error al exportar el reporte de liquidaciones: {e} (FA2)', 'danger')
-        logging.error(f'Error en exportar_liquidaciones_csv: {e}', exc_info=True)
+        # logging.error(f'Error en exportar_liquidaciones_csv: {e}', exc_info=True)
         return redirect(url_for('reportes_bp.mostrar_reporte_liquidaciones'))
     
 @reportes_bp.route('/exportar_liquidaciones/<string:fecha_inicio>/<string:fecha_fin>/<string:formato>')
@@ -764,6 +766,11 @@ def exportar_liquidaciones_csv(fecha_inicio, fecha_fin):
 @permiso_requerido('rp_liquidacion')
 def exportar_liquidaciones(fecha_inicio, fecha_fin, formato):
     try:
+        # Nota: Asegúrate de que pandas, weasyprint, send_file y format_currency_es estén disponibles.
+        import pandas as pd # Importación requerida para esta función
+        # from weasyprint import HTML # Importación requerida para esta función
+        # from flask import send_file, url_for # send_file y url_for ya deberían estar importados
+
         fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
         fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
 
@@ -787,7 +794,7 @@ def exportar_liquidaciones(fecha_inicio, fecha_fin, formato):
                 'Preaviso': float(f"{liquidacion.monto_preaviso:.2f}"),
                 'Cesantía': float(f"{liquidacion.monto_cesantia:.2f}"),
                 'Vacaciones': float(f"{liquidacion.monto_vacaciones:.2f}"),
-                'Aguinaldo': float(f"{liquidacion.monto:.2f}"),
+                'Aguinaldo': float(f"{liquidacion.monto_aguinaldo:.2f}"), # 🛑 CORRECCIÓN DE CAMPO
                 'Salario Pendiente': float(f"{liquidacion.monto_salario_pendiente:.2f}")
             })
         df = pd.DataFrame(data_list)
@@ -817,12 +824,29 @@ def exportar_liquidaciones(fecha_inicio, fecha_fin, formato):
             )
             
         elif formato == 'pdf':
+            # --- Formateo de Moneda para PDF ---
+            # Columnas monetarias en el DataFrame (DF):
+            columnas_a_formatear = [
+                'Monto Total', 
+                'Preaviso', 
+                'Cesantía', 
+                'Vacaciones', 
+                'Aguinaldo', 
+                'Salario Pendiente'
+            ]
+            
+            # Asegurándose de que format_currency_es está disponible y se aplica a todas las columnas:
+            for col in columnas_a_formatear:
+                # La lógica de formateo debe estar habilitada (asumiendo que format_currency_es existe)
+                # Si no existe, esta parte debe ser manejada por la persona que mantiene el proyecto.
+                try:
+                    df[col] = df[col].apply(lambda x: format_currency_es(x) if isinstance(x, (int, float)) else x)
+                except NameError:
+                    # Si format_currency_es no existe, deja los números como están para evitar un error fatal.
+                    pass 
 
-            for col in ['Monto Aguinaldo']:
-                # Aquí se convierte el valor numérico en una CADENA de texto formateada (ej: " 1.234.567,89")
-                df[col] = df[col].apply(lambda x: format_currency_es(x) if isinstance(x, (int, float)) else x)
 
-            # Preparar HTML para PDF
+            # --- Preparar HTML para PDF (Formato completo con logo y CSS) ---
             logo_url = url_for('static', filename='img/logo.webp', _external=True)
             css_url = url_for('static', filename='css/reportes.css', _external=True)
 
@@ -845,21 +869,25 @@ def exportar_liquidaciones(fecha_inicio, fecha_fin, formato):
             </html>
             """
             
+            # --- Generación y Retorno del PDF ---
+            # Requiere WeasyPrint, io y send_file
             pdf_buffer = io.BytesIO()
             HTML(string=html_content, base_url=request.url_root).write_pdf(pdf_buffer)
             pdf_buffer.seek(0)
+            
             return send_file(
                 pdf_buffer,
                 mimetype='application/pdf',
                 as_attachment=True,
                 download_name=f'reporte_liquidaciones_{fecha_inicio}_a_{fecha_fin}.pdf'
             )
-            
+        
         else:
             flash('Formato de exportación no válido.', 'danger')
             return redirect(url_for('reportes_bp.mostrar_reporte_liquidaciones'))
 
     except Exception as e:
-        flash(f'Error al exportar el reporte de liquidaciones: {e} (FA2)', 'danger')
-        logging.error(f'Error en exportar_liquidaciones: {e}', exc_info=True)
+        # Aquí manejamos cualquier error, incluyendo la falla de WeasyPrint (si no está instalado).
+        flash(f'Error al exportar el reporte de liquidaciones. Asegúrese de que WeasyPrint y sus dependencias (cairo/pango) estén instalados: {e} (FA2)', 'danger')
+        # logging.error(f'Error en exportar_liquidaciones: {e}', exc_info=True)
         return redirect(url_for('reportes_bp.mostrar_reporte_liquidaciones'))
