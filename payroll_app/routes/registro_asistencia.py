@@ -28,7 +28,7 @@ def allowed_file(filename):
 # Si estos valores NO van a ser configurables por el usuario, déjalos aquí.
 # Si SÍ van a ser configurables, deberías cargarlos desde tu tabla de configuracion.
 HORAS_POR_JORNADA_NORMAL = 8.0 # Horas de una jornada normal por día
-HORAS_MES_ESTANDAR = 208.0  # (48 horas/semana * 4.3333 semanas/mes) o el estándar de tu empresa
+HORAS_MES_ESTANDAR = 208.0  # (48 horas/semana * 4.3333 semanas/mes)
 HORAS_QUINCENA_ESTANDAR = 96.0 # 48 horas/semana * 2 semanas = 96 horas
 HORAS_SEMANA_ESTANDAR = 48.0 # Directamente 48 horas por semana
 JORNADA_MINIMA_PAUSA_OBLIGATORIA = timedelta(hours=6)
@@ -507,7 +507,7 @@ def _parse_time_or_none(time_str):
             return None
     return None
 
-# 🟢 Asegúrate de que esta función esté aquí 🟢
+""" Funciones auxiliares para manejo de empleados y tipos de nómina """
 def _get_empleado_with_nomina(empleado_id):
     """Obtiene un empleado con su tipo de nómina relacionado, incluyendo el TipoNomina."""
     # Asegúrate de que 'Empleado' y 'joinedload' estén correctamente importados
@@ -840,6 +840,23 @@ def generar_nomina():
             nominas_generadas_info = []
 
             for empleado in empleados_del_tipo_nomina:
+                
+                # --- CALCULAR COSTO POR HORA BASE (MOVIDO AQUÍ) ---
+                costo_por_hora_base = 0
+                if empleado.salario_base is not None and float(empleado.salario_base) > 0:
+                    periodicidad_nombre = empleado.tipo_nomina_relacion.nombre_tipo if empleado.tipo_nomina_relacion else None
+                    horas_periodo_calculo_base = 0
+                    if periodicidad_nombre == 'Mensual':
+                        horas_periodo_calculo_base = HORAS_MES_ESTANDAR
+                    elif periodicidad_nombre == 'Quincenal':
+                        horas_periodo_calculo_base = HORAS_QUINCENA_ESTANDAR
+                    elif periodicidad_nombre == 'Semanal':
+                        horas_periodo_calculo_base = HORAS_SEMANA_ESTANDAR
+                    
+                    if horas_periodo_calculo_base > 0:
+                        costo_por_hora_base = float(empleado.salario_base) / horas_periodo_calculo_base
+                # ----------------------------------------------------
+
                 # 1. Verificar si el empleado tiene al menos una asistencia aprobada en el período.
                 has_asistencia = RegistroAsistencia.query.filter(
                     RegistroAsistencia.empleado == empleado,
@@ -887,35 +904,28 @@ def generar_nomina():
                         dias_compensados += (fin_ap_periodo - inicio_ap_periodo).days + 1
                 
                 # 5. Calcular el monto por vacaciones/incapacidades
-                costo_por_hora_base = 0
-                if empleado.salario_base is not None and float(empleado.salario_base) > 0:
-                    periodicidad_nombre = empleado.tipo_nomina_relacion.nombre_tipo if empleado.tipo_nomina_relacion else None
-                    horas_periodo_calculo_base = 0
-                    if periodicidad_nombre == 'Mensual':
-                        horas_periodo_calculo_base = HORAS_MES_ESTANDAR
-                    elif periodicidad_nombre == 'Quincenal':
-                        horas_periodo_calculo_base = HORAS_QUINCENA_ESTANDAR
-                    elif periodicidad_nombre == 'Semanal':
-                        horas_periodo_calculo_base = HORAS_SEMANA_ESTANDAR
-                    
-                    if horas_periodo_calculo_base > 0:
-                        costo_por_hora_base = float(empleado.salario_base) / horas_periodo_calculo_base
-
                 monto_por_vac_incap = dias_compensados * HORAS_POR_JORNADA_NORMAL * costo_por_hora_base
 
                 # 6. Sumar el monto por feriados obligatorios no trabajados
+                # 🚨 ESTA LÓGICA YA ESTÁ CORRECTA PARA SUMAR EL DÍA FERIADO PAGADO 🚨
                 monto_feriados_no_trabajados = 0.0
                 dia_actual = fecha_inicio_obj
                 while dia_actual <= fecha_fin_obj:
+                    # 6.1 Buscar si es un feriado obligatorio pagado
                     es_feriado_obligatorio = Feriado.query.filter_by(fecha_feriado=dia_actual, pago_obligatorio=True).first()
+                    
                     if es_feriado_obligatorio:
+                        # 6.2 Verificar si SÍ se registró asistencia aprobada para ese día
                         registro_asistencia_aprobado = RegistroAsistencia.query.filter(
                             RegistroAsistencia.empleado == empleado,
                             RegistroAsistencia.fecha_registro == dia_actual,
                             RegistroAsistencia.aprobacion_registro.is_(True)
                         ).first()
+                        
+                        # 6.3 Si NO trabajó (no hay registro aprobado), se le paga el día base
                         if not registro_asistencia_aprobado:
                             monto_feriados_no_trabajados += HORAS_POR_JORNADA_NORMAL * costo_por_hora_base
+                            
                     dia_actual += timedelta(days=1)
                 
                 # 7. Calcular el monto bruto total
@@ -958,13 +968,13 @@ def generar_nomina():
 
             # 2. Mostrar un resumen global más preciso
             if nominas_exitosas > 0 and nominas_advertencias == 0:
-                 flash(f'¡Éxito! Se generaron {nominas_exitosas} nóminas exitosamente.', 'success')
+                flash(f'¡Éxito! Se generaron {nominas_exitosas} nóminas exitosamente.', 'success')
             elif nominas_exitosas > 0 and nominas_advertencias > 0:
-                 flash(f'Proceso completado con advertencias. Se generaron {nominas_exitosas} nóminas, pero {nominas_advertencias} no se pudieron generar (ver detalles arriba).', 'warning')
+                flash(f'Proceso completado con advertencias. Se generaron {nominas_exitosas} nóminas, pero {nominas_advertencias} no se pudieron generar (ver detalles arriba).', 'warning')
             elif nominas_exitosas == 0 and nominas_advertencias > 0:
-                 flash(f'Proceso completado, pero no se generó ninguna nómina (ver advertencias).', 'warning')
+                flash(f'Proceso completado, pero no se generó ninguna nómina (ver advertencias).', 'warning')
             else:
-                 flash('Proceso finalizado. No se generaron nuevas nóminas.', 'info')
+                flash('Proceso finalizado. No se generaron nuevas nóminas.', 'info')
 
             return redirect(url_for('registro_asistencia.generar_nomina',
                 fecha_inicio=fecha_inicio_seleccionada,
