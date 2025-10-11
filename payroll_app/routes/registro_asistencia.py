@@ -1004,7 +1004,7 @@ def generar_nomina():
     if id_tipo_nomina_int:
         query_nominas_actual = query_nominas_actual.filter(Nomina.tipo_nomina_relacion.has(TipoNomina.id_tipo_nomina == id_tipo_nomina_int))
     
-    nominas_paginadas = query_nominas_actual.paginate(page=page, per_page=10, error_out=False)
+    nominas_paginadas = query_nominas_actual.paginate(page=page, per_page=7, error_out=False)
 
     return render_template(
         'nomina/generar_nomina.html',

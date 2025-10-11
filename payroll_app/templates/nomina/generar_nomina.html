@@ -45,7 +45,6 @@
     <fieldset class="shadow border p-4 mb-3 rounded border-primary">
         <legend class="float-none w-auto px-1 fs-3 text-center">Nóminas Generadas</legend>
             {% if nominas %}
-            <h3 class="mt-4 text-center"></h3>
             
             {# --- INICIO DE LA NAVEGACIÓN DE PAGINACIÓN --- #}
             {% if paginated_nominas and paginated_nominas.pages > 1 %}
@@ -55,7 +54,7 @@
                     'fecha_fin': fecha_fin_seleccionada,
                     'tipo_nomina_id': id_tipo_nomina_seleccionado
                 } %}
-                <nav aria-label="Navegación de nóminas" class="d-flex justify-content-left ">
+                <nav aria-label="Navegación de nóminas" class="d-flex justify-content-left">
                     <ul class="pagination">
                         {# Enlace "Anterior" #}
                         <li class="page-item {% if not paginated_nominas.has_prev %}disabled{% endif %}">
@@ -85,7 +84,7 @@
             {% endif %}
             {# --- FIN DE LA NAVEGACIÓN DE PAGINACIÓN --- #}
 
-            <div class="table-responsive">
+            <div class="table-responsive mt-5">
                 <table class="table table-striped">
                     <thead>
                         <tr>
