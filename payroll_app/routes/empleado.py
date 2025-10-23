@@ -46,53 +46,52 @@ def crear_empleado():
     roles = Rol.query.all()
     puestos = Puesto.query.all()
     tipos_nomina = TipoNomina.query.all()
-
+    # Manejo del formulario de creación de empleado
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
         correo = request.form["correo"]
         telefono = request.form["telefono"]
         cedula = request.form["cedula"]
-
         # Validaciones con expresiones regulares
         email_regex = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
         phone_regex = r"^[0-9]{8}$"
         password_regex = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+-.,/])[A-Za-z\d!@#$%^&*()_+-.,/]{8,}$"
-
         # Se agregan todas las validaciones de duplicidad
         if Empleado.query.filter_by(cedula=cedula).first():
             flash("Ya existe un empleado con esa cédula en el sistema.", "danger")
             return redirect(url_for("empleado.crear_empleado"))
-        
+        # Validación para nombre de usuario duplicado
         if Usuario.query.filter_by(username=username).first():
             flash("El nombre de usuario ya existe. Por favor, elige otro.", "danger")
             return redirect(url_for("empleado.crear_empleado"))
-        
         # Validación para correo duplicado
         if Empleado.query.filter_by(correo=correo).first():
             flash("Ya existe un empleado con ese correo electrónico en el sistema.", "danger")
             return redirect(url_for("empleado.crear_empleado"))
-
+        # Validaciones de formato
         if not re.match(email_regex, correo):
             flash(
                 "El formato del correo electrónico no es válido. ejemplo@correo.com",
                 "danger",
             )
             return redirect(url_for("empleado.crear_empleado"))
-
+        # Validación de teléfono
         if not re.match(phone_regex, telefono):
             flash(
                 "El número de teléfono debe contener exactamente 8 dígitos.", "danger"
             )
             return redirect(url_for("empleado.crear_empleado"))
-
+        # Validación de contraseña
         if not re.match(password_regex, password):
             flash(
-                "La nueva contraseña no cumple con los requisitos: <br>- Mínimo 8 caracteres.<br>- Al menos una mayúscula.<br>- Al menos una minúscula.<br>- Al menos un número.<br>- Al menos un símbolo.",
+                "La nueva contraseña no cumple con los requisitos: <br>- Mínimo 8 caracteres."
+                "<br>- Al menos una mayúscula.<br>- Al menos una minúscula.<br>"
+                "- Al menos un número.<br>- Al menos un símbolo.",
                 "danger",
             )
             return redirect(url_for("empleado.crear_empleado"))
-
+        # Creación del nuevo empleado y usuario asociado
         try:
             hashed_password = generate_password_hash(password)
             nuevo_usuario = Usuario(
@@ -101,13 +100,13 @@ def crear_empleado():
                 estado_usuario=True,
                 Rol_id_rol=request.form["rol_id"],
             )
-
+            # Agregar el nuevo usuario a la sesión
             fecha_ingreso = datetime.strptime(
                 request.form["fecha_ingreso"], "%Y-%m-%d"
             ).date()
-
+            # Obtener el tipo de nómina seleccionado
             tipo_nomina_id = request.form["tipo_nomina_id"]
-
+            # Crear el nuevo empleado
             nuevo_empleado = Empleado(
                 nombre=request.form["nombre"],
                 apellido_primero=request.form["apellido_primero"],
@@ -123,13 +122,12 @@ def crear_empleado():
                 TipoNomina_id_tipo_nomina=tipo_nomina_id,
                 usuario=nuevo_usuario,
             )
-
             db.session.add(nuevo_empleado)
             db.session.commit()
-
+            # Mensaje de éxito
             flash("Empleado creado exitosamente.", "success")
             return redirect(url_for("empleado.listar_empleado"))
-
+        # Manejo de errores
         except Exception as e:
             db.session.rollback()
             flash(f"Error al crear el empleado: {str(e)}", "danger")
@@ -139,7 +137,7 @@ def crear_empleado():
                 roles=roles,
                 tipos_nomina=tipos_nomina,
             )
-
+    # Renderizar la plantilla en el método GET
     return render_template(
         "empleado/crear_empleado.html", puestos=puestos, roles=roles, tipos_nomina=tipos_nomina
     )

@@ -65,6 +65,7 @@ def enviar_notificacion_por_correo(destinatario, asunto, cuerpo):
 @permiso_requerido('listar_accion_personal')
 @login_required
 def accion_personal():
+    # Lógica del Método POST (Procesamiento del formulario)
     if request.method == 'POST':
         try:
             empleado_id = request.form.get('empleado_id')
@@ -75,7 +76,7 @@ def accion_personal():
             
             empleado = Empleado.query.get(empleado_id)
             tipo_ap = Tipo_AP.query.get(tipo_ap_id)
-            
+            # Validaciones Básicas
             if not empleado or not tipo_ap:
                 flash('Empleado o tipo de acción no válido.', 'danger')
                 return redirect(url_for('accion_personal_bp.accion_personal'))
@@ -112,9 +113,9 @@ def accion_personal():
             if cantidad_dia_str:
                 cantidad_dia = int(cantidad_dia_str)
             
-            # 🛑 VALIDACIÓN CLAVE DE VACACIONES 🛑
+            # Validaciones Específicas por Tipo de Acción
+            #-- Validación para Vacaciones --
             if tipo_ap.nombre_tipo == 'Vacaciones':
-                # Asegura que cantidad_dia no sea None si estamos en Vacaciones (debe ser calculado por JS o tener un valor)
                 if cantidad_dia is None or cantidad_dia <= 0:
                     flash('Error: La cantidad de días de vacaciones solicitados es inválida.', 'danger')
                     return redirect(url_for('accion_personal_bp.accion_personal'))
@@ -127,23 +128,22 @@ def accion_personal():
             # --- Manejo de Archivos ---
             documento_adjunto = request.files.get('documento_adjunto')
             nombre_archivo = None
-            
+            # Guardar el archivo si se ha subido uno
             if documento_adjunto and documento_adjunto.filename != '':
+                # Verificar la extensión del archivo
                 if not allowed_file(documento_adjunto.filename):
                     flash('Tipo de archivo no permitido. Las extensiones válidas son: png, jpg, jpeg, pdf.', 'danger')
                     return redirect(url_for('accion_personal_bp.accion_personal'))
-                
+                # Generar un nombre de archivo único y seguro
                 fecha_formato = fecha_accion.strftime('%Y-%m-%d')
-                
                 nombre_empleado_sanitized = empleado.nombre_completo.replace(' ', '_').replace('á', 'a').replace('é', 'e').replace('í', 'i').replace('ó', 'o').replace('ú', 'u').replace('ñ', 'n')
                 nombre_tipo_sanitized = tipo_ap.nombre_tipo.replace(' ', '_').replace('/', '_').replace('\\', '_').replace(':', '_')
-                
                 ext = os.path.splitext(secure_filename(documento_adjunto.filename))[1]
                 nuevo_nombre = f"{fecha_formato}_{nombre_tipo_sanitized}_{nombre_empleado_sanitized}{ext}"
                 nombre_archivo = nuevo_nombre
-                
                 app_root = os.path.dirname(os.path.abspath(__file__))
                 upload_folder = os.path.join(app_root, '..', 'static', 'uploads')
+                # Crear el directorio si no existe
                 if not os.path.exists(upload_folder):
                     os.makedirs(upload_folder)
                 ruta_completa = os.path.join(upload_folder, nombre_archivo)

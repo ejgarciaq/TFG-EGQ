@@ -18,6 +18,7 @@ DIAS_AGUINALDO_POR_ANIO = 360 # Usado para proporcionalidad del aguinaldo (divid
 
 # --- FUNCIONES AUXILIARES DE CÁLCULO ---
 
+""" Cálculo de Liquidación Proporcional según la Ley de Costa Rica """
 def _calcular_dias_preaviso(meses_servicio):
     """Calcula los días de preaviso según la antigüedad (Art. 28, Código de Trabajo)."""
     if meses_servicio < 3:
@@ -29,6 +30,7 @@ def _calcular_dias_preaviso(meses_servicio):
     else: # 1 año o más
         return 30
 
+""" Cálculo de Cesantía según la Ley de Costa Rica """
 def _calcular_dias_cesantia(meses_servicio):
     """
     Calcula los días de cesantía según la tabla progresiva (Art. 29, Código de Trabajo).
@@ -37,7 +39,6 @@ def _calcular_dias_cesantia(meses_servicio):
     # Si tiene menos de 6 meses, no tiene derecho a cesantía.
     if meses_servicio < 6:
         return 0.0
-    
     # Tabla de Cesantía (Días de salario por año completo)
     # Fuente: Art. 29, Código de Trabajo.
     dias_por_anio = [
@@ -51,39 +52,34 @@ def _calcular_dias_cesantia(meses_servicio):
         21.25, # 6 a 7 años
         21.25, # 7 a 8 años
     ]
-    
     # Límite máximo de 8 años (96 meses)
     if meses_servicio > 96:
         meses_servicio = 96 
-        
+    # Desglose de meses en años completos y meses residuales
     anios_completos = int(meses_servicio // 12)
     meses_residuales = meses_servicio % 12
     dias_cesantia_total = 0.0
-    
     # 1. Calcular años completos (hasta el límite de la tabla)
     for i in range(1, anios_completos + 1):
         # El índice se ajusta al límite de la tabla
         index = min(i, len(dias_por_anio) - 1)
         dias_cesantia_total += dias_por_anio[index]
-        
     # 2. Calcular la fracción residual (meses)
     if meses_residuales > 0:
         # La fracción se calcula con la tarifa del año en curso (anios_completos + 1)
         # Si el empleado tiene 1 año y 3 meses, la tarifa para la fracción es la del 2do año (20.0 días)
         anio_actual = anios_completos + 1
         index = min(anio_actual, len(dias_por_anio) - 1)
-        
         # Proporcionalidad: (meses_residuales / 12 meses) * días_correspondientes_al_año
         if anio_actual == 1 and meses_residuales < 6:
              # Caso especial: 6 a 12 meses.
             dias_residuales = (meses_residuales * DIAS_MES / DIAS_AGUINALDO_POR_ANIO) * 19.5
         elif meses_residuales > 0:
             dias_residuales = (meses_residuales / 12) * dias_por_anio[index]
-
         dias_cesantia_total += dias_residuales
-        
     return round(dias_cesantia_total, 2)
 
+""" Cálculo del Salario Promedio de los últimos 6 meses """
 def _obtener_salario_base_promedio(empleado, fecha_fin_contrato):
     """Calcula el salario promedio (bruto) de los últimos 6 meses."""
     fecha_inicio_periodo = fecha_fin_contrato - relativedelta(months=MESES_PROMEDIO_BASE)
@@ -106,6 +102,7 @@ def _obtener_salario_base_promedio(empleado, fecha_fin_contrato):
     salario_promedio_mensual = round(total_bruto / divisor, 2)
     return salario_promedio_mensual
 
+""" Cálculo del Salario Pendiente de Pago """
 def _calcular_salario_pendiente(empleado, fecha_fin_contrato, salario_promedio_diario):
     """Calcula el salario bruto pendiente de pago."""
     ultima_nomina = Nomina.query.filter(Nomina.Empleado_id_empleado == empleado.id_empleado, Nomina.fecha_fin <= fecha_fin_contrato).order_by(Nomina.fecha_fin.desc()).first()
@@ -115,16 +112,13 @@ def _calcular_salario_pendiente(empleado, fecha_fin_contrato, salario_promedio_d
     
     return round(dias_pendientes * salario_promedio_diario, 2) if dias_pendientes > 0 else 0.0
 
+""" Cálculo Completo de la Liquidación Proporcional """
 def _calcular_liquidacion_proporcional(empleado, fecha_fin_contrato, salario_promedio_mensual, causa_despido):
     """ Cálculo completo de la liquidación proporcional, apegado a la ley CR. """
-    
     fecha_inicio_contrato = empleado.fecha_ingreso 
     antiguedad = relativedelta(fecha_fin_contrato, fecha_inicio_contrato)
     meses_servicio = (antiguedad.years * 12) + antiguedad.months + (antiguedad.days / DIAS_MES)
-    
     salario_promedio_diario = salario_promedio_mensual / DIAS_MES if salario_promedio_mensual > 0 else 0.0
-    
-    
     # LÓGICA CONDICIONAL DE PREAVISO Y CESANTÍA
     if causa_despido in ['sin_justa_causa', 'despido_indirecto']:
         dias_preaviso = _calcular_dias_preaviso(meses_servicio)
@@ -138,30 +132,24 @@ def _calcular_liquidacion_proporcional(empleado, fecha_fin_contrato, salario_pro
         monto_preaviso = 0.0
         dias_cesantia = 0
         monto_cesantia = 0.0
-
     # CÁLCULO DE VACACIONES PENDIENTES
     dias_vacaciones_pendientes = empleado.vacaciones_disponibles or 0
     monto_vacaciones = round(dias_vacaciones_pendientes * salario_promedio_diario, 2)
-    
     # CÁLCULO DE AGUINALDO PROPORCIONAL
     anio_corte = fecha_fin_contrato.year if fecha_fin_contrato.month >= 12 and fecha_fin_contrato.day >= 1 else fecha_fin_contrato.year - 1 
     fecha_inicio_aguinaldo = datetime(anio_corte, 12, 1).date() 
     dias_acumulados_aguinaldo = (fecha_fin_contrato - fecha_inicio_aguinaldo).days + 1
-    
     total_bruto_aguinaldo = db.session.query(func.sum(Nomina.salario_bruto)).filter(
         Nomina.Empleado_id_empleado == empleado.id_empleado,
         Nomina.fecha_fin <= fecha_fin_contrato,
         Nomina.fecha_inicio >= fecha_inicio_aguinaldo
     ).scalar() or 0.0
-    
     monto_aguinaldo = round(total_bruto_aguinaldo / 12, 2) 
-    
     # CÁLCULO DE SALARIO PENDIENTE
     monto_salario_pendiente = _calcular_salario_pendiente(empleado, fecha_fin_contrato, salario_promedio_diario)
-    
     # RESUMEN:
     total_liquidacion = monto_preaviso + monto_cesantia + monto_vacaciones + monto_aguinaldo + monto_salario_pendiente
-    
+
     return {
         'total_liquidacion': total_liquidacion,
         'monto_preaviso': monto_preaviso,
@@ -182,8 +170,9 @@ def _calcular_liquidacion_proporcional(empleado, fecha_fin_contrato, salario_pro
         'causa_despido': causa_despido 
     }
 
-# --- RUTAS FLASK (Sin Cambios) ---
+""" RUTAS DEL MÓDULO DE LIQUIDACIÓN """
 
+""" Página para buscar el empleado y los datos iniciales. """
 @liquidacion_bp.route('/calcular', methods=['GET', 'POST'])
 @permiso_requerido('ca_liquidacion')
 @login_required
@@ -221,6 +210,7 @@ def buscar_empleado():
 
     return render_template('liquidacion/liquidacion.html', empleados=empleados, today=today, fecha_fin_contrato=fecha_fin_contrato, causas=causas)
 
+""" Página para mostrar el cálculo detallado y guardar la liquidación. """
 @liquidacion_bp.route('/calculo/<int:empleado_id>/<string:fecha_fin>', methods=['GET', 'POST'])
 @permiso_requerido('ca_liquidacion')
 @login_required
