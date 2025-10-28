@@ -3,10 +3,8 @@
 {% block content %}
 <div class="container-fluid">
     {# Formulario para generar nómina #}
-
     <fieldset class="shadow border p-4 mb-3 rounded border-primary">
         <legend class="float-none w-auto px-1 fs-3 text-center">Generar Nómina</legend>
-        {# El action del formulario sigue apuntando a la misma ruta que maneja POST #}
         <form method="POST" action="{{ url_for('registro_asistencia.generar_nomina') }}">
             <div class="row g-3">
                 <div class="col-md-3">

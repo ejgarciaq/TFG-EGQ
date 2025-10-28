@@ -824,7 +824,6 @@ def exportar_liquidaciones(fecha_inicio, fecha_fin, formato):
             )
             
         elif formato == 'pdf':
-            # --- Formateo de Moneda para PDF ---
             # Columnas monetarias en el DataFrame (DF):
             columnas_a_formatear = [
                 'Monto Total', 
@@ -837,14 +836,11 @@ def exportar_liquidaciones(fecha_inicio, fecha_fin, formato):
             
             # Asegurándose de que format_currency_es está disponible y se aplica a todas las columnas:
             for col in columnas_a_formatear:
-                # La lógica de formateo debe estar habilitada (asumiendo que format_currency_es existe)
-                # Si no existe, esta parte debe ser manejada por la persona que mantiene el proyecto.
                 try:
                     df[col] = df[col].apply(lambda x: format_currency_es(x) if isinstance(x, (int, float)) else x)
                 except NameError:
-                    # Si format_currency_es no existe, deja los números como están para evitar un error fatal.
-                    pass 
 
+                    pass 
 
             # --- Preparar HTML para PDF (Formato completo con logo y CSS) ---
             logo_url = url_for('static', filename='img/logo.webp', _external=True)

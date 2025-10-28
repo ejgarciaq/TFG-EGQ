@@ -25,8 +25,6 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 """ Configuración global para el módulo de Registro de Asistencia """
-# Si estos valores NO van a ser configurables por el usuario, déjalos aquí.
-# Si SÍ van a ser configurables, deberías cargarlos desde tu tabla de configuracion.
 HORAS_POR_JORNADA_NORMAL = 8.0 # Horas de una jornada normal por día
 HORAS_MES_ESTANDAR = 208.0  # (48 horas/semana * 4.3333 semanas/mes)
 HORAS_QUINCENA_ESTANDAR = 96.0 # 48 horas/semana * 2 semanas = 96 horas
@@ -795,11 +793,13 @@ def generar_nomina():
             fecha_inicio_obj = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
         except ValueError:
             flash('Formato de fecha de inicio inválido.', 'danger')
+         
     if fecha_fin_str:
         try:
             fecha_fin_obj = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
         except ValueError:
             flash('Formato de fecha de fin inválido.', 'danger')
+    # Intento de conversión de ID de tipo de nómina        
     if id_tipo_nomina_str:
         try:
             id_tipo_nomina_int = int(id_tipo_nomina_str)
@@ -808,7 +808,7 @@ def generar_nomina():
 
     # --- Lógica de filtrado y paginación para mostrar las nóminas existentes (GET) ---
     query = Nomina.query.order_by(Nomina.fecha_creacion.desc())
-    
+    # Aplicar filtros si existen
     if id_tipo_nomina_int:
         query = query.filter(Nomina.TipoNomina_id_tipo_nomina == id_tipo_nomina_int)
 
@@ -817,18 +817,18 @@ def generar_nomina():
     
     paginated_nominas = query.paginate(page=page, per_page=per_page, error_out=False)
 
-
     # --- INICIO DEL PROCESAMIENTO POST (GENERACIÓN) ---
     if request.method == 'POST':
         try:
+            # Validaciones básicas
             if not all([id_tipo_nomina_int, fecha_inicio_obj, fecha_fin_obj]):
                 flash('Debe seleccionar un tipo de nómina, fecha de inicio y fecha de fin.', 'danger')
                 return redirect(url_for('registro_asistencia.generar_nomina'))
-
+            # Validar que la fecha de inicio no sea posterior a la fecha de fin
             if fecha_inicio_obj > fecha_fin_obj:
                 flash('La fecha de inicio no puede ser posterior a la fecha de fin.', 'danger')
                 return redirect(url_for('registro_asistencia.generar_nomina'))
-
+            # Obtener el tipo de nómina seleccionado
             tipo_nomina = TipoNomina.query.get(id_tipo_nomina_int)
             if not tipo_nomina:
                 flash('Tipo de nómina no encontrado.', 'danger')
@@ -837,13 +837,13 @@ def generar_nomina():
             empleados_del_tipo_nomina = Empleado.query.filter_by(
                 tipo_nomina_relacion=tipo_nomina
             ).order_by(Empleado.id_empleado).all()
-
+            # Verificar si hay empleados para el tipo de nómina seleccionado
             if not empleados_del_tipo_nomina:
                 flash('No se encontraron empleados para el tipo de nómina seleccionado.', 'warning')
                 return redirect(url_for('registro_asistencia.generar_nomina'))
 
             nominas_generadas_info = []
-
+            # Procesar cada empleado
             for empleado in empleados_del_tipo_nomina:
                 
                 # --- CALCULAR COSTO POR HORA BASE ---
@@ -883,7 +883,7 @@ def generar_nomina():
 
                 if nomina_existente:
                     nominas_generadas_info.append(f"Advertencia: Ya existe una nómina para {empleado.nombre_completo} en el período. Omitiendo.")
-                    continue
+                    continue # Saltar a siguiente empleado
 
                 # 3. Sumar el monto de pago de asistencias aprobadas
                 monto_por_asistencia = db.session.query(func.sum(RegistroAsistencia.monto_pago)).filter(
@@ -999,17 +999,20 @@ def generar_nomina():
             # --- Manejo de mensajes Flash y Redirección ---
             nominas_exitosas = sum(1 for msg in nominas_generadas_info if "Nómina generada" in msg)
             nominas_advertencias = sum(1 for msg in nominas_generadas_info if "Advertencia" in msg)
-            
+            # Mostrar todos los mensajes generados
             for msg in nominas_generadas_info:
                 categoria = 'warning' if "Advertencia" in msg else 'info' 
                 flash(msg, categoria)
-
+            # Resumen final
             if nominas_exitosas > 0 and nominas_advertencias == 0:
                 flash(f'¡Éxito! Se generaron {nominas_exitosas} nóminas exitosamente.', 'success')
+            # Advertencias presentes
             elif nominas_exitosas > 0 and nominas_advertencias > 0:
                 flash(f'Proceso completado con advertencias. Se generaron {nominas_exitosas} nóminas, pero {nominas_advertencias} no se pudieron generar (ver detalles arriba).', 'warning')
+            # Ninguna nómina generada
             elif nominas_exitosas == 0 and nominas_advertencias > 0:
                 flash(f'Proceso completado, pero no se generó ninguna nómina (ver advertencias).', 'warning')
+            # Ninguna nómina generada ni advertencias
             else:
                 flash('Proceso finalizado. No se generaron nuevas nóminas.', 'info')
 

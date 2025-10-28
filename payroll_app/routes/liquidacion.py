@@ -27,7 +27,7 @@ def _calcular_dias_preaviso(meses_servicio):
         return 7
     elif meses_servicio < 12:
         return 15
-    else: # 1 año o más
+    else: # 12 meses o más
         return 30
 
 """ Cálculo de Cesantía según la Ley de Costa Rica """

@@ -40,7 +40,6 @@ def validar_complejidad_password(password):
     # 5. Al menos un carácter especial
     if not re.search(r"[@$!%*?&]", password):
         return False, 'La contraseña debe contener al menos uno de los siguientes caracteres especiales: @$!%*?&.'
-    
     return True, ''
 
 """ Ruta principal que redirige al login o a la página base según el estado de autenticación."""
@@ -72,7 +71,6 @@ def login():
             
             if usuario:
                 ahora = datetime.now(ZONA_HORARIA_LOCAL)
-                
                 # Lógica de desbloqueo temporal:
                 # Si la cuenta está inactiva (bloqueada) y ha pasado el tiempo de bloqueo,
                 # la desbloquea y reinicia el contador de intentos.
@@ -117,9 +115,11 @@ def login():
                     if usuario.intentos_fallidos >= MAX_INTENTOS_FALLIDOS:
                         usuario.estado_usuario = False
                         db.session.commit()
-                        flash(f'Se ha excedido el número de intentos. Su cuenta ha sido bloqueada por {TIEMPO_BLOQUEO_MINUTOS} minutos.', 'danger')
+                        flash(f'Se ha excedido el número de intentos. Su cuenta ha sido bloqueada \
+                               por {TIEMPO_BLOQUEO_MINUTOS} minutos.', 'danger')
                     else:
-                        flash('Nombre de usuario o contraseña incorrecta. Por favor, inténtelo de nuevo.', 'danger')
+                        flash('Nombre de usuario o contraseña incorrecta. Por favor, inténtelo de \
+                               nuevo.', 'danger')
             else:
                 # Usuario no encontrado.
                 flash('Nombre de usuario o contraseña incorrecta. Por favor, inténtelo de nuevo.', 'danger')

@@ -26,7 +26,7 @@ def rol_requerido(rol):
         return decorated_function
     return decorator
 
-# --- Decorador de Permisos (nuevo) ---
+# --- Decorador de Permisos ---
 def permiso_requerido(permiso_nombre):
     """
     Decorador que verifica si el usuario autenticado tiene un permiso específico.
@@ -40,7 +40,7 @@ def permiso_requerido(permiso_nombre):
                 flash("Por favor, inicie sesión para acceder a esta página.", "info")
                 return redirect(url_for('auth.login'))
             
-            # ✅ Verifica si el rol del usuario tiene el permiso requerido.
+            # Verifica si el rol del usuario tiene el permiso requerido.
             # Se comprueba si el usuario tiene un rol asignado y si alguno de los permisos
             # de ese rol coincide con el 'permiso_nombre' que se busca.
             if not current_user.rol or not any(p.nombre == permiso_nombre for p in current_user.rol.permisos):

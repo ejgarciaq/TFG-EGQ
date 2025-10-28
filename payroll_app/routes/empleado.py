@@ -15,8 +15,7 @@ empleado_bp = Blueprint("empleado", __name__, template_folder="templates")
     Esta función recupera todos los registros de empleados de la base de datos
     y los pasa a la plantilla 'listar_empleado.html' para su renderizado en una tabla.
 
-    Returns:
-        Rendered template: Una página HTML que muestra la lista de empleados.
+    Returns: Rendered template: Una página HTML que muestra la lista de empleados.
     """
 @empleado_bp.route("/listar_empleado")
 @permiso_requerido('listar_empleados')
@@ -33,11 +32,9 @@ def listar_empleado():
 
     return render_template('empleado/listar_empleado.html', pagination=pagination)
 
-
 """   Crea un nuevo empleado en el sistema.
 
-    Returns:
-        _type_: Rendered template: Una página HTML con el formulario para crear un nuevo empleado.
+    Returns:   _type_: Rendered template: Una página HTML con el formulario para crear un nuevo empleado.
 """
 @empleado_bp.route("/crear_empleado", methods=["GET", "POST"])
 @permiso_requerido('crear_empleado')
@@ -144,11 +141,9 @@ def crear_empleado():
 
 """ Edita la información de un empleado existente.
 
-    Args:
-        id (int): El ID del empleado a editar.
+    Args: id (int): El ID del empleado a editar.
 
-    Returns:
-        Rendered template: Una página HTML con el formulario para editar el empleado.
+    Returns: Rendered template: Una página HTML con el formulario para editar el empleado.
 """
 @empleado_bp.route("/editar_empleado/<int:id>", methods=["GET", "POST"])
 @permiso_requerido('editar_emplado')
@@ -319,11 +314,9 @@ def ver_perfil_empleado(empleado_id):
 
 """ Elimina un empleado y todos sus datos asociados del sistema.
 
-    Args:
-        id (int): El ID del empleado a eliminar.
+    Args: id (int): El ID del empleado a eliminar.
 
-    Returns:
-        Redirect: Redirige a la página de listado de empleados después de la eliminación.
+    Returns: Redirect: Redirige a la página de listado de empleados después de la eliminación.
 """
 @empleado_bp.route("/eliminar_empleado/<int:id>", methods=["POST"])
 @permiso_requerido('eliminar_emplado')
