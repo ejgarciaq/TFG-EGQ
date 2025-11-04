@@ -3,12 +3,12 @@
 {% block title %}Administración de Configuración{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <h2>⚙️ Configuración del Sistema de Planilla</h2>
+<div class="container">
+    <h2><i class="fa-solid fa-gear"></i> Configuración del Sistema de Planilla</h2>
     <p class="lead">Edite los parámetros legales y de negocio. Los cambios aquí afectan directamente los cálculos.</p>
 
     <form method="POST" action="{{ url_for('config.administrar_configuracion') }}">
-        <div class="card shadow-sm mb-4">
+        <div class="card shadow-sm mb-1">
             <div class="card-header bg-primary text-white">
                 Parámetros Globales ({{ parametros | length }} configuraciones)
             </div>
@@ -16,12 +16,12 @@
             <div class="card-body">
                 
                 <div class="mb-4 text-end">
-                    <button type="submit" class="btn btn-success btn-lg">
+                    <button type="submit" class="btn btn-success">
                         <i class="fas fa-save"></i> Guardar Todos los Cambios
                     </button>
                 </div>
                 
-                <div style="max-height: 600px; overflow-y: auto;">
+                <div style="max-height: 500px; overflow-y: auto;">
                     
                     <div class="table-responsive"> 
                         <table class="table table-striped table-hover mb-0">

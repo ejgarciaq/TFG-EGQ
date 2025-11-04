@@ -3,6 +3,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from payroll_app.models import db, Configuracion 
+from payroll_app.routes.decorators import permiso_requerido
 from payroll_app.utils import cargar_configuracion
 from datetime import datetime
 
@@ -10,6 +11,7 @@ from datetime import datetime
 config_bp = Blueprint('config', __name__, url_prefix='/auth/configuracion') 
 
 @config_bp.route('/', methods=['GET', 'POST'])
+@permiso_requerido('parametros')  # Usar el decorador de permisos
 @login_required # Proteger esta ruta de acceso no autorizado
 def administrar_configuracion():
     # 1. Obtener todos los objetos de la BD

@@ -16,7 +16,7 @@ def rol_requerido(rol):
                 flash("Por favor, inicie sesión para acceder a esta página.", "info")
                 return redirect(url_for('auth.login'))
             
-            # ✅ Verifica si el rol del usuario actual coincide con el rol requerido.
+            #  Verifica si el rol del usuario actual coincide con el rol requerido.
             if current_user.rol.tipo_rol != rol:
                 # Si el rol no coincide, muestra un mensaje flash y redirige al inicio.
                 flash("Acceso denegado. No tiene los permisos necesarios para esta acción.", "danger")
