@@ -76,8 +76,8 @@ def create_app():
     from .routes.reportes import reportes_bp
     from .routes.aguinaldo import aguinaldo_bp
     from .routes.liquidacion import liquidacion_bp
-    
-    
+    from .routes.admin import config_bp
+        
     app.register_blueprint(login_bp, url_prefix='/auth')
     app.register_blueprint(empleado_bp, url_prefix='/auth/empleados')
     app.register_blueprint(rol_bp, url_prefix='/auth/roles')
@@ -88,7 +88,7 @@ def create_app():
     app.register_blueprint(reportes_bp, url_prefix='/auth/reportes/')
     app.register_blueprint(aguinaldo_bp, url_prefix='/auth/aguinaldo')
     app.register_blueprint(liquidacion_bp, url_prefix='/auth/liquidacion')
-    
+    app.register_blueprint(config_bp, url_prefix='/auth/configuracion')
 
     # --- Definición de la ruta principal ---
     # La ruta raíz de la aplicación (/) redirige al usuario a la página de login.

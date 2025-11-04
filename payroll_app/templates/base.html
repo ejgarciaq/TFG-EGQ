@@ -37,6 +37,12 @@
             <h5 class="text-center small">Administración</h5>
             <hr class="border border-primary m-0">
 
+            <li class="nav-item {% if request.endpoint == 'registro_asistencia.listar_asistencia' %}active{% endif %}">
+                <a class="nav-link" href="{{ url_for('registro_asistencia.listar_asistencia') }}">
+                    <i class="fas fa-clipboard-list"></i> Asistencias
+                </a>
+            </li>
+
             <li class="nav-item {% if request.endpoint == 'registro_asistencia.generar_nomina' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('registro_asistencia.generar_nomina') }}"><i class="fas fa-money-check-alt"></i> Nómina</a>
             </li>
@@ -50,11 +56,6 @@
             <li class="nav-item {% if request.endpoint == 'accion_personal_bp.acciones_administrativas' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('accion_personal_bp.acciones_administrativas') }}">
                     <i class="fas fa-history"></i> Acciones Personal
-                </a>
-            </li>
-            <li class="nav-item {% if request.endpoint == 'registro_asistencia.listar_asistencia' %}active{% endif %}">
-                <a class="nav-link" href="{{ url_for('registro_asistencia.listar_asistencia') }}">
-                    <i class="fas fa-clipboard-list"></i> Asistencias
                 </a>
             </li>
 
@@ -103,6 +104,12 @@
                     <li>
                         <a class="dropdown-item {% if request.endpoint == 'feriado.listar_feriados' %}active{% endif %}" href="{{ url_for('feriado.listar_feriados') }}">
                             <i class="fas fa-calendar-alt"></i> Feriados</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item {% if request.endpoint == 'config.administrar_configuracion' %}active{% endif %}" 
+                        href="{{ url_for('config.administrar_configuracion') }}">
+                            <i class="fas fa-cog"></i> Configuración
+                        </a>
                     </li>
                 </ul>
             </li>

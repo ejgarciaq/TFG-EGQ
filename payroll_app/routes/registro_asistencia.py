@@ -7,6 +7,7 @@ from datetime import datetime, date, time, timedelta
 import os, logging
 from werkzeug.utils import secure_filename # Importar para nombres de archivo seguros
 from sqlalchemy.orm import joinedload
+from payroll_app.utils import cargar_configuracion
 
 """ Blueprint para el módulo de Registro de Asistencia """
 registro_asistencia_bp = Blueprint('registro_asistencia', __name__)
@@ -24,7 +25,8 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-""" Configuración global para el módulo de Registro de Asistencia """
+
+""" Configuración global para el módulo de Registro de Asistencia 
 HORAS_POR_JORNADA_NORMAL = 8.0 # Horas de una jornada normal por día
 HORAS_MES_ESTANDAR = 208.0  # (48 horas/semana * 4.3333 semanas/mes)
 HORAS_QUINCENA_ESTANDAR = 96.0 # 48 horas/semana * 2 semanas = 96 horas
@@ -36,8 +38,8 @@ MIN_DURACION_JORNADA = timedelta(minutes=30) # Para evitar salidas finales muy r
 FACTOR_PAGO_EMPLEADOR_INCAPACIDAD = 0.40
 FACTOR_PAGO_EMPLEADOR_CARENCIA = 0.50
 DIAS_DE_CARENCIA = 3
-
-""" Porcentajes y límites para cálculos de nómina """
+"""
+""" Porcentajes y límites para cálculos de nómina 
 PORCENTAJE_CCSS_SEM = 0.0550
 PORCENTAJE_CCSS_IVM = 0.0417
 PORCENTAJE_LPT = 0.0100
@@ -48,7 +50,7 @@ TRAMOS_ISR = [
     {'limite': 4745000.00, 'porcentaje': 0.20},
     {'limite': float('inf'), 'porcentaje': 0.25}
 ]
-
+"""
 PER_PAGE = 10 # Número de registros por página 
 
 
@@ -190,6 +192,17 @@ def ver_asistencia():
 @registro_asistencia_bp.route('/asistencia/registrar', methods=['POST'])
 @login_required 
 def registrar_asistencia():
+    CONFIG = cargar_configuracion()
+
+    # Configuracion de variables en configuracion
+    MIN_TIEMPO_ENTRE_MARCAS = CONFIG.get('MIN_TIEMPO_ENTRE_MARCAS', timedelta(minutes=1))
+    JORNADA_MINIMA_PAUSA_OBLIGATORIA = CONFIG.get('JORNADA_MINIMA_PAUSA_OBLIGATORIA', timedelta(hours=6))
+    MIN_DURACION_JORNADA = CONFIG.get('MIN_DURACION_JORNADA', timedelta(minutes=30))
+    HORAS_POR_JORNADA_NORMAL = CONFIG.get('HORAS_POR_JORNADA_NORMAL', 8.0)
+    HORAS_MES_ESTANDAR = CONFIG.get('HORAS_MES_ESTANDAR', 208.0)
+    HORAS_QUINCENA_ESTANDAR = CONFIG.get('HORAS_QUINCENA_ESTANDAR', 96.0)
+    HORAS_SEMANA_ESTANDAR = CONFIG.get('HORAS_SEMANA_ESTANDAR', 48.0)
+
     # Obtener el empleado asociado al usuario actual
     empleado = Empleado.query.filter_by(Usuario_id_usuario=current_user.id_usuario).first()
     # Validar que el empleado exista
@@ -202,6 +215,7 @@ def registrar_asistencia():
     fecha_registro = ahora.date()
     hora_registro = ahora.time()
     accion = request.form.get('accion')
+
     try:
         # --- Lógica para 'entrada' ---
         if accion == 'entrada':
@@ -509,7 +523,9 @@ def _get_empleado_with_nomina(empleado_id):
 """ Función para calcular monto, horas extra y horas feriado """
 def _calculate_monto(registro, empleado, costo_hora_normal):
     """Calcula el monto de pago, horas extra y horas feriado."""
-    
+    CONFIG = cargar_configuracion()
+    HORAS_POR_JORNADA_NORMAL = CONFIG.get('HORAS_POR_JORNADA_NORMAL', 8.0)
+
     registro.hora_extra = 0.0
     registro.hora_feriado = 0.0
     monto_pago_calculado = 0.0
@@ -540,6 +556,10 @@ def _calculate_monto(registro, empleado, costo_hora_normal):
 @registro_asistencia_bp.route('/editar/<int:registro_id>', methods=['GET', 'POST'])
 @login_required
 def editar_asistencia(registro_id):
+    CONFIG = cargar_configuracion()
+
+    HORAS_MES_ESTANDAR = CONFIG.get('HORAS_MES_ESTANDAR', 208.0)
+    JORNADA_MINIMA_PAUSA_OBLIGATORIA = CONFIG.get('JORNADA_MINIMA_PAUSA_OBLIGATORIA', timedelta(hours=6))
     registro = RegistroAsistencia.query.get_or_404(registro_id)
     empleado = _get_empleado_with_nomina(registro.Empleado_id_empleado)
 
@@ -737,6 +757,10 @@ def calcular_isr(monto_bruto_periodo, fecha_inicio_obj, fecha_fin_obj):
     Calcula el Impuesto sobre la Renta (ISR) para un monto bruto dado
     y un período de nómina, ajustando los tramos mensuales.
     """
+    CONFIG = cargar_configuracion()
+    BASE_SALARIO_EXENTO_ISR = CONFIG.get('BASE_SALARIO_EXENTO_ISR', 922000.00)
+    TRAMOS_ISR = CONFIG.get('TRAMOS_ISR', [])
+
     dias_del_periodo = (fecha_fin_obj - fecha_inicio_obj).days + 1
     dias_mes_fiscal = 30 
     
@@ -774,6 +798,18 @@ def generar_nomina():
     Genera la nómina procesando asistencias, vacaciones, incapacidades y feriados,
     aplicando la lógica de la Ley de Costa Rica para incapacidades (días de carencia vs. subsidio).
     """
+    CONFIG = cargar_configuracion()
+    HORAS_MES_ESTANDAR = CONFIG.get('HORAS_MES_ESTANDAR', 208.0)
+    HORAS_QUINCENA_ESTANDAR = CONFIG.get('HORAS_QUINCENA_ESTANDAR', 96.0)
+    HORAS_SEMANA_ESTANDAR = CONFIG.get('HORAS_SEMANA_ESTANDAR', 48.0)
+    HORAS_POR_JORNADA_NORMAL = CONFIG.get('HORAS_POR_JORNADA_NORMAL', 8.0)
+    PORCENTAJE_CCSS_SEM = CONFIG.get('PORCENTAJE_CCSS_SEM', 0.0550)
+    PORCENTAJE_CCSS_IVM = CONFIG.get('PORCENTAJE_CCSS_IVM', 0.0417)
+    PORCENTAJE_LPT = CONFIG.get('PORCENTAJE_LPT', 0.0100)
+    DIAS_DE_CARENCIA = CONFIG.get('DIAS_DE_CARENCIA', 3)
+    FACTOR_PAGO_EMPLEADOR_INCAPACIDAD = CONFIG.get('FACTOR_PAGO_EMPLEADOR_INCAPACIDAD', 0.40)
+    FACTOR_PAGO_EMPLEADOR_CARENCIA = CONFIG.get('FACTOR_PAGO_EMPLEADOR_CARENCIA', 0.50)
+
     tipos_nomina = TipoNomina.query.all()
     page = request.args.get('page', 1, type=int)
     per_page = 8 # Define cuántas nóminas listar por página
