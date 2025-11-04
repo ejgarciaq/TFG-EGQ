@@ -869,6 +869,43 @@ def generar_nomina():
             if not tipo_nomina:
                 flash('Tipo de nómina no encontrado.', 'danger')
                 return redirect(url_for('registro_asistencia.generar_nomina'))
+            
+            # =========================================================================
+            # LÓGICA DE VALIDACIÓN DEL RANGO DE FECHAS (Semanal/Quincenal/Mensual)
+            # =========================================================================
+            frecuencia = tipo_nomina.nombre_tipo.lower() 
+            dias_periodo = (fecha_fin_obj - fecha_inicio_obj).days + 1
+            es_valido = True
+            mensaje_error = ""
+
+            if frecuencia == 'semanal':
+                # Exactamente 7 días
+                if dias_periodo != 7:
+                    es_valido = False
+                    mensaje_error = f"La nómina debe ser **Semanal** (7 días). Periodo seleccionado: {dias_periodo} días."
+            
+            elif frecuencia == 'quincenal':
+                # Rango de 14 a 16 días
+                if dias_periodo < 14 or dias_periodo > 16:
+                    es_valido = False
+                    mensaje_error = f"La nómina debe ser **Quincenal** (14 a 16 días). Periodo seleccionado: {dias_periodo} días."
+
+            elif frecuencia == 'mensual':
+                # Rango de 28 a 31 días (para cubrir todos los meses)
+                if dias_periodo < 28 or dias_periodo > 31:
+                    es_valido = False
+                    mensaje_error = f"La nómina debe ser **Mensual** (28 a 31 días). Periodo seleccionado: {dias_periodo} días."
+            
+            # Aplicar el resultado de la validación y detener el proceso si es inválido
+            if not es_valido:
+                flash(f" Error de Periodo para {tipo_nomina.nombre_tipo}: {mensaje_error}", 'danger')
+                # Redirigir manteniendo los filtros
+                return redirect(url_for('registro_asistencia.generar_nomina',
+                                        fecha_inicio=fecha_inicio_seleccionada,
+                                        fecha_fin=fecha_fin_seleccionada,
+                                        tipo_nomina_id=id_tipo_nomina_seleccionado))
+            # =========================================================================
+
 
             empleados_del_tipo_nomina = Empleado.query.filter_by(
                 tipo_nomina_relacion=tipo_nomina
