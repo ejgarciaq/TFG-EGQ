@@ -100,8 +100,8 @@ def generar_reporte():
                         'Empleado': registro.empleado.nombre_completo if registro.empleado else 'N/A',
                         'Fecha': registro.fecha_registro,
                         'Hora Entrada': registro.hora_entrada.strftime('%H:%M:%S') if registro.hora_entrada else 'N/A',
-                        'Salida Almuerzo': registro.hora_entrada_almuerzo.strftime('%H:%M:%S') if registro.hora_entrada_almuerzo else 'N/A',
-                        'Regreso Almuerzo': registro.hora_salida_almuerzo.strftime('%H:%M:%S') if registro.hora_salida_almuerzo else 'N/A',
+                        'Salida Almuerzo': registro.hora_salida_almuerzo.strftime('%H:%M:%S') if registro.hora_salida_almuerzo else 'N/A',
+                        'Regreso Almuerzo': registro.hora_entrada_almuerzo.strftime('%H:%M:%S') if registro.hora_entrada_almuerzo else 'N/A',
                         'Hora Salida': registro.hora_salida.strftime('%H:%M:%S') if registro.hora_salida else 'N/A',
                         'Total Horas': f"{registro.total_horas:.2f}" if registro.total_horas is not None else '0.00',
                         'Horas Extra': f"{registro.hora_extra:.2f}" if registro.hora_extra is not None else '0.00',
@@ -119,7 +119,7 @@ def generar_reporte():
                         csv_buffer = io.StringIO()
                         df_download.to_csv(csv_buffer, index=False)
                         csv_buffer.seek(0)
-                        # 🛑 Retorna el archivo directamente 🛑
+                        # Retorna el archivo directamente
                         return send_file(io.BytesIO(csv_buffer.getvalue().encode('utf-8')), 
                                          mimetype='text/csv', 
                                          as_attachment=True, 
@@ -129,7 +129,7 @@ def generar_reporte():
                         excel_buffer = io.BytesIO()
                         df_download.to_excel(excel_buffer, index=False, engine='openpyxl')
                         excel_buffer.seek(0)
-                        # 🛑 Retorna el archivo directamente 🛑
+                        # Retorna el archivo directamente
                         return send_file(excel_buffer, 
                                          mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
                                          as_attachment=True, 

@@ -16,7 +16,7 @@
                         <select class="form-control" id="empleado_id" name="empleado_id" required>
                             <option value="" disabled selected>-- Elija un empleado --</option>
                             {% for empleado in empleados %}
-                                <option value="{{ empleado.id_empleado }}">{{ empleado.nombre }} {{ empleado.apellido }} (Cédula: {{ empleado.cedula }})</option>
+                                <option value="{{ empleado.id_empleado }}">{{ empleado.nombre_completo }} (Cédula: {{ empleado.cedula }})</option>
                             {% endfor %}
                         </select>
                     </div>
