@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function actualizarReloj() {
         const ahora = new Date();
-        const hora = ahora.toLocaleTimeString("es-CR", { hour12: false });
+        const hora = ahora.toLocaleTimeString("es-CR", { hour12: true });
         const fecha = ahora.toLocaleDateString("es-CR", {
             weekday: "long", year: "numeric", month: "long", day: "numeric",
         });
@@ -319,7 +319,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /* Lógica para validar los requisitos de la contraseña y controlar el envío del formulario */
 document.addEventListener('DOMContentLoaded', function() {
-    // 🛑 VERIFICACIÓN CLAVE: Buscamos los campos de contraseña.
     const passwordInput = document.getElementById('nueva_contrasena');
     const confirmInput = document.getElementById('confirmar_contrasena');
     

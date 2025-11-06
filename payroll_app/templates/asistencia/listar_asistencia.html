@@ -6,10 +6,6 @@
 <div class="container-fluid">
     <h4 class="text-center mb-3">Listado de Asistencias</h4>
 
-    {# ========================================================= #}
-    {#  NUEVA SECCIÓN: FORMULARIO DE FILTROS  #}
-    {# Es crucial para que los parámetros se envíen y se mantengan #}
-    {# ========================================================= #}
     <div class="card mb-2 j">
         <div class="card-header">Filtros de Búsqueda</div>
         <div class="card-body">
@@ -27,11 +23,10 @@
                     </div>
                     <div class="col-md-2">
                         <label for="empleado_id" class="form-label">Empleado</label>
-                        {# Usamos 'select2' en la clase para que el script lo identifique #}
                         <select class="form-select select2" id="empleado_id_filtro" name="empleado_id">
                             <option value="all" {% if empleado_id_filtro == 'all' or not empleado_id_filtro %}selected{% endif %}>Todos</option>
                             
-                            {# Importante: Asegúrate de que el nombre de la variable de iteración sea correcto #}
+
                             {% for emp in todos_empleados %} 
                                 <option value="{{ emp.id_empleado }}" 
                                         {% if empleado_id_filtro and empleado_id_filtro|string == emp.id_empleado|string %}selected{% endif %}>
@@ -89,10 +84,10 @@
                     <td><input type="checkbox" name="registros_seleccionados" value="{{ registro.id_registro_asistencia }}"></td>
                     <td>{{ registro.empleado.nombre }} {{ registro.empleado.apellido_primero }} {{ registro.empleado.apellido_segundo }}</td>
                     <td class="text-center">{{ registro.fecha_registro.strftime('%Y-%m-%d') }}</td>
-                    <td class="text-center">{{ registro.hora_entrada.strftime('%H:%M:%S') }}</td>
-                    <td class="text-center">{{ registro.hora_salida_almuerzo.strftime('%H:%M:%S') if registro.hora_salida_almuerzo else 'N/A' }}</td>
-                    <td class="text-center">{{ registro.hora_entrada_almuerzo.strftime('%H:%M:%S') if registro.hora_entrada_almuerzo else 'N/A' }}</td>
-                    <td class="text-center">{{ registro.hora_salida.strftime('%H:%M:%S') if registro.hora_salida else 'N/A' }}</td>
+                    <td class="text-center">{{ registro.hora_entrada.strftime('%I:%M:%S %p') }}</td>
+                    <td class="text-center">{{ registro.hora_salida_almuerzo.strftime('%I:%M:%S %p') if registro.hora_salida_almuerzo else 'N/A' }}</td>
+                    <td class="text-center">{{ registro.hora_entrada_almuerzo.strftime('%I:%M:%S %p') if registro.hora_entrada_almuerzo else 'N/A' }}</td>
+                    <td class="text-center">{{ registro.hora_salida.strftime('%I:%M:%S %p') if registro.hora_salida else 'N/A' }}</td>
                     <td class="text-center">{{ registro.total_horas | default('N/A', True) }}</td>
                     <td class="text-center">{{ registro.hora_extra | default('N/A', True) }}</td>
                     <td class="text-center">{{ registro.hora_feriado | default('N/A', True) }}</td>

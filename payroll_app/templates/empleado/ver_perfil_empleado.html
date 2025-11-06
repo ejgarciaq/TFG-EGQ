@@ -23,7 +23,7 @@
                     <p><strong>Teléfono:</strong> {{ empleado.telefono }}</p>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <p><strong>Puesto:</strong> {{ empleado.puesto.nombre_puesto }}</p>
+                    <p><strong>Puesto:</strong> {{ empleado.puesto.tipo_puesto }}</p>
                     <p><strong>Salario Base:</strong> ₡{{ "{:,.2f}".format(empleado.salario_base) }}</p>
                     <p><strong>Fecha de Ingreso:</strong> {{ empleado.fecha_ingreso.strftime('%d/%m/%Y') }}</p>
                     {% if empleado.fecha_salida %}

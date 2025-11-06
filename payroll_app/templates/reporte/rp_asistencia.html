@@ -10,8 +10,7 @@
 
             <fieldset class="shadow border p-3 rounded border-primary">
                 <legend class="float-none w-auto px-1 fs-3 text-center">Reporte de Asistencia</legend>
-                    
-                    {# El formulario sigue enviando los filtros por POST #}
+                
                     <form method="POST" action="{{ url_for('reportes_bp.generar_reporte') }}">
                         <div class="row">
                             <div class="col-md-4 mb-1">
@@ -19,7 +18,7 @@
 
                                 <select class="form-control select2" id="empleado_id" name="empleado_id" required>
                                     <option value="todos" {% if empleado_id_seleccionado == 'todos' %}selected{% endif %}>Todos los empleados</option>
-                                    {# Asegúrate de que empleado_id_seleccionado es el tipo correcto (int/str) para la comparación #}
+
                                     {% for empleado in empleados %}
                                         <option value="{{ empleado.id_empleado }}" {% if empleado_id_seleccionado|string == empleado.id_empleado|string %}selected{% endif %}>{{ empleado.nombre_completo }}</option>
                                     {% endfor %}
@@ -47,8 +46,6 @@
                     </form>
             </fieldset>
 
-        
-        {# 🛑 BLOQUE DE RESULTADOS CON SCROLL 🛑 #}
         {# report_html solo existe si hay registros filtrados #}
         {% if reporte_html %} 
 
@@ -72,7 +69,6 @@
 
                 </fieldset>
             </div>
-            
         {# Muestra este mensaje solo si se intentó filtrar (hay fechas) pero no hubo resultados #}
         {% elif fecha_inicio_seleccionada and fecha_fin_seleccionada %}
             <div class="alert alert-info mt-4">No se encontraron registros de asistencia para los criterios de búsqueda.</div>

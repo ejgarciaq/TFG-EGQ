@@ -99,10 +99,10 @@ def generar_reporte():
                     data = [{
                         'Empleado': registro.empleado.nombre_completo if registro.empleado else 'N/A',
                         'Fecha': registro.fecha_registro,
-                        'Hora Entrada': registro.hora_entrada.strftime('%H:%M:%S') if registro.hora_entrada else 'N/A',
-                        'Salida Almuerzo': registro.hora_entrada_almuerzo.strftime('%H:%M:%S') if registro.hora_entrada_almuerzo else 'N/A',
-                        'Regreso Almuerzo': registro.hora_salida_almuerzo.strftime('%H:%M:%S') if registro.hora_salida_almuerzo else 'N/A',
-                        'Hora Salida': registro.hora_salida.strftime('%H:%M:%S') if registro.hora_salida else 'N/A',
+                        'Hora Entrada': registro.hora_entrada.strftime('%I:%M:%S %p') if registro.hora_entrada else 'N/A',
+                        'Salida Almuerzo': registro.hora_salida_almuerzo.strftime('%I:%M:%S %p') if registro.hora_salida_almuerzo else 'N/A',
+                        'Regreso Almuerzo': registro.hora_entrada_almuerzo.strftime('%I:%M:%S %p') if registro.hora_entrada_almuerzo else 'N/A',
+                        'Hora Salida': registro.hora_salida.strftime('%I:%M:%S %p') if registro.hora_salida else 'N/A',
                         'Total Horas': f"{registro.total_horas:.2f}" if registro.total_horas is not None else '0.00',
                         'Horas Extra': f"{registro.hora_extra:.2f}" if registro.hora_extra is not None else '0.00',
                         'Horas Feriado': f"{registro.hora_feriado:.2f}" if registro.hora_feriado is not None else '0.00',
@@ -119,7 +119,7 @@ def generar_reporte():
                         csv_buffer = io.StringIO()
                         df_download.to_csv(csv_buffer, index=False)
                         csv_buffer.seek(0)
-                        # 🛑 Retorna el archivo directamente 🛑
+                        # Retorna el archivo directamente
                         return send_file(io.BytesIO(csv_buffer.getvalue().encode('utf-8')), 
                                          mimetype='text/csv', 
                                          as_attachment=True, 
@@ -129,7 +129,7 @@ def generar_reporte():
                         excel_buffer = io.BytesIO()
                         df_download.to_excel(excel_buffer, index=False, engine='openpyxl')
                         excel_buffer.seek(0)
-                        # 🛑 Retorna el archivo directamente 🛑
+                        # Retorna el archivo directamente
                         return send_file(excel_buffer, 
                                          mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
                                          as_attachment=True, 
@@ -241,7 +241,7 @@ def format_currency_es(value):
         # 5. Determinar el signo (si es negativo)
         signo = '-' if value < 0 else ''
 
-        # 🛑 RETORNO FINAL: Incluir el signo de colón y el signo negativo (si aplica) 🛑
+        # RETORNO FINAL: Incluir el signo de colón y el signo negativo (si aplica)
         return f"{signo}₡ {formatted}"
     
     return str(value)
@@ -354,7 +354,7 @@ def generar_reporte_nomina():
             
             if not nominas_reporte_completo:
                  flash(f'No se encontraron nóminas para descargar en formato {descargar_formato}.', 'info')
-                 # 🚨 Redirige a la función de vista/formulario, manteniendo los filtros
+                 # Redirige a la función de vista/formulario, manteniendo los filtros
                  return redirect(url_for('reportes_bp.mostrar_pagina_reporte_nomina',
                                           fecha_inicio=fecha_inicio_str, fecha_fin=fecha_fin_str,
                                           tipo_nomina_id=id_tipo_nomina_str))
@@ -794,7 +794,7 @@ def exportar_liquidaciones(fecha_inicio, fecha_fin, formato):
                 'Preaviso': float(f"{liquidacion.monto_preaviso:.2f}"),
                 'Cesantía': float(f"{liquidacion.monto_cesantia:.2f}"),
                 'Vacaciones': float(f"{liquidacion.monto_vacaciones:.2f}"),
-                'Aguinaldo': float(f"{liquidacion.monto_aguinaldo:.2f}"), # 🛑 CORRECCIÓN DE CAMPO
+                'Aguinaldo': float(f"{liquidacion.monto_aguinaldo:.2f}"),
                 'Salario Pendiente': float(f"{liquidacion.monto_salario_pendiente:.2f}")
             })
         df = pd.DataFrame(data_list)
