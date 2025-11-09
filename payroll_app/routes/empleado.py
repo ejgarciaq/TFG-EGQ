@@ -53,6 +53,7 @@ def crear_empleado():
         # Validaciones con expresiones regulares
         email_regex = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
         phone_regex = r"^[0-9]{8}$"
+        cedula_regex = r"^[0-9]{9}$"
         password_regex = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+-.,/])[A-Za-z\d!@#$%^&*()_+-.,/]{8,}$"
         # Se agregan todas las validaciones de duplicidad
         if Empleado.query.filter_by(cedula=cedula).first():
@@ -77,6 +78,11 @@ def crear_empleado():
         if not re.match(phone_regex, telefono):
             flash(
                 "El número de teléfono debe contener exactamente 8 dígitos.", "danger"
+            )
+            return redirect(url_for("empleado.crear_empleado"))
+        if not re.match(cedula_regex, cedula):
+            flash(
+                "El número de cédula debe contener exactamente 9 dígitos.", "danger"
             )
             return redirect(url_for("empleado.crear_empleado"))
         # Validación de contraseña
@@ -192,13 +198,17 @@ def editar_empleado(id):
                 # Validaciones de formato
                 email_regex = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
                 phone_regex = r"^[0-9]{8}$"
+                cedula_regex = r"^[0-9]{9}$"
                 
                 if not re.match(email_regex, correo):
                     errores.append("El formato del correo electrónico no es válido.")
 
                 if not re.match(phone_regex, telefono):
                     errores.append("El número de teléfono debe contener exactamente 8 dígitos.")
-                
+
+                if not re.match(cedula_regex, cedula):
+                    errores.append("El número de cédula debe contener exactamente 9 dígitos.")
+
                 try:
                     salario_base = float(salario_base_str)
                 except ValueError:
