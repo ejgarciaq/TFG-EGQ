@@ -99,17 +99,10 @@ def generar_reporte():
                     data = [{
                         'Empleado': registro.empleado.nombre_completo if registro.empleado else 'N/A',
                         'Fecha': registro.fecha_registro,
-<<<<<<< HEAD
                         'Hora Entrada': registro.hora_entrada.strftime('%I:%M:%S %p') if registro.hora_entrada else 'N/A',
                         'Salida Almuerzo': registro.hora_salida_almuerzo.strftime('%I:%M:%S %p') if registro.hora_salida_almuerzo else 'N/A',
                         'Regreso Almuerzo': registro.hora_entrada_almuerzo.strftime('%I:%M:%S %p') if registro.hora_entrada_almuerzo else 'N/A',
                         'Hora Salida': registro.hora_salida.strftime('%I:%M:%S %p') if registro.hora_salida else 'N/A',
-=======
-                        'Hora Entrada': registro.hora_entrada.strftime('%H:%M:%S') if registro.hora_entrada else 'N/A',
-                        'Salida Almuerzo': registro.hora_salida_almuerzo.strftime('%H:%M:%S') if registro.hora_salida_almuerzo else 'N/A',
-                        'Regreso Almuerzo': registro.hora_entrada_almuerzo.strftime('%H:%M:%S') if registro.hora_entrada_almuerzo else 'N/A',
-                        'Hora Salida': registro.hora_salida.strftime('%H:%M:%S') if registro.hora_salida else 'N/A',
->>>>>>> 5acad14e57e94c7ed5738c96f7cc22ada2cadba8
                         'Total Horas': f"{registro.total_horas:.2f}" if registro.total_horas is not None else '0.00',
                         'Horas Extra': f"{registro.hora_extra:.2f}" if registro.hora_extra is not None else '0.00',
                         'Horas Feriado': f"{registro.hora_feriado:.2f}" if registro.hora_feriado is not None else '0.00',
