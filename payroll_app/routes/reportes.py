@@ -485,7 +485,7 @@ def mostrar_reporte_aguinaldos():
     
     ano_filtrado = None
     paginated_records = None
-    tabla_aguinaldos_html = None  # CORRECCIÓN: Inicializar la variable aquí
+    tabla_aguinaldos_html = None
 
     try:
         ano_filtrado = int(ano_str)
@@ -527,7 +527,7 @@ def mostrar_reporte_aguinaldos():
             styles = [
                 # Puedes aplicar estilos generales a todas las celdas (td)
                 {'selector': 'td', 
-                'props': [('text-align', 'right')]} , # Alinea a la derecha todas las celdas (td)
+                'props': [('text-align', 'left')]} , # Alinea a la derecha todas las celdas (td)
                 # Si quieres centrar también el encabezado (th)
                 {'selector': 'th', 
                 'props': [('text-align', 'center')]}

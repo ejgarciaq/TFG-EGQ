@@ -19,7 +19,7 @@ def listar_feriados():
     per_page = 12 
 
     # Crea la consulta base, ordenada por fecha de forma ascendente
-    query = Feriado.query.order_by(Feriado.fecha_feriado.asc())
+    query = Feriado.query.order_by(Feriado.fecha_feriado.desc())
 
     # Aplica la paginación a la consulta
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
