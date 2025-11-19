@@ -9,15 +9,14 @@ from payroll_app.routes.decorators import permiso_requerido
 from flask_mail import Message
 from threading import Thread
 
-
 """ Blueprint para las rutas de acciones de personal"""
 accion_personal_bp = Blueprint('accion_personal_bp', __name__)
 
 """ Configuración para la carga de archivos """
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
 
+"""Verifica si la extensión del archivo es permitida."""
 def allowed_file(filename):
-    """Verifica si la extensión del archivo es permitida."""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -49,7 +48,6 @@ def enviar_notificacion_por_correo(destinatario, asunto, cuerpo):
             recipients=[destinatario],
             body=cuerpo
         )
-        
         # Crea y lanza el hilo para enviar el correo en segundo plano
         thr = Thread(target=send_async_email, args=[app, msg])
         thr.start()
@@ -70,28 +68,24 @@ def accion_personal():
         try:
             empleado_id = request.form.get('empleado_id')
             tipo_ap_id = request.form.get('tipo_ap_id')
-            detalles = request.form.get('detalles')
-            
-            fecha_accion = datetime.utcnow().date()
-            
+            detalles = request.form.get('detalles')           
+            fecha_accion = datetime.utcnow().date()            
             empleado = Empleado.query.get(empleado_id)
             tipo_ap = Tipo_AP.query.get(tipo_ap_id)
             # Validaciones Básicas
             if not empleado or not tipo_ap:
                 flash('Empleado o tipo de acción no válido.', 'danger')
                 return redirect(url_for('accion_personal_bp.accion_personal'))
-
             fecha_inicio = None
             fecha_fin = None
             cantidad_dia = None
             cantidad_dia_str = None 
-            
             # Lógica de Extracción de Datos de Fecha/Días
             if tipo_ap.nombre_tipo in ['Vacaciones', 'Permiso c/ Goce de Salario', 'Permiso s/ Goce de Salario']:
                 fecha_inicio_str = request.form.get('fecha_inicio')
                 fecha_fin_str = request.form.get('fecha_fin')
                 cantidad_dia_str = request.form.get('cantidad_dia_vac')
-                
+
             elif tipo_ap.nombre_tipo == 'Incapacidad':
                 fecha_inicio_str = request.form.get('fecha_inicio_inc')
                 fecha_fin_str = request.form.get('fecha_fin_inc')
@@ -275,7 +269,7 @@ def aprobar_accion(ap_id):
         
         db.session.commit()
 
-        # --- CÓDIGO AÑADIDO: Notificación de aprobación por correo ---
+        # --- Notificación de aprobación por correo ---
         empleado = ap.empleado
         asunto_aprobacion = f'Actualización de Solicitud de {ap.tipo_ap.nombre_tipo}'
         cuerpo_aprobacion = f'Hola {empleado.nombre_completo}, tu solicitud de {ap.tipo_ap.nombre_tipo} ha sido aprobada.'

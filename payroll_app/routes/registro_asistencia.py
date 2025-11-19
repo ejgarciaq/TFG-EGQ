@@ -25,34 +25,7 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
-""" Configuración global para el módulo de Registro de Asistencia 
-HORAS_POR_JORNADA_NORMAL = 8.0 # Horas de una jornada normal por día
-HORAS_MES_ESTANDAR = 208.0  # (48 horas/semana * 4.3333 semanas/mes)
-HORAS_QUINCENA_ESTANDAR = 96.0 # 48 horas/semana * 2 semanas = 96 horas
-HORAS_SEMANA_ESTANDAR = 48.0 # Directamente 48 horas por semana
-JORNADA_MINIMA_PAUSA_OBLIGATORIA = timedelta(hours=6)
-# Tiempo mínimo entre entrada y salida al almuerzo/final
-MIN_TIEMPO_ENTRE_MARCAS = timedelta(minutes=1) # Para evitar marcas inmediatas
-MIN_DURACION_JORNADA = timedelta(minutes=30) # Para evitar salidas finales muy rápidas
-FACTOR_PAGO_EMPLEADOR_INCAPACIDAD = 0.40
-FACTOR_PAGO_EMPLEADOR_CARENCIA = 0.50
-DIAS_DE_CARENCIA = 3
-"""
-""" Porcentajes y límites para cálculos de nómina 
-PORCENTAJE_CCSS_SEM = 0.0550
-PORCENTAJE_CCSS_IVM = 0.0417
-PORCENTAJE_LPT = 0.0100
-BASE_SALARIO_EXENTO_ISR = 922000.00
-TRAMOS_ISR = [
-    {'limite': 1352000.00, 'porcentaje': 0.10},
-    {'limite': 2373000.00, 'porcentaje': 0.15},
-    {'limite': 4745000.00, 'porcentaje': 0.20},
-    {'limite': float('inf'), 'porcentaje': 0.25}
-]
-"""
 PER_PAGE = 10 # Número de registros por página 
-
 
 """ Rutas y lógica para el módulo de Registro de Asistencia"""
 @registro_asistencia_bp.route('/procesar_aprobacion', methods=['POST'])
@@ -85,7 +58,7 @@ def procesar_aprobacion():
     
     return redirect(url_for('registro_asistencia.listar_asistencia'))
 
-""" Vista para aprobar horas extras ----------------------------------------------------------------"""
+""" Vista para aprobar horas extras """
 @registro_asistencia_bp.route('/aprobar_horas_extras')
 @permiso_requerido('listar_asistencia')
 @login_required
@@ -109,7 +82,7 @@ def aprobar_horas_extras():
         flash(f'Ocurrió un error al cargar los registros de horas extras: {str(e)}', 'danger')
         return redirect(url_for('registro_asistencia.listar_asistencia'))
 
-""" Vista principal de registro de asistencia --------------------------------------------------------------"""
+""" Vista principal de registro de asistencia """
 @registro_asistencia_bp.route('/asistencia', methods=['GET'])
 @login_required
 def ver_asistencia():
@@ -121,9 +94,8 @@ def ver_asistencia():
     ahora = datetime.now()
     fecha_hoy = ahora.date()
 
-    # --- Lógica para determinar el estado del botón (Responsabilidad 1) ---
+    # --- Lógica para determinar el estado del botón ---
     estado_actual = 'entrada' # Valor por defecto inicial, si no se encuentra ningún registro activo o finalizado de hoy
-
     # 1. Buscar el registro activo (sin hora_salida) para el empleado HOY.
     #    Este es el que determina en qué "paso" de la jornada está el empleado.
     registro_activo = RegistroAsistencia.query.filter(
@@ -188,12 +160,12 @@ def ver_asistencia():
                            estado_actual=estado_actual,
                            registros=registros_asistencia_display)
 
-""" Acción para registrar la asistencia ------------------------------------------------"""
+""" Acción para registrar la asistencia """
 @registro_asistencia_bp.route('/asistencia/registrar', methods=['POST'])
 @login_required 
 def registrar_asistencia():
+    # Carga configuracion de variablaes
     CONFIG = cargar_configuracion()
-
     # Configuracion de variables en configuracion
     MIN_TIEMPO_ENTRE_MARCAS = CONFIG.get('MIN_TIEMPO_ENTRE_MARCAS', timedelta(minutes=1))
     JORNADA_MINIMA_PAUSA_OBLIGATORIA = CONFIG.get('JORNADA_MINIMA_PAUSA_OBLIGATORIA', timedelta(hours=6))
@@ -202,7 +174,6 @@ def registrar_asistencia():
     HORAS_MES_ESTANDAR = CONFIG.get('HORAS_MES_ESTANDAR', 208.0)
     HORAS_QUINCENA_ESTANDAR = CONFIG.get('HORAS_QUINCENA_ESTANDAR', 96.0)
     HORAS_SEMANA_ESTANDAR = CONFIG.get('HORAS_SEMANA_ESTANDAR', 48.0)
-
     # Obtener el empleado asociado al usuario actual
     empleado = Empleado.query.filter_by(Usuario_id_usuario=current_user.id_usuario).first()
     # Validar que el empleado exista
@@ -454,13 +425,11 @@ def listar_asistencia():
     fecha_fin_filtro = request.args.get('fecha_fin')
     empleado_id_filtro = request.args.get('empleado_id') # Viene como string (o 'all' o None)
     aprobacion_filtro = request.args.get('aprobacion') # Viene como string ('approved', 'pending', 'all')
-
     # Base de la consulta, incluyendo la carga de empleado y tipo_nomina
     # Esto es importante para mostrar la información del empleado en la lista
     query = RegistroAsistencia.query \
         .options(joinedload(RegistroAsistencia.empleado).joinedload(Empleado.tipo_nomina_relacion)) \
         .order_by(RegistroAsistencia.fecha_registro.desc())
-
     # 2. Aplicar filtros
     if fecha_inicio_filtro:
         try:
@@ -614,12 +583,7 @@ def editar_asistencia(registro_id):
             # --- 4. Lógica de Cálculo de Tiempos y Monto (BLOQUE CORREGIDO) ---
             if registro.hora_salida:
                 
-                # 🛑 CORRECCIÓN CLAVE: CÁLCULO UNIFICADO DEL COSTO POR HORA
-                # Asumimos que 'empleado.salario_base' contiene el monto MENSUAL.
-                # Utilizamos siempre las horas estándar MENSUALES (HORAS_MES_ESTANDAR)
-                # para una base de cálculo consistente, eliminando la dependencia de la periodicidad
-                # en esta parte específica.
-                
+                # CÁLCULO UNIFICADO DEL COSTO POR HORA               
                 costo_por_hora_normal = 0
                 if HORAS_MES_ESTANDAR > 0:
                     costo_por_hora_normal = float(empleado.salario_base) / HORAS_MES_ESTANDAR
@@ -689,7 +653,7 @@ def editar_asistencia(registro_id):
             if fecha_fin_filtro:
                 query_check = query_check.filter(RegistroAsistencia.fecha_registro <= datetime.strptime(fecha_fin_filtro, '%Y-%m-%d').date())
             
-            # 🛑 CORRECCIÓN: Convertir a INT para la comparación con el ID de la base de datos
+            # Convertir a INT para la comparación con el ID de la base de datos
             if empleado_id_filtro and empleado_id_filtro != 'all':
                 try:
                     empleado_id_int = int(empleado_id_filtro)
@@ -1191,9 +1155,7 @@ def listar_nominas():
 @permiso_requerido('listar_nominas')
 @login_required
 def eliminar_nomina(id_nomina):
-    """
-    Elimina una nómina específica por su ID.
-    """
+
     nomina = Nomina.query.get_or_404(id_nomina) # Busca la nómina o devuelve un error 404 si no existe
 
     try:

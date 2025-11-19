@@ -17,10 +17,8 @@ def listar_feriados():
     page = request.args.get('page', 1, type=int)
     # Define el número de registros por página (ej. 10)
     per_page = 12 
-
     # Crea la consulta base, ordenada por fecha de forma ascendente
     query = Feriado.query.order_by(Feriado.fecha_feriado.desc())
-
     # Aplica la paginación a la consulta
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
@@ -146,11 +144,9 @@ def agregar_feriados_año_actual():
 @login_required
 def agregar_feriados_proximo_año():
     today = date.today() 
-    
-    #  ESTA ES LA CLAVE: Calcula el año objetivo como el año actual + 1
+    #  Calcula el año objetivo como el año actual + 1
     target_year = today.year + 1 
-
-    #  ESTA ES LA CLAVE: pyholidays SOLO te devolverá los feriados para 'target_year'
+    #  pyholidays SOLO te devolverá los feriados para 'target_year'
     cr_holidays = pyholidays.CountryHoliday('CR', years=target_year)
 
     feriados_agregados = 0

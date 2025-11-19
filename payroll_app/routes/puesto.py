@@ -63,11 +63,10 @@ def editar_puesto(id):
     if request.method == 'POST':
         tipo_puesto = request.form['tipo_puesto']
         page = request.form.get('page', 1, type=int)
-
+        
         puesto_existente = Puesto.query.filter(Puesto.tipo_puesto == tipo_puesto, Puesto.id_puesto != id).first()
         if puesto_existente:
             flash('Este puesto ya existe. Por favor, ingrese un nombre diferente.', 'danger')
-            # ⬅️ Corrección: Cambiar 'puesto_bp' a 'puesto'
             return redirect(url_for('puesto.editar_puesto', id=id, page=page))
         
         puesto_a_editar.tipo_puesto = tipo_puesto
@@ -75,12 +74,10 @@ def editar_puesto(id):
         try:
             db.session.commit()
             flash('Puesto actualizado exitosamente.', 'success')
-            # ⬅️ Corrección: Cambiar 'puesto_bp' a 'puesto'
             return redirect(url_for('puesto.listar_puestos', page=page))
         except Exception as e:
             db.session.rollback()
             flash(f'Error al actualizar el puesto: {e}', 'danger')
-            # ⬅️ Corrección: Cambiar 'puesto_bp' a 'puesto'
             return redirect(url_for('puesto.editar_puesto', id=id, page=page))
 
     page = request.args.get('page', 1, type=int)

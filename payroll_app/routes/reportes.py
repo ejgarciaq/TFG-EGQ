@@ -13,7 +13,7 @@ from payroll_app.routes.decorators import permiso_requerido
 reportes_bp = Blueprint('reportes_bp', __name__)
 
 
-# FUNCIÓN AUXILIAR PARA LA GENERACIÓN DE ARCHIVOS EN SEGUNDO PLANO
+""" FUNCIÓN AUXILIAR PARA LA GENERACIÓN DE ARCHIVOS EN SEGUNDO PLANO """
 def generate_file_in_thread(df_download, format, filename):
     """
     Genera el archivo CSV/Excel/PDF en un hilo separado 
@@ -198,8 +198,7 @@ def generar_reporte():
 @permiso_requerido('rp_nomina')
 @login_required
 def mostrar_pagina_reporte_nomina():
-    """Renderiza la página del formulario y, si los filtros están presentes, la tabla de resultados."""
-    
+    """Renderiza la página del formulario y, si los filtros están presentes, la tabla de resultados."""  
     # Parámetros del Formulario (desde la URL o redirección)
     tipos_nomina = TipoNomina.query.all()
     fecha_inicio_seleccionada = request.args.get('fecha_inicio', '')
@@ -666,7 +665,6 @@ def exportar_aguinaldos(ano, formato):
 # ====================================================================
 
 """ Rutas y lógica para generación de reportes de liquidaciones. """
-
 @reportes_bp.route('/reporte_liquidaciones', methods=['GET', 'POST'])
 @login_required
 @permiso_requerido('rp_liquidacion')
@@ -766,10 +764,7 @@ def exportar_liquidaciones_csv(fecha_inicio, fecha_fin):
 @permiso_requerido('rp_liquidacion')
 def exportar_liquidaciones(fecha_inicio, fecha_fin, formato):
     try:
-        # Nota: Asegúrate de que pandas, weasyprint, send_file y format_currency_es estén disponibles.
         import pandas as pd # Importación requerida para esta función
-        # from weasyprint import HTML # Importación requerida para esta función
-        # from flask import send_file, url_for # send_file y url_for ya deberían estar importados
 
         fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
         fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d').date()

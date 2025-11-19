@@ -198,26 +198,17 @@ def calcular_aguinaldo():
 @aguinaldo_bp.route('/detalle/<int:aguinaldo_id>', methods=['GET'])
 @permiso_requerido('cal_aguinaldo') # RNF-SE-018
 @login_required
-def ver_detalle(aguinaldo_id):
-    """
-    RNF-US-018: Muestra los detalles del cálculo del aguinaldo específico
-    para auditoría.
-    """
-    
+def ver_detalle(aguinaldo_id):    
     # 1. Buscar el registro de aguinaldo
     aguinaldo = Aguinaldo.query.get_or_404(aguinaldo_id)
-    
     # 2. Obtener el empleado asociado
     empleado = aguinaldo.empleado_relacion
-    
     # 3. Determinar el período de cálculo basado en la fecha de pago (similar a _calcular_aguinaldo_empleado)
     anio_fiscal = aguinaldo.fecha_pago.year
     anio_anterior = anio_fiscal - 1
-    
     # Período de cálculo: 1 de Dic. del año anterior al 30 de Nov. del año actual
     fecha_inicio_periodo = datetime(anio_anterior, MES_INICIO_CALCULO, DIA_INICIO_CALCULO).date()
     fecha_fin_periodo = datetime(anio_fiscal, MES_FIN_CALCULO, DIA_FIN_CALCULO).date()
-    
     # 4. Obtener todos los registros de nómina utilizados para ese cálculo (Auditoría RNF-US-018)
     registros_nomina = Nomina.query.filter(
         Nomina.empleado == empleado,

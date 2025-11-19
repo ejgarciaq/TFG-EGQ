@@ -36,8 +36,8 @@ def _calcular_dias_cesantia(meses_servicio):
     Calcula los días de cesantía según la tabla progresiva (Art. 29, Código de Trabajo).
     Esta función es el cambio clave para apegarse a la ley CR.
     """
-    # Si tiene menos de 6 meses, no tiene derecho a cesantía.
-    if meses_servicio < 6:
+    # Si tiene menos de 3 meses, no tiene derecho a cesantía.
+    if meses_servicio < 3:
         return 0.0
     # Tabla de Cesantía (Días de salario por año completo)
     # Fuente: Art. 29, Código de Trabajo.
@@ -114,7 +114,6 @@ def _calcular_salario_pendiente(empleado, fecha_fin_contrato, salario_promedio_d
 
 """ Cálculo Completo de la Liquidación Proporcional """
 def _calcular_liquidacion_proporcional(empleado, fecha_fin_contrato, salario_promedio_mensual, causa_despido):
-    """ Cálculo completo de la liquidación proporcional, apegado a la ley CR. """
     fecha_inicio_contrato = empleado.fecha_ingreso 
     antiguedad = relativedelta(fecha_fin_contrato, fecha_inicio_contrato)
     meses_servicio = (antiguedad.years * 12) + antiguedad.months + (antiguedad.days / DIAS_MES)
@@ -123,8 +122,6 @@ def _calcular_liquidacion_proporcional(empleado, fecha_fin_contrato, salario_pro
     if causa_despido in ['sin_justa_causa', 'despido_indirecto']:
         dias_preaviso = _calcular_dias_preaviso(meses_servicio)
         monto_preaviso = round(dias_preaviso * salario_promedio_diario, 2)
-        
-        # 🛑 USO DE LA FUNCIÓN CORREGIDA DE CESANTÍA
         dias_cesantia = _calcular_dias_cesantia(meses_servicio) 
         monto_cesantia = round(dias_cesantia * salario_promedio_diario, 2)
     else:
@@ -177,7 +174,6 @@ def _calcular_liquidacion_proporcional(empleado, fecha_fin_contrato, salario_pro
 @permiso_requerido('ca_liquidacion')
 @login_required
 def buscar_empleado():
-    """ Muestra el formulario para seleccionar el empleado, la fecha de fin y la causa. """
     empleados = Empleado.query.filter_by(estado_empleado=True).all()
     today = datetime.now().date()
     fecha_fin_contrato = today
@@ -214,9 +210,7 @@ def buscar_empleado():
 @liquidacion_bp.route('/calculo/<int:empleado_id>/<string:fecha_fin>', methods=['GET', 'POST'])
 @permiso_requerido('ca_liquidacion')
 @login_required
-def mostrar_calculo(empleado_id, fecha_fin):
-    """ Muestra el cálculo detallado y maneja el guardado. """
-    
+def mostrar_calculo(empleado_id, fecha_fin):    
     empleado = Empleado.query.get_or_404(empleado_id)
     fecha_fin_contrato = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
     causa_despido = request.args.get('causa', 'renuncia') 

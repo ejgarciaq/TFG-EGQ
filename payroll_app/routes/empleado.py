@@ -23,10 +23,8 @@ empleado_bp = Blueprint("empleado", __name__, template_folder="templates")
 def listar_empleado():
 
     page = request.args.get('page', 1, type=int)
-
     # Crea la consulta base, ordenada alfabéticamente por el nombre del empleado
     query = Empleado.query.order_by(Empleado.nombre)
-
     # Aplica la paginación a la consulta ordenada
     pagination = query.paginate(page=page, per_page=10, error_out=False)
 
@@ -298,17 +296,13 @@ def editar_empleado(id):
 def ver_perfil_empleado(empleado_id):
     try:
         usuario_actual = current_user
-        
         # Obtener el empleado asociado al usuario actual
         empleado_actual = Empleado.query.filter_by(Usuario_id_usuario=usuario_actual.id_usuario).first()
-        
         # Obtener el perfil del empleado que se desea ver (o 404 si no existe)
         empleado_perfil = Empleado.query.get_or_404(empleado_id)
-        
         # Lógica de seguridad para verificar permisos (RNF-SE-009)
         # La corrección se hace aquí, usando "or []"
         es_admin = usuario_actual.rol.tipo_rol == 'administrador'
-        
         # Si el usuario NO es un administrador Y el perfil solicitado no es el suyo, se deniega el acceso
         if not es_admin and empleado_perfil.id_empleado != empleado_actual.id_empleado:
             flash("Acceso denegado. No tiene los permisos necesarios para ver esta información.", "danger")

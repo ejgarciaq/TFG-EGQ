@@ -2,6 +2,7 @@ from functools import wraps
 from flask import redirect, url_for, flash
 from flask_login import current_user
 
+""" Decorador de Roles """
 def rol_requerido(rol):
     """
     Decorador principal que restringe el acceso a una ruta a usuarios con un rol específico.
@@ -26,7 +27,7 @@ def rol_requerido(rol):
         return decorated_function
     return decorator
 
-# --- Decorador de Permisos ---
+""" Decorador de Permisos """
 def permiso_requerido(permiso_nombre):
     """
     Decorador que verifica si el usuario autenticado tiene un permiso específico.
