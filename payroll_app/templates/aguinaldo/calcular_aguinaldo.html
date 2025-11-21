@@ -6,7 +6,7 @@
 
 <div class="row mb-2">
     <div class="col-12 text-center">
-        <h2 class="display-5 text-dark "><i class="fas fa-calculator text-primary me-2"></i> Cálculo de Aguinaldo</h2>
+        <h3 class=" text-dark fw-bold"><i class="fas fa-calculator text-primary me-2"></i> Cálculo de Aguinaldo</h3>
         <p class="lead text-muted">Utilice esta herramienta para generar el **Aguinaldo** de los empleados. El cálculo se basa en el promedio de los últimos 12 meses de salarios brutos (Dic. año anterior a Nov. año actual).</p>
     </div>
 </div>
@@ -23,17 +23,17 @@
                         
                         <div class="col-12 col-lg-4">
                             <label for="anio_fiscal" class="form-label fw-bold mb-0">Año Fiscal</label>
-                            <input type="number" class="form-control" id="anio_fiscal" name="anio_fiscal" 
+                            <input type="number" class="form-control fw-semibold" id="anio_fiscal" name="anio_fiscal" 
                                 value="{{ anio_fiscal_seleccionado or anio_actual }}" min="2000" max="{{ anio_actual + 1 }}" required>
-                            <small class="form-text text-muted d-block mt-1">Año de pago del aguinaldo.</small>
+                            <small class="form-text text-muted d-block mt-1 ">Año de pago del aguinaldo.</small>
                         </div>
         
                         <div class="col-12 col-lg-5">
                             <label for="tipo_nomina_id" class="form-label fw-bold mb-0">Filtrar por Tipo de Nómina</label>
-                            <select class="form-select" id="tipo_nomina_id" name="tipo_nomina_id">
-                                <option value="">Todos los Empleados</option>
+                            <select class="form-select fw-semibold" id="tipo_nomina_id" name="tipo_nomina_id">
+                                <option class="fw-semibold" value="">Todos los Empleados</option>
                                 {% for tn in tipos_nomina %}
-                                    <option value="{{ tn.id_tipo_nomina }}"
+                                    <option class="fw-semibold" value="{{ tn.id_tipo_nomina }}"
                                             {% if tn.id_tipo_nomina == tipo_nomina_id_seleccionado %}selected{% endif %}>
                                         {{ tn.nombre_tipo }}
                                     </option>
@@ -44,12 +44,12 @@
                         
                         <div class="col-12 col-lg-3 d-grid d-lg-block">
                             <div class="d-flex justify-content-between align-items-end h-100">
-                                <button type="submit" class="btn btn-success flex-grow-1 me-2"  
+                                <button type="submit" class="btn btn-success flex-grow-1 me-2 fw-bold"  
                                         onclick="return confirm('ATENCIÓN: ¿Está seguro de que desea iniciar el cálculo? Esto puede tardar unos segundos.')">
-                                    <i class="fas fa-play me-1"></i> Calcular
+                                    <i class="fas fa-calculator me-1"></i> Calcular
                                 </button>
 
-                                <button type="button" class="btn btn-outline-info flex-grow-1" onclick="applyFilters()">
+                                <button type="button" class="btn btn-outline-info flex-grow-1 fw-semibold" onclick="applyFilters()">
                                     <i class="fas fa-filter me-1"></i> Filtrar
                                 </button>
                             </div>
@@ -65,7 +65,7 @@
     <div class="col-lg-12 mb-4">
         <div class="card shadow-lg border-secondary ">
 
-            <p class="text-muted p-3 mb-0 border-bottom">
+            <p class="text-muted p-3 mb-0 border-bottom fw-semibold">
                 Últimos aguinaldos calculados
                 {% if anio_fiscal_seleccionado %}
                     (Año: <span class="fw-bold">{{ anio_fiscal_seleccionado }}</span>)
@@ -90,13 +90,13 @@
                     <tbody>
                         {% for aguinaldo, empleado in aguinaldos_paginados.items %}
                         <tr>
-                            <td class="text-start">{{ empleado.nombre_completo }}</td>
-                            <td class="text-center">{{ empleado.tipo_nomina_relacion.nombre_tipo if empleado.tipo_nomina_relacion else 'N/A' }}</td>
-                            <td class="text-center">{{ aguinaldo.fecha_pago.strftime('%d/%m/%Y') }}</td>
-                            <td class="text-center">₡{{ "{: ,.2f}".format(aguinaldo.monto) }}</td>
-                            <td class="text-center">
+                            <td class="text-start fw-semibold">{{ empleado.nombre_completo }}</td>
+                            <td class="text-center fw-semibold">{{ empleado.tipo_nomina_relacion.nombre_tipo if empleado.tipo_nomina_relacion else 'N/A' }}</td>
+                            <td class="text-center fw-semibold">{{ aguinaldo.fecha_pago.strftime('%d/%m/%Y') }}</td>
+                            <td class="text-center fw-semibold">₡{{ "{: ,.2f}".format(aguinaldo.monto) }}</td>
+                            <td class="text-center fw-semibold">
                                 
-                                <a href="{{ url_for('aguinaldo.ver_detalle', aguinaldo_id=aguinaldo.id_aguinaldo) }}" class="btn btn-primary btn-sm me-1" title="Ver Detalle de Cálculo">
+                                <a href="{{ url_for('aguinaldo.ver_detalle', aguinaldo_id=aguinaldo.id_aguinaldo) }}" class="btn btn-primary btn-sm me-1 fw-bold" title="Ver Detalle de Cálculo">
                                     <i class="fa-solid fa-eye"></i> Ver
                                 </a>
 
@@ -109,7 +109,7 @@
                                       method="POST"
                                       style="display:inline;"
                                       onsubmit="return confirm('¿Está seguro de que desea eliminar este registro de aguinaldo para {{ empleado.nombre_completo }}? Esta acción es irreversible.');">
-                                    <button type="submit" class="btn btn-danger btn-sm" title="Eliminar Aguinaldo">
+                                    <button type="submit" class="btn btn-danger btn-sm fw-bold" title="Eliminar Aguinaldo">
                                         <i class="fa-solid fa-trash"></i> Eliminar
                                     </button>
                                 </form>
@@ -130,7 +130,7 @@
             {% if aguinaldos_paginados and aguinaldos_paginados.pages > 1 %}
             <div class="card-footer bg-light border-top text-center">
                 <nav aria-label="Navegación de Registros">
-                    <ul class="pagination justify-content-center mb-0">
+                    <ul class="pagination pagination-sm fw-semibold justify-content-center mb-0">
                         
                         {# Diccionario de filtros para mantener el estado en la paginación #}
                         {% set query_params = {

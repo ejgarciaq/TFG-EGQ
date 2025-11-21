@@ -283,7 +283,26 @@ document.addEventListener('DOMContentLoaded', function() {
             placeholder: "Seleccione un empleado...",
             allowClear: true,
             theme: "bootstrap-5",
-            width: '100%' 
+            width: '100%',
+            templateResult: function (data) {
+                if (!data.id) {
+                    const placeholder = document.createElement("span");
+                    placeholder.className = "fw-bold text-muted";
+                    placeholder.textContent = data.text;
+                    return placeholder;
+                }
+                const option = document.createElement("span");
+                option.className = "fw-bold";
+                option.textContent = data.text;
+                return option;
+            },
+            templateSelection: function (data) {
+                const selected = document.createElement("span");
+                selected.className = data.id ? "fw-bold" : "fw-bold text-muted";
+                selected.textContent = data.text;
+                return selected;
+            }
+
         });
         empleadoSelect.on('change', actualizarSaldoVacaciones);
     }
@@ -298,7 +317,25 @@ document.addEventListener('DOMContentLoaded', function() {
             placeholder: "Seleccione un tipo de acción...",
             allowClear: true,
             theme: "bootstrap-5",
-            width: '100%' 
+            width: '100%',
+            templateResult: function (data) {
+                if (!data.id) {
+                    const placeholder = document.createElement("span");
+                    placeholder.className = "fw-bold text-muted";
+                    placeholder.textContent = data.text;
+                    return placeholder;
+                }
+                const option = document.createElement("span");
+                option.className = "fw-bold";
+                option.textContent = data.text;
+                return option;
+            },
+            templateSelection: function (data) {
+                const selected = document.createElement("span");
+                selected.className = data.id ? "fw-bold" : "fw-bold text-muted";
+                selected.textContent = data.text;
+                return selected;
+            }
         });
         $(tipoApSelect).on('change', actualizarCampos);
     }
@@ -447,4 +484,29 @@ document.getElementById('seleccionar_todo').addEventListener('change', function(
         }
 });
 2
-/* jQuery y clase CSS Select2 están cargados antes de este script */$(document).ready(function(){$(".select2").select2({placeholder:"Busca y selecciona...",allowClear:!0,theme:"bootstrap-5"})});
+/* jQuery y clase CSS Select2 están cargados antes de este script */
+$(document).ready(function() {
+    $(".select2").select2({
+        placeholder: "Busca y selecciona...",
+        allowClear: true,
+        theme: "bootstrap-5",
+            templateResult: function (data) {
+                if (!data.id) {
+                    const placeholder = document.createElement("span");
+                    placeholder.className = "fw-bold text-muted";
+                    placeholder.textContent = data.text;
+                    return placeholder;
+                }
+                const option = document.createElement("span");
+                option.className = "fw-bold";
+                option.textContent = data.text;
+                return option;
+            },
+            templateSelection: function (data) {
+                const selected = document.createElement("span");
+                selected.className = data.id ? "fw-bold" : "fw-bold text-muted";
+                selected.textContent = data.text;
+                return selected;
+            }
+    });
+});

@@ -58,4 +58,4 @@ def admin_required(f):
     Un decorador de conveniencia que utiliza 'rol_requerido'
     para proteger las rutas exclusivas de los administradores.
     """
-    return rol_requerido('Administrador')(f)
+    return rol_requerido('administrador')(f)

@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <h4 class="text-center mb-3">Listado de Asistencias</h4>
+    <h3 class="text-center mb-3 fw-bold">Listado de Asistencias</h3>
 
     <div class="card mb-2 j">
         <div class="card-header">Filtros de Búsqueda</div>
@@ -12,42 +12,40 @@
             <form action="{{ url_for('registro_asistencia.listar_asistencia') }}" method="GET">
                 <div class="row g-3 align-items-end justify-content-center">
                     <div class="col-md-2">
-                        <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
-                        <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" 
+                        <label for="fecha_inicio" class="form-label fw-bold">Fecha Inicio</label>
+                        <input type="date" class="form-control fw-semibold" id="fecha_inicio" name="fecha_inicio" 
                                value="{{ fecha_inicio_filtro if fecha_inicio_filtro else '' }}">
                     </div>
                     <div class="col-md-2">
-                        <label for="fecha_fin" class="form-label">Fecha Fin</label>
-                        <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" 
+                        <label for="fecha_fin" class="form-label fw-bold">Fecha Fin</label>
+                        <input type="date" class="form-control fw-semibold" id="fecha_fin" name="fecha_fin" 
                                value="{{ fecha_fin_filtro if fecha_fin_filtro else '' }}">
                     </div>
                     <div class="col-md-2">
-                        <label for="empleado_id" class="form-label">Empleado</label>
+                        <label for="empleado_id" class="form-label fw-bold">Empleado</label>
                         <select class="form-select select2" id="empleado_id_filtro" name="empleado_id">
                             <option value="all" {% if empleado_id_filtro == 'all' or not empleado_id_filtro %}selected{% endif %}>Todos</option>
                             
-
                             {% for emp in todos_empleados %} 
                                 <option value="{{ emp.id_empleado }}" 
                                         {% if empleado_id_filtro and empleado_id_filtro|string == emp.id_empleado|string %}selected{% endif %}>
                                     
-                                    {# Muestra el nombre completo para que se pueda buscar #}
                                     {{ emp.nombre }} {{ emp.apellido_primero }} {{ emp.apellido_segundo }} 
                                 </option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label for="aprobacion" class="form-label">Estado Aprobación</label>
-                        <select class="form-select" id="aprobacion" name="aprobacion">
-                            <option value="all" {% if aprobacion_filtro == 'all' or not aprobacion_filtro %}selected{% endif %}>Todos</option>
-                            <option value="approved" {% if aprobacion_filtro == 'approved' %}selected{% endif %}>Aprobados</option>
-                            <option value="pending" {% if aprobacion_filtro == 'pending' %}selected{% endif %}>Pendientes</option>
+                        <label for="aprobacion" class="form-label fw-bold">Estado Aprobación</label>
+                        <select class="form-select fw-semibold" id="aprobacion" name="aprobacion">
+                            <option class="fw-semibold" value="all" {% if aprobacion_filtro == 'all' or not aprobacion_filtro %}selected{% endif %}>Todos</option>
+                            <option class="fw-semibold" value="approved" {% if aprobacion_filtro == 'approved' %}selected{% endif %}>Aprobados</option>
+                            <option class="fw-semibold" value="pending" {% if aprobacion_filtro == 'pending' %}selected{% endif %}>Pendientes</option>
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-filter"></i> Aplicar Filtros</button>
-                        <a href="{{ url_for('registro_asistencia.listar_asistencia') }}" class="btn btn-secondary"><i class="fa-solid fa-filter-circle-xmark"></i> Limpiar Filtros</a>
+                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fa-solid fa-filter"></i> Aplicar Filtros</button>
+                        <a href="{{ url_for('registro_asistencia.listar_asistencia') }}" class="btn btn-secondary fw-semibold"><i class="fa-solid fa-filter-circle-xmark"></i> Limpiar Filtros</a>
                     </div>
                 </div>
             </form>
@@ -80,7 +78,7 @@
             </thead>
             <tbody>
                 {% for registro in registros.items %}
-                <tr>
+                <tr class="fw-semibold">
                     <td><input type="checkbox" name="registros_seleccionados" value="{{ registro.id_registro_asistencia }}"></td>
                     <td>{{ registro.empleado.nombre }} {{ registro.empleado.apellido_primero }} {{ registro.empleado.apellido_segundo }}</td>
                     <td class="text-center">{{ registro.fecha_registro.strftime('%Y-%m-%d') }}</td>
@@ -109,11 +107,11 @@
                                          fecha_fin=fecha_fin_filtro,
                                          empleado_id=empleado_id_filtro,
                                          aprobacion=aprobacion_filtro) }}" 
-                           class="btn btn-sm btn-warning">
+                           class="btn btn-sm btn-warning fw-bold">
                             <i class="fas fa-edit"></i> Editar
                         </a>
                         <form action="{{ url_for('registro_asistencia.eliminar_asistencia', registro_id=registro.id_registro_asistencia) }}" method="POST" style="display:inline;">
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de que deseas eliminar este registro?');">
+                            <button type="submit" class="btn btn-sm btn-danger fw-bold" onclick="return confirm('¿Estás seguro de que deseas eliminar este registro?');">
                                 <i class="fas fa-trash-alt"></i> Eliminar
                             </button>
                         </form>
@@ -128,7 +126,7 @@
     {# Reemplazamos 'request.endpoint' y añadimos todos los filtros #}
     {# ========================================================= #}
     <nav aria-label="Navegación de páginas">
-        <ul class="pagination justify-content-left">
+        <ul class="pagination justify-content-left fw-bold">
             
             {# Primera Página #}
             {% if registros.page > 1 %}
@@ -200,10 +198,10 @@
     </nav>
     
     <div class="d-flex justify-content-end">
-        <button type="submit" name="accion_masiva" value="aprobar_masiva" class="btn btn-success me-2">
+        <button type="submit" name="accion_masiva" value="aprobar_masiva" class="btn btn-success me-2 fw-bold">
             <i class="fas fa-check-circle"></i> Aprobar Seleccionados
         </button>
-        <button type="submit" name="accion_masiva" value="rechazar_masiva" class="btn btn-danger">
+        <button type="submit" name="accion_masiva" value="rechazar_masiva" class="btn btn-danger fw-bold">
             <i class="fas fa-times-circle"></i> Rechazar Seleccionados
         </button>
     </div>

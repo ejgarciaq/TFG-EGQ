@@ -6,18 +6,15 @@
 <div class="container">
     <h4 class="text-center mb-4">Editar Registro de Asistencia</h4>
 
-    {# INICIAMOS LA FILA (ROW) DE BOOTSTRAP AQUÍ #}
     <div class="row justify-content-center">
         
-        {# COLUMNA 1: FORMULARIO #}
         <div class="col-md-5 mb-4">
-            <div class="card shadow">
+            <div class="card shadow fw-semibold">
                 <div class="card-header bg-warning text-white text-center">
                     Registro para {{ registro.empleado.nombre }} del {{ registro.fecha_registro.strftime('%Y-%m-%d') }}
                 </div>
-                <div class="card-body">
+                <div class="card-body fw-semibold">
                     
-                    {# CAMBIO CLAVE 1: La acción del formulario debe pasar los parámetros de redirección #}
                     <form action="{{ url_for('registro_asistencia.editar_asistencia', 
                                          registro_id=registro.id_registro_asistencia,
                                          page=page, 
@@ -27,32 +24,31 @@
                                          aprobacion=aprobacion_filtro) }}" 
                           method="POST">
                         
-                        {# Campo de Fecha y Hora de Entrada (Mantenido) #}
                         <div class="mb-3">
-                            <label for="fecha" class="form-label">Fecha</label>
-                            <input type="date" class="form-control" id="fecha" name="fecha" value="{{ registro.fecha_registro.strftime('%Y-%m-%d') }}" required>
+                            <label for="fecha" class="form-label fw-bold">Fecha</label>
+                            <input type="date" class="form-control fw-semibold" id="fecha" name="fecha" value="{{ registro.fecha_registro.strftime('%Y-%m-%d') }}" required>
                         </div>
                         
                         <div class="mb-3">
-                            <label for="hora_entrada" class="form-label">Hora de Entrada</label>
-                            <input type="time" class="form-control" id="hora_entrada" name="hora_entrada" value="{{ registro.hora_entrada.strftime('%H:%M:%S') }}" step="1" required>
+                            <label for="hora_entrada" class="form-label fw-bold">Hora de Entrada</label>
+                            <input type="time" class="form-control fw-semibold" id="hora_entrada" name="hora_entrada" value="{{ registro.hora_entrada.strftime('%H:%M:%S') }}" step="1" required>
                         </div>
                         
                         <div>
-                            <label for="hora_salida_almuerzo" class="form-label">Hora de Salida a Almuerzo</label>
-                            <input type="time" class="form-control" id="hora_salida_almuerzo" name="hora_salida_almuerzo" 
+                            <label for="hora_salida_almuerzo" class="form-label fw-bold">Hora de Salida a Almuerzo</label>
+                            <input type="time" class="form-control fw-semibold" id="hora_salida_almuerzo" name="hora_salida_almuerzo" 
                                 value="{{ registro.hora_salida_almuerzo.strftime('%H:%M:%S') if registro.hora_salida_almuerzo else '' }}" step="1">   
                         </div>
 
                         <div class="mb-3">
-                            <label for="hora_regreso_almuerzo" class="form-label">Hora de Regreso de Almuerzo</label>
-                            <input type="time" class="form-control" id="hora_regreso_almuerzo" name="hora_regreso_almuerzo" 
+                            <label for="hora_regreso_almuerzo" class="form-label fw-bold">Hora de Regreso de Almuerzo</label>
+                            <input type="time" class="form-control fw-semibold" id="hora_regreso_almuerzo" name="hora_regreso_almuerzo" 
                             value="{{ registro.hora_entrada_almuerzo.strftime('%H:%M:%S') if registro.hora_entrada_almuerzo else '' }}" step="1"> 
                         </div>
                         
                         <div class="mb-3">
-                            <label for="hora_salida" class="form-label">Hora de Salida Final</label>
-                            <input type="time" class="form-control" id="hora_salida" name="hora_salida" 
+                            <label for="hora_salida" class="form-label fw-bold">Hora de Salida Final</label>
+                            <input type="time" class="form-control fw-semibold" id="hora_salida" name="hora_salida" 
                             value="{{ registro.hora_salida.strftime('%H:%M:%S') if registro.hora_salida else '' }}" step="1">
                         </div>
                         
@@ -61,7 +57,7 @@
                             <label class="form-check-label" for="aprobado">Aprobado</label>
                         </div>
                         
-                        <button type="submit" class="btn btn-warning w-100"><i class="fa-solid fa-floppy-disk"></i> Guardar Cambios</button>
+                        <button type="submit" class="btn btn-warning w-100 fw-bold"><i class="fa-solid fa-floppy-disk"></i> Guardar Cambios</button>
                         
                         <a href="{{ url_for('registro_asistencia.listar_asistencia', 
                                  page=page, 
@@ -69,7 +65,7 @@
                                  fecha_fin=fecha_fin_filtro,
                                  empleado_id=empleado_id_filtro, 
                                  aprobacion=aprobacion_filtro) }}" 
-                           class="btn btn-secondary w-100 mt-2"><i class="fa-solid fa-arrow-left"></i> Volver</a>
+                           class="btn btn-secondary w-100 mt-2 fw-bold"><i class="fa-solid fa-arrow-left"></i> Volver</a>
                     </form>
                 </div>
             </div>
@@ -78,7 +74,7 @@
 
         <div class="col-md-5 mb-4">
             <div class="card shadow">
-                <div class="card-header bg-primary text-white text-center">
+                <div class="card-header bg-primary text-white text-center fw-semibold">
                     Resumen de Cálculo Actual
                 </div>
                 <div class="card-body">
@@ -98,7 +94,11 @@
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong>Monto Total a Pagar:</strong>
                             <span class="badge bg-success">
-                                ₡{{ (registro.monto_pago | default(0) | float) | format(target="0.00") }}
+                                    ₡ {% if registro.monto_pago is not none %}
+                                        {{ "{:,.2f}".format(registro.monto_pago) }}
+                                    {% else %}
+                                        0.00
+                                    {% endif %}
                             </span>
                         </li>
                     </ul>
