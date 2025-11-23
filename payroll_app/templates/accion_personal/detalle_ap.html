@@ -9,7 +9,7 @@
             <h4 class="mb-0 fw-bold">Detalle de la Acción de Personal</h4>
         </div>
         <div class="card-body">
-            <dl class="row">
+            <dl class="row fw-semibold">
                 <dt class="col-sm-4">Empleado:</dt>
                 <dd class="col-sm-8">{{ accion.empleado.nombre_completo }}</dd>
 
@@ -52,9 +52,9 @@
         </div>
 <div class="card-footer text-end">
     {% if current_user.is_admin %}
-        <a href="{{ url_for('accion_personal_bp.ver_historial_apu') }}" class="btn btn-secondary">Volver</a>
+        <a href="{{ url_for('accion_personal_bp.ver_historial_apu') }}" class="btn btn-secondary fw-semibold">Volver</a>
     {% else %}
-        <a href="{{ url_for('accion_personal_bp.acciones_administrativas') }}" class="btn btn-secondary">Volver al Historial</a>
+        <a href="{{ url_for('accion_personal_bp.acciones_administrativas') }}" class="btn btn-secondary fw-semibold">Volver al Historial</a>
     {% endif %}
 </div>
     </div>

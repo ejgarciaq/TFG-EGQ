@@ -7,17 +7,17 @@
     <div class="row justify-content-center">
         <div class="col-md-12"> 
             <fieldset class="shadow border p-3 rounded border-primary">
-            <legend class="float-none w-auto px-1 fs-3 text-center">Reporte de Pagos de Aguinaldos</legend>
+            <legend class="float-none w-auto px-1 fs-3 text-center fw-bold">Reporte de Pagos de Aguinaldos</legend>
             <span class="text-muted">Filtre por año para visualizar todos los aguinaldos calculados.</span>
                 
                 <form method="GET" action="{{ url_for('reportes_bp.mostrar_reporte_aguinaldos') }}" class="mb-3">
                     <div class="mb-3">
-                        <label for="ano_aguinaldo" class="form-label">Año del Aguinaldo:</label>
-                        <input type="number" class="form-control" id="ano_aguinaldo" name="ano_aguinaldo" 
+                        <label for="ano_aguinaldo" class="form-label fw-bold">Año del Aguinaldo:</label>
+                        <input type="number" class="form-control fw-semibold" id="ano_aguinaldo" name="ano_aguinaldo" 
                             value="{{ ano_filtrado if ano_filtrado else current_year }}" required min="2000" max="{{ current_year + 5 }}">
                     </div>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Generar Reporte</button>
-                    <a href="{{ url_for('auth.base') }}" class="btn btn-secondary"><i class="fa fa-arrow-left"></i> Volver a Inicio</a>
+                    <button type="submit" class="btn btn-primary fw-bold"><i class="fas fa-search"></i> Generar Reporte</button>
+                    <a href="{{ url_for('auth.base') }}" class="btn btn-secondary fw-bold"><i class="fa fa-arrow-left"></i> Volver a Inicio</a>
                 </form>
            </fieldset>
         </div>
@@ -26,27 +26,27 @@
     {% if tabla_aguinaldos_html %}
 
         <fieldset class="shadow border p-3 rounded border-primary mt-3">
-        <legend class="float-none w-auto px-1 fs-3 text-center">Resultados de Aguinaldos (Página {{ paginated_records.page }} de {{ paginated_records.pages }})</legend>
+        <legend class="float-none w-auto px-1 fs-3 text-center fw-bold">Resultados de Aguinaldos (Página {{ paginated_records.page }} de {{ paginated_records.pages }})</legend>
             
             <div class="mb-3 text-end">
-                <a href="{{ url_for('reportes_bp.exportar_aguinaldos', ano=ano_filtrado, formato='csv') }}" class="btn btn-info me-2">
+                <a href="{{ url_for('reportes_bp.exportar_aguinaldos', ano=ano_filtrado, formato='csv') }}" class="btn btn-info me-2 fw-bold">
                     <i class="fas fa-file-csv"></i> Exportar CSV
                 </a>
-                <a href="{{ url_for('reportes_bp.exportar_aguinaldos', ano=ano_filtrado, formato='excel') }}" class="btn btn-success me-2">
+                <a href="{{ url_for('reportes_bp.exportar_aguinaldos', ano=ano_filtrado, formato='excel') }}" class="btn btn-success me-2 fw-bold">
                     <i class="fas fa-file-excel"></i> Exportar Excel
                 </a>
-                <a href="{{ url_for('reportes_bp.exportar_aguinaldos', ano=ano_filtrado, formato='pdf') }}" class="btn btn-danger">
+                <a href="{{ url_for('reportes_bp.exportar_aguinaldos', ano=ano_filtrado, formato='pdf') }}" class="btn btn-danger fw-bold">
                     <i class="fas fa-file-pdf"></i> Exportar PDF
                 </a>
             </div>
 
-            <div class="table-responsive">
+            <div class="table-responsive fw-semibold">
                 {{ tabla_aguinaldos_html | safe }} 
             </div>
 
             {% if paginated_records.pages > 1 %}
                 <nav aria-label="Navegación de páginas" class="d-flex justify-content-center mt-3">
-                    <ul class="pagination">
+                    <ul class="pagination pagination-sm fw-bold">
                         {% set query_params = {'ano_aguinaldo': ano_filtrado} %}
 
                         <li class="page-item {% if not paginated_records.has_prev %}disabled{% endif %}">

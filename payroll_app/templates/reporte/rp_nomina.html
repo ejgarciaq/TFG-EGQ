@@ -7,29 +7,29 @@
     <div class="row justify-content-center">
         <div class="col-md-12"> 
             <fieldset class="shadow border p-3 rounded border-primary">
-            <legend class="float-none w-auto px-1 fs-3 text-center">Reporte de Nómina</legend>
+            <legend class="float-none w-auto px-1 fs-3 text-center fw-bold">Reporte de Nómina</legend>
 
                 <form id="nomina-report-form" method="GET" action="{{ url_for('reportes_bp.generar_reporte_nomina') }}">
                     <div class="row g-3 align-items-end">
                         
                         <div class="col-md-3">
-                            <label for="fecha_inicio" class="form-label">Fecha Inicio:</label>
-                            <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" 
+                            <label for="fecha_inicio" class="form-label fw-bold">Fecha Inicio:</label>
+                            <input type="date" class="form-control fw-semibold" id="fecha_inicio" name="fecha_inicio" 
                                 value="{{ fecha_inicio_seleccionada }}" required>
                         </div>
                         
                         <div class="col-md-3">
-                            <label for="fecha_fin" class="form-label">Fecha Fin:</label>
-                            <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" 
+                            <label for="fecha_fin" class="form-label fw-bold">Fecha Fin:</label>
+                            <input type="date" class="form-control fw-semibold" id="fecha_fin" name="fecha_fin" 
                                 value="{{ fecha_fin_seleccionada }}" required>
                         </div>
                         
                         <div class="col-md-3">
-                            <label for="tipo_nomina_id" class="form-label">Tipo de Nómina:</label>
-                            <select class="form-select" id="tipo_nomina_id" name="tipo_nomina_id">
-                                <option value="todos">Todos los Tipos</option>
+                            <label for="tipo_nomina_id" class="form-label fw-bold">Tipo de Nómina:</label>
+                            <select class="form-select fw-semibold" id="tipo_nomina_id" name="tipo_nomina_id">
+                                <option class="fw-semibold" value="todos">Todos los Tipos</option>
                                 {% for tipo in tipos_nomina %}
-                                    <option value="{{ tipo.id_tipo_nomina }}" 
+                                    <option class="fw-semibold" value="{{ tipo.id_tipo_nomina }}" 
                                         {% if id_tipo_nomina_seleccionado|string == tipo.id_tipo_nomina|string %}selected{% endif %}>
                                         {{ tipo.nombre_tipo }}
                                     </option>
@@ -41,16 +41,16 @@
                     
                     <div class="row mt-2 ">
                         <div class="col-12">
-                            <button type="submit" name="descargar" value="html" class="btn btn-primary me-1">
+                            <button type="submit" name="descargar" value="html" class="btn btn-primary me-1 fw-bold">
                                 <i class="fas fa-search"></i> Generar Reporte
                             </button>
-                            <button type="submit" name="descargar" value="csv" class="btn btn-info me-1">
+                            <button type="submit" name="descargar" value="csv" class="btn btn-info me-1 fw-bold">
                                 <i class="fas fa-file-csv"></i> CSV
                             </button>
-                            <button type="submit" name="descargar" value="excel" class="btn btn-success me-1">
+                            <button type="submit" name="descargar" value="excel" class="btn btn-success me-1 fw-bold">
                                 <i class="fas fa-file-excel"></i> Excel
                             </button>
-                            <button type="submit" name="descargar" value="pdf" class="btn btn-danger">
+                            <button type="submit" name="descargar" value="pdf" class="btn btn-danger fw-bold">
                                 <i class="fas fa-file-pdf"></i> PDF
                             </button>
                         </div>
@@ -69,7 +69,7 @@
         <legend class="float-none w-auto px-1 fs-3 text-center">Resultados de la Nómina</legend>
 
             {# Contenedor para hacer la tabla responsive #}
-        <div class="table-responsive">
+        <div class="table-responsive fw-semibold">
                 {{ tabla_nomina_html | safe }}
             </div>
 

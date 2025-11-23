@@ -2,18 +2,18 @@
 {% block title %} - Cálculo de Liquidación{% endblock %}
 {% block content %}
     <div class="container mt-4">
-        <h2>Cálculo de Liquidación Proporcional</h2>
+        <h2 class="text-center">Cálculo de Liquidación Proporcional</h2>
         <hr>
 
         <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
+            <div class="card-header bg-primary text-white fw-bold">
                 Selección de Empleado y Parámetros
             </div>
             <div class="card-body">
                 <form method="POST" action="{{ url_for('liquidacion.buscar_empleado') }}">
                     
                     <div class="form-group mb-3">
-                        <label for="empleado_id">Seleccionar Empleado:</label>
+                        <label for="empleado_id" class="fw-bold">Seleccionar Empleado:</label>
                         <select class="form-control" id="empleado_id" name="empleado_id" required>
                             <option value="" disabled selected>-- Elija un empleado --</option>
                             {% for empleado in empleados %}
@@ -23,17 +23,17 @@
                     </div>
 
                     <div class="form-group mb-3">
-                        <label for="fecha_fin_contrato">Fecha de Finalización de Contrato:</label>
-                        <input type="date" class="form-control" id="fecha_fin_contrato" name="fecha_fin_contrato" 
+                        <label for="fecha_fin_contrato" class="fw-bold">Fecha de Finalización de Contrato:</label>
+                        <input type="date" class="form-control fw-semibold" id="fecha_fin_contrato" name="fecha_fin_contrato" 
                                 value="{{ fecha_fin_contrato.strftime('%Y-%m-%d') if fecha_fin_contrato else today.strftime('%Y-%m-%d') }}" required>
                     </div>
                     
                     <div class="form-group mb-4">
-                        <label for="causa_despido">Causa de Terminación:</label>
-                        <select class="form-control" id="causa_despido" name="causa_despido" required>
+                        <label for="causa_despido" class="fw-bold">Causa de Terminación:</label>
+                        <select class="form-control fw-semibold" id="causa_despido" name="causa_despido" required>
                             <option value="" disabled selected>-- Elija la causa --</option>
                             {% for value, label in causas %}
-                                <option value="{{ value }}">{{ label }}</option>
+                                <option class="fw-semibold" value="{{ value }}">{{ label }}</option>
                             {% endfor %}
                         </select>
                         <small class="form-text text-muted">
@@ -41,7 +41,7 @@
                         </small>
                     </div>
 
-                    <button type="submit" class="btn btn-success btn-block">
+                    <button type="submit" class="btn btn-success btn-block fw-bold">
                         <i class="fas fa-calculator"></i> Calcular Liquidación
                     </button>
                 </form>

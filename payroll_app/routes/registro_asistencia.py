@@ -131,11 +131,11 @@ def ver_asistencia():
         ).first()
         
         if registro_finalizado_hoy:
-            print(f"DEBUG (ver_asistencia): Se encontró un registro FINALIZADO para HOY. Estado: 'jornada_completa_hoy'.")
+            #print(f"DEBUG (ver_asistencia): Se encontró un registro FINALIZADO para HOY. Estado: 'jornada_completa_hoy'.")
             estado_actual = 'jornada_completa_hoy' 
             flash('Ya has completado tu jornada de hoy. No se permite más de una entrada por día.', 'info')
         else:
-            print(f"DEBUG (ver_asistencia): No se encontró ningún registro finalizado para HOY. Se asume estado: 'entrada'.")
+           # print(f"DEBUG (ver_asistencia): No se encontró ningún registro finalizado para HOY. Se asume estado: 'entrada'.")
             # Si no hay registro activo Y no hay registro finalizado, significa que el empleado puede marcar 'entrada'.
             estado_actual = 'entrada' 
     
@@ -144,7 +144,7 @@ def ver_asistencia():
     if estado_actual not in estados_validos:
         estado_actual = 'entrada' 
 
-    print(f"DEBUG (ver_asistencia): Estado actual FINAL que se envía al template: '{estado_actual}'") 
+    #print(f"DEBUG (ver_asistencia): Estado actual FINAL que se envía al template: '{estado_actual}'") 
 
     # --- Lógica para listar la asistencia en una tabla (Responsabilidad 2) ---
     # Recuperar registros de asistencia para el empleado (ej. los últimos 30 días)

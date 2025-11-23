@@ -1,20 +1,17 @@
 {% extends "base.html" %}
-
 {% block title %} - Reporte de asistencia{% endblock %}
-
 {% block content %}
-
 <div class="container-fluid"> 
     <div class="row justify-content-center">
         <div class="col-md-12"> 
 
             <fieldset class="shadow border p-3 rounded border-primary">
-                <legend class="float-none w-auto px-1 fs-3 text-center">Reporte de Asistencia</legend>
+                <legend class="float-none w-auto px-1 fs-3 text-center fw-bold">Reporte de Asistencia</legend>
                 
                     <form method="POST" action="{{ url_for('reportes_bp.generar_reporte') }}">
                         <div class="row">
                             <div class="col-md-4 mb-1">
-                                <label for="empleado_id" class="form-label">Empleado</label>
+                                <label for="empleado_id" class="form-label fw-bold">Empleado</label>
 
                                 <select class="form-control select2" id="empleado_id" name="empleado_id" required>
                                     <option value="todos" {% if empleado_id_seleccionado == 'todos' %}selected{% endif %}>Todos los empleados</option>
@@ -27,21 +24,21 @@
                             </div>
 
                             <div class="col-md-4 mb-1">
-                                <label for="fecha_inicio" class="form-label">Fecha de Inicio</label>
-                                <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required value="{{ fecha_inicio_seleccionada if fecha_inicio_seleccionada }}">
+                                <label for="fecha_inicio" class="form-label fw-bold">Fecha de Inicio</label>
+                                <input type="date" class="form-control fw-semibold" id="fecha_inicio" name="fecha_inicio" required value="{{ fecha_inicio_seleccionada if fecha_inicio_seleccionada }}">
                             </div>
                         
                             <div class="col-md-4 mb-1">
-                                <label for="fecha_fin" class="form-label">Fecha de Fin</label>
-                                <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required value="{{ fecha_fin_seleccionada if fecha_fin_seleccionada }}">
+                                <label for="fecha_fin" class="form-label fw-bold">Fecha de Fin</label>
+                                <input type="date" class="form-control fw-semibold" id="fecha_fin" name="fecha_fin" required value="{{ fecha_fin_seleccionada if fecha_fin_seleccionada }}">
                             </div>
                         </div>
 
                         <div class="d-grid gap-2 d-md-block mt-2">
-                            <button type="submit" class="btn btn-primary mb-2" name="descargar" value="html"><i class="fas fa-search"></i> Generar Reporte</button>
-                            <button type="submit" class="btn btn-info mb-2" name="descargar" value="csv"><i class="fa fa-file-csv"></i> CSV</button>
-                            <button type="submit" class="btn btn-success mb-2" name="descargar" value="excel"><i class="fa fa-file-excel"></i> Excel</button>
-                            <button type="submit" class="btn btn-danger mb-2" name="descargar" value="pdf"><i class="fa fa-file-pdf"></i> PDF</button>
+                            <button type="submit" class="btn btn-primary mb-2 fw-bold" name="descargar" value="html"><i class="fas fa-search"></i> Generar Reporte</button>
+                            <button type="submit" class="btn btn-info mb-2 fw-bold" name="descargar" value="csv"><i class="fa fa-file-csv"></i> CSV</button>
+                            <button type="submit" class="btn btn-success mb-2 fw-bold" name="descargar" value="excel"><i class="fa fa-file-excel"></i> Excel</button>
+                            <button type="submit" class="btn btn-danger mb-2 fw-bold" name="descargar" value="pdf"><i class="fa fa-file-pdf"></i> PDF</button>
                         </div>
                     </form>
             </fieldset>
@@ -55,7 +52,7 @@
                     <legend class="float-none w-auto px-1 fs-3 text-center">Resultados de Asistencia</legend>
                         
                     {# CLAVE 1: table-responsive (Bootstrap) para el SCROLL HORIZONTAL (LATERAL) #}
-                    <div class="table-responsive">
+                    <div class="table-responsive fw-semibold">
                         
                         {# CLAVE 2: Estilo inline para el SCROLL VERTICAL FIJO (max-height) #}
                         <div style="max-height: 500px; overflow-y: auto;">
