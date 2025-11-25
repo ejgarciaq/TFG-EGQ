@@ -7,35 +7,35 @@
     <div class="row justify-content-center">
         <div class="col-md-6">
             <fieldset class="shadow border p-2 mb-0 rounded border-primary">
-            <legend class="float-none w-auto px-1 fs-3 text-center">Crear un Nuevo Rol</legend>
+            <legend class="float-none w-auto px-1 fs-3 text-center fw-bold">Crear un Nuevo Rol</legend>
                 <form method="POST" action="{{ url_for('rol.crear_rol') }}">
                 <div class="mb-3">
-                    <label for="tipo_rol" class="form-label">Tipo de Rol</label>
-                    <input type="text" class="form-control" id="tipo_rol" name="tipo_rol" required>
+                    <label for="tipo_rol" class="form-label fw-bold">Tipo de Rol</label>
+                    <input type="text" class="form-control fw-semibold" id="tipo_rol" name="tipo_rol" required>
                 </div>
                 <div class="mb-3">
-                    <label for="descripcion_rol" class="form-label">Descripción del Rol</label>
-                    <textarea class="form-control" id="descripcion_rol" name="descripcion_rol" rows="3"></textarea>
+                    <label for="descripcion_rol" class="form-label fw-bold">Descripción del Rol</label>
+                    <textarea class="form-control fw-semibold" id="descripcion_rol" name="descripcion_rol" rows="3"></textarea>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Permisos</label>
+                    <label class="form-label fw-bold">Permisos</label>
                     <div class="card p-3 shadow-sm" style="height: 200px; overflow-y: auto;">
                         {% for permiso in permisos %}
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="permisos" value="{{ permiso.id_permiso }}" id="permiso-{{ permiso.id_permiso }}">
-                            <label class="form-check-label" for="permiso-{{ permiso.id_permiso }}">
+                            <label class="form-check-label fw-semibold" for="permiso-{{ permiso.id_permiso }}">
                                 {{ permiso.nombre }}
                             </label>
-                            <span class="text-muted small">({{ permiso.descripcion }})</span> </label>
+                            <span class="text-muted small fw-semibold">({{ permiso.descripcion }})</span> </label>
                         </div>
                         {% endfor %}
                     </div>
                 </div>
 
                 <div class="d-flex justify-content-between mt-4">
-                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
-                    <a href="{{ url_for('rol.listar_roles') }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Volver</a>
+                    <button type="submit" class="btn btn-primary fw-bold"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+                    <a href="{{ url_for('rol.listar_roles') }}" class="btn btn-secondary fw-bold"><i class="fa-solid fa-arrow-left"></i> Volver</a>
                 </div>
             </form>
             </fieldset>       

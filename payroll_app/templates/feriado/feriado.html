@@ -4,23 +4,23 @@
 
 {% block content %}
 <div class="container">
-    <h4 class="text-center mb-4">Gestión de Feriados</h4>
+    <h4 class="text-center mb-4 fw-bold">Gestión de Feriados</h4>
 
     <div class="row">
         <div class="col-md-4 mb-4">
             <div class="card shadow">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header bg-primary text-white fw-bold">
                     <i class="fa-solid fa-calendar-days"></i> Agregar Nuevo Feriado
                 </div>
                 <div class="card-body">
                     <form action="{{ url_for('feriado.agregar_feriado') }}" method="POST">
                         <div class="mb-3">
                             <label for="fecha_feriado" class="form-label fw-bold">Fecha del Feriado</label>
-                            <input type="date" class="form-control" id="fecha_feriado" name="fecha_feriado" required>
+                            <input type="date" class="form-control fw-semibold" id="fecha_feriado" name="fecha_feriado" required>
                         </div>
                         <div class="mb-3">
                             <label for="descripcion_feriado" class="form-label fw-bold">Descripción del Feriado</label>
-                            <input type="text" class="form-control" id="descripcion_feriado" name="descripcion_feriado" required>
+                            <input type="text" class="form-control fw-semibold" id="descripcion_feriado" name="descripcion_feriado" required>
                         </div>
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" name="pago_obligatorio" id="pago_obligatorio">
@@ -28,16 +28,16 @@
                                 ¿Es de pago obligatorio?
                             </label>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100"><i class="fas fa-calendar-plus"></i> Agregar Feriado</button>
+                        <button type="submit" class="btn btn-primary w-100 fw-bold"><i class="fas fa-calendar-plus"></i> Agregar Feriado</button>
                     </form>
                     
                     <hr> <form action="{{ url_for('feriado.agregar_feriados_año_actual') }}" method="POST">
-                        <button type="submit" class="btn btn-warning w-100">
+                        <button type="submit" class="btn btn-warning w-100 fw-bold">
                             <i class="fas fa-calendar-plus"></i> Agregar Feriados del Año Actual
                         </button>
                     </form>
                     <form action="{{ url_for('feriado.agregar_feriados_proximo_año') }}" class="mt-3" method="POST">
-                        <button type="submit" class="btn btn-success w-100">
+                        <button type="submit" class="btn btn-success w-100 fw-bold">
                             <i class="fas fa-calendar-plus"></i> Agregar Feriados del Próximo Año
                         </button>
                     </form>
@@ -47,7 +47,7 @@
 
         <div class="col-md-8">
             <div class="card shadow">
-                <div class="card-header bg-success text-white">
+                <div class="card-header bg-success text-white fw-bold">
                     Feriados Existentes
                 </div>
                 <div class="card-body">
@@ -63,7 +63,7 @@
                         </thead>
                         <tbody>
                             {% for feriado in pagination.items %}
-                            <tr>
+                            <tr class="fw-semibold">
                                 <td class="text-center">{{ feriado.fecha_feriado.strftime('%Y-%m-%d') }}</td>
                                 <td>{{ feriado.descripcion_feriado }}</td>
                                 <td class="text-center">
@@ -74,10 +74,10 @@
                                     {% endif %}
                                 </td>
                                 <td class="text-center">
-                                    <a href="{{ url_for('feriado.editar_feriado', id_feriado=feriado.id_feriado, page=pagination.page) }}" class="btn btn-warning btn-sm">Editar</a>
+                                    <a href="{{ url_for('feriado.editar_feriado', id_feriado=feriado.id_feriado, page=pagination.page) }}" class="btn btn-warning btn-sm fw-bold">Editar</a>
                                     <form action="{{ url_for('feriado.eliminar_feriado', id_feriado=feriado.id_feriado) }}" method="POST" class="d-inline">
                                         <input type="hidden" name="page" value="{{ pagination.page }}">
-                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar este feriado?');">Eliminar</button>
+                                        <button type="submit" class="btn btn-danger btn-sm fw-bold" onclick="return confirm('¿Estás seguro de que quieres eliminar este feriado?');">Eliminar</button>
                                     </form>
                                 </td>
                             </tr>
@@ -91,7 +91,7 @@
                     {% endif %}
                     
                     <nav aria-label="Page navigation">
-                        <ul class="pagination justify-content-center">
+                        <ul class="pagination pagination-sm fw-bold justify-content-center">
                             {% if pagination.has_prev %}
                                 <li class="page-item"><a class="page-link" href="{{ url_for('feriado.listar_feriados', page=pagination.prev_num) }}">Anterior</a></li>
                             {% else %}

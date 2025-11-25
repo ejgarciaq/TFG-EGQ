@@ -109,10 +109,10 @@
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label for="tipo_nomina_id" class="form-label">Tipo de Nómina</label>
-                    <select class="form-control" id="tipo_nomina_id" name="tipo_nomina_id" required>
+                    <label for="tipo_nomina_id" class="form-label fw-bold">Tipo de Nómina</label>
+                    <select class="form-control fw-semibold" id="tipo_nomina_id" name="tipo_nomina_id" required>
                         {% for tipo in tipos_nomina %}
-                        <option value="{{ tipo.id_tipo_nomina }}" {% if tipo.id_tipo_nomina == empleado.TipoNomina_id_tipo_nomina %}selected{% endif %}>
+                        <option class="fw-semibold" value="{{ tipo.id_tipo_nomina }}" {% if tipo.id_tipo_nomina == empleado.TipoNomina_id_tipo_nomina %}selected{% endif %}>
                             {{ tipo.nombre_tipo }}
                         </option>
                         {% endfor %}
@@ -122,7 +122,7 @@
 
             <div class=" col-md-3 ms-3 form-check">
                 <input type="checkbox" class="form-check-input" id="estado_empleado" name="estado_empleado" {% if empleado.estado_empleado %}checked{% endif %}>
-                <label class="form-check-label" for="estado_empleado">Estado del Empleado</label>
+                <label class="form-check-label fw-bold" for="estado_empleado">Estado del Empleado</label>
             </div>
         </fieldset>
 
