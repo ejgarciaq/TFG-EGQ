@@ -23,6 +23,14 @@
                     <p class="fw-semibold"><strong>Cédula:</strong> {{ empleado.cedula }}</p>
                     <p class="fw-semibold"><strong>Correo Electrónico:</strong> {{ empleado.correo }}</p>
                     <p class="fw-semibold"><strong>Teléfono:</strong> {{ empleado.telefono }}</p>
+                    <p class="fw-semibold">
+                        <strong>Nómina:</strong> 
+                        {% if empleado.tipo_nomina_relacion %}
+                            {{ empleado.tipo_nomina_relacion.nombre_tipo }}
+                        {% else %}
+                            No asignada / Error de datos
+                        {% endif %}
+                    </p>
                 </div>
                 <div class="col-md-6 mb-3">
                     <p class="fw-semibold"><strong>Puesto:</strong> {{ empleado.puesto.tipo_puesto }}</p>
