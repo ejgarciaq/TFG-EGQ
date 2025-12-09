@@ -63,7 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnIcon = document.getElementById('btn_icon');
     const marcarBtn = document.getElementById("marcar_btn");
     // Obtenemos el estado actual desde el atributo data del contenedor principal
-    const containerElement = document.querySelector('.container');
+    const containerElement = document.querySelector('.container-flex');
     const estadoActual = containerElement && containerElement.dataset.estadoActual
                          ? containerElement.dataset.estadoActual.trim() // Aseguramos que no haya espacios extra
                          : "entrada"; // Valor por defecto si no se encuentra el atributo

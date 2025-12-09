@@ -1,3 +1,4 @@
+from time import strptime
 from flask import Blueprint, logging, render_template, request, flash, redirect, url_for
 from flask_login import current_user, login_required
 from payroll_app.routes.decorators import permiso_requerido
@@ -26,6 +27,22 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 PER_PAGE = 10 # Número de registros por página 
+
+def str_a_timedelta(time_str):
+    """Convierte una cadena HH:MM:SS a un objeto timedelta."""
+    if isinstance(time_str, timedelta):
+        return time_str
+    if not isinstance(time_str, str):
+        # Si ya es un float, int o algo inesperado que no es str ni timedelta, devuelve 0 o maneja el error
+        return timedelta(minutes=0) 
+    
+    try:
+        parts = strptime(time_str, '%H:%M:%S')
+        return timedelta(hours=parts.tm_hour, minutes=parts.tm_min, seconds=parts.tm_sec)
+    except ValueError:
+        # Maneja el caso en que el formato de la cadena sea incorrecto (ej: '30m' en lugar de '00:30:00')
+        print(f"Advertencia: Formato de tiempo inválido en configuración: {time_str}")
+        return timedelta(minutes=0) # Valor seguro por defecto
 
 """ Rutas y lógica para el módulo de Registro de Asistencia"""
 @registro_asistencia_bp.route('/procesar_aprobacion', methods=['POST'])
@@ -105,23 +122,29 @@ def ver_asistencia():
     ).order_by(RegistroAsistencia.fecha_registro.desc(), RegistroAsistencia.hora_entrada.desc()).first()
 
     if registro_activo:
-
-        # Determinar el estado basándose en los campos del registro activo
-        if not registro_activo.hora_entrada_almuerzo:
-            estado_actual = 'salida_almuerzo' 
-            #print(f"DEBUG (ver_asistencia): Estado determinado: '{estado_actual}' (No ha marcado salida a almuerzo).")
-        elif registro_activo.hora_entrada_almuerzo and not registro_activo.hora_salida_almuerzo:
-            estado_actual = 'regreso_almuerzo' 
-            #print(f"DEBUG (ver_asistencia): Estado determinado: '{estado_actual}' (Salió a almorzar, aún no regresó).")
-        elif registro_activo.hora_entrada_almuerzo and registro_activo.hora_salida_almuerzo and not registro_activo.hora_salida:
+        
+        # 1. ESTADO DE PAUSA (Acción que debe hacer el usuario: Regresar)
+        # Se verifica: ¿Se marcó la SALIDA al almuerzo (INICIO) pero NO el REGRESO (FIN)?
+        if registro_activo.hora_salida_almuerzo is not None and registro_activo.hora_entrada_almuerzo is None:
+            estado_actual = 'regreso_almuerzo'
+            # print("DEBUG: Estado determinado: 'regreso_almuerzo' (Está en pausa).")
+            
+        # 2. ESTADO INICIAL/POST-PAUSA (Acción que debe hacer el usuario: Salir al Almuerzo O Salir Final)
+        # Se verifica: ¿Se marcó el REGRESO (FIN) O NO se ha marcado la SALIDA (INICIO)?
+        
+        elif registro_activo.hora_salida_almuerzo is None:
+            # Solo hay entrada marcada (o la pausa fue borrada), la siguiente acción es Salir al Almuerzo.
+            estado_actual = 'salida_almuerzo'
+            # print("DEBUG: Estado determinado: 'salida_almuerzo' (Recién entró o necesita salir a almorzar).")
+            
+        elif registro_activo.hora_salida_almuerzo is not None and registro_activo.hora_entrada_almuerzo is not None:
+            # Ambas marcas de almuerzo están llenas. La única opción restante es Salida Final.
             estado_actual = 'salida_final' 
-            #print(f"DEBUG (ver_asistencia): Estado determinado: '{estado_actual}' (Regresó del almuerzo, aún no finalizó).")
+            # print("DEBUG: Estado determinado: 'salida_final' (Almuerzo completo, listo para salir).")
+            
         else:
-            # Esto NO debería pasar si 'hora_salida.is_(None)' es correcto
-            # Si un registro está aquí, significa que tiene hora_entrada, ambas de almuerzo, y NO hora_salida.
-            # Esta rama ya es una especie de 'salida_final', pero la anterior la cubriría.
-            # Es un fallback para casos inesperados.
-            estado_actual = 'salida_final' # Podría ser un error lógico si llega aquí
+            # Fallback si ninguna de las condiciones anteriores se cumple (debería ser 'salida_final')
+            estado_actual = 'salida_final'
     else:
         # Si no hay un registro ACTIVO HOY, verificamos si ya FINALIZÓ su jornada HOY
         registro_finalizado_hoy = RegistroAsistencia.query.filter(
@@ -167,9 +190,9 @@ def registrar_asistencia():
     # Carga configuracion de variablaes
     CONFIG = cargar_configuracion()
     # Configuracion de variables en configuracion
-    MIN_TIEMPO_ENTRE_MARCAS = CONFIG.get('MIN_TIEMPO_ENTRE_MARCAS', timedelta(minutes=1))
-    JORNADA_MINIMA_PAUSA_OBLIGATORIA = CONFIG.get('JORNADA_MINIMA_PAUSA_OBLIGATORIA', timedelta(hours=6))
-    MIN_DURACION_JORNADA = CONFIG.get('MIN_DURACION_JORNADA', timedelta(minutes=30))
+    MIN_TIEMPO_ENTRE_MARCAS = str_a_timedelta(CONFIG.get('MIN_TIEMPO_ENTRE_MARCAS', timedelta(minutes=1)))
+    JORNADA_MINIMA_PAUSA_OBLIGATORIA = str_a_timedelta(CONFIG.get('JORNADA_MINIMA_PAUSA_OBLIGATORIA', timedelta(hours=6)))
+    MIN_DURACION_JORNADA = str_a_timedelta(CONFIG.get('MIN_DURACION_JORNADA', timedelta(minutes=30)))
     HORAS_POR_JORNADA_NORMAL = CONFIG.get('HORAS_POR_JORNADA_NORMAL', 8.0)
     HORAS_MES_ESTANDAR = CONFIG.get('HORAS_MES_ESTANDAR', 208.0)
     HORAS_QUINCENA_ESTANDAR = CONFIG.get('HORAS_QUINCENA_ESTANDAR', 96.0)
@@ -354,20 +377,20 @@ def registrar_asistencia():
             horas_periodo_calculo = 0
 
             if empleado.salario_base is not None and float(empleado.salario_base) > 0:
-                if empleado.periodicidad_salario == 'MENSUAL':
+                if empleado.tipo_nomina_relacion == 'MENSUAL':
                     horas_periodo_calculo = HORAS_MES_ESTANDAR
-                elif empleado.periodicidad_salario == 'QUINCENAL':
+                elif empleado.tipo_nomina_relacion == 'QUINCENAL':
                     horas_periodo_calculo = HORAS_QUINCENA_ESTANDAR
-                elif empleado.periodicidad_salario == 'SEMANAL':
+                elif empleado.tipo_nomina_relacion == 'SEMANAL':
                     horas_periodo_calculo = HORAS_SEMANA_ESTANDAR
                 else:
-                    logging.warning(f"Periodicidad de salario inesperada para empleado {empleado.id_empleado}: {empleado.periodicidad_salario}. Asumiendo mensual estándar para cálculo de hora.")
+                    logging.warning(f"Periodicidad de salario inesperada para empleado {empleado.id_empleado}: {empleado.tipo_nomina_relacion}. Asumiendo mensual estándar para cálculo de hora.")
                     horas_periodo_calculo = HORAS_MES_ESTANDAR
 
                 if horas_periodo_calculo > 0:
                     costo_por_hora_normal = float(empleado.salario_base) / horas_periodo_calculo
                 else:
-                    logging.error(f"Horas de período de cálculo son cero para empleado {empleado.id_empleado} con periodicidad {empleado.periodicidad_salario}. No se pudo calcular costo_por_hora_normal. Asignando 0.")
+                    logging.error(f"Horas de período de cálculo son cero para empleado {empleado.id_empleado} con periodicidad {empleado.tipo_nomina_relacion}. No se pudo calcular costo_por_hora_normal. Asignando 0.")
                     costo_por_hora_normal = 0
             else:
                 logging.warning(f"Salario base no definido o cero para empleado {empleado.id_empleado}. Monto de pago será 0.")
