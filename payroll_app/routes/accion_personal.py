@@ -347,4 +347,5 @@ def ver_detalle_ap(ap_id):
     Muestra los detalles completos de una acción de personal específica.
     """
     accion = Accion_Personal.query.get_or_404(ap_id)
-    return render_template('accion_personal/detalle_ap.html', accion=accion)
+    is_admin = current_user.rol.tipo_rol.lower() == 'administrador'
+    return render_template('accion_personal/detalle_ap.html', accion=accion, is_admin=is_admin)

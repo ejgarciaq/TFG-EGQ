@@ -51,10 +51,11 @@
             </dl>
         </div>
 <div class="card-footer text-end">
-    {% if current_user.is_admin %}
-        <a href="{{ url_for('accion_personal_bp.ver_historial_apu') }}" class="btn btn-secondary fw-semibold">Volver</a>
+    {% if is_admin %}
+        <a href="{{ url_for('accion_personal_bp.acciones_administrativas') }}" class="btn btn-secondary fw-semibold">Volver</a>        
     {% else %}
-        <a href="{{ url_for('accion_personal_bp.acciones_administrativas') }}" class="btn btn-secondary fw-semibold">Volver al Historial</a>
+
+        <a href="{{ url_for('accion_personal_bp.ver_historial_apu') }}" class="btn btn-secondary fw-semibold">Volver al Historial</a>
     {% endif %}
 </div>
     </div>
