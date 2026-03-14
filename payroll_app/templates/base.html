@@ -145,7 +145,7 @@
             <h5>Bienvenido,{% if current_user.is_authenticated %} {{ current_user.empleado.nombre }}  {% endif %}</h5>
             <hr class="border border-primary">
         </div>
-        
+
         <div class="flashes">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
