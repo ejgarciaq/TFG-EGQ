@@ -242,6 +242,105 @@ def acciones_administrativas():
     return render_template('accion_personal/historial_acciones.html', 
                            pagination=paginated_acciones)
 
+""" Ruta para configurar los tipos de acciones de personal """
+@accion_personal_bp.route('/configuracion_ap', methods=['GET', 'POST'])
+# @permiso_requerido('configurar_accion_personal') # Puedes descomentar esto si creas el permiso
+@login_required
+def configurar_ap():
+    page = request.args.get('page', 1, type=int)
+    per_page = 8
+
+    if request.method == 'POST':
+        nombre_tipo = request.form.get('nombre_tipo')
+        descripcion_tipo = request.form.get('descripcion_tipo')
+
+        if not nombre_tipo:
+            flash('El nombre del tipo de acción es obligatorio.', 'danger')
+            return redirect(url_for('accion_personal_bp.configurar_ap'))
+
+        # Verificar si ya existe un tipo con el mismo nombre (ignorando mayúsculas/minúsculas)
+        existente = Tipo_AP.query.filter(func.lower(Tipo_AP.nombre_tipo) == func.lower(nombre_tipo)).first()
+        if existente:
+            flash(f'El tipo de acción "{nombre_tipo}" ya existe.', 'warning')
+            return redirect(url_for('accion_personal_bp.configurar_ap'))
+
+        try:
+            nuevo_tipo = Tipo_AP(
+                nombre_tipo=nombre_tipo,
+                descripcion_tipo=descripcion_tipo
+            )
+            db.session.add(nuevo_tipo)
+            db.session.commit()
+            flash(f'El tipo de acción "{nombre_tipo}" ha sido agregado exitosamente.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f'Error al agregar nuevo tipo de acción: {e}', exc_info=True)
+            flash('Ocurrió un error al agregar el nuevo tipo de acción.', 'danger')
+
+        return redirect(url_for('accion_personal_bp.configurar_ap'))
+
+    # Método GET: Muestra la página con los tipos existentes
+    pagination = Tipo_AP.query.order_by(Tipo_AP.nombre_tipo).paginate(page=page, per_page=per_page, error_out=False)
+    return render_template('accion_personal/ap_config.html', pagination=pagination)
+
+""" Ruta para editar un tipo de acción de personal """
+@accion_personal_bp.route('/configuracion_ap/editar/<int:id_tipo_ap>', methods=['GET', 'POST'])
+# @permiso_requerido('configurar_accion_personal')
+@login_required
+def editar_ap_tipo(id_tipo_ap):
+    tipo_ap = Tipo_AP.query.get_or_404(id_tipo_ap)
+    page = request.args.get('page', 1, type=int)
+
+    if request.method == 'POST':
+        page = request.form.get('page', 1, type=int)
+        nombre_tipo = request.form.get('nombre_tipo')
+        descripcion_tipo = request.form.get('descripcion_tipo')
+
+        if not nombre_tipo:
+            flash('El nombre del tipo de acción es obligatorio.', 'danger')
+            return render_template('accion_personal/ap_edit.html', tipo_ap=tipo_ap, page=page)
+
+        # Verificar si ya existe otro tipo con el mismo nombre
+        existente = Tipo_AP.query.filter(
+            func.lower(Tipo_AP.nombre_tipo) == func.lower(nombre_tipo),
+            Tipo_AP.id_tipo_ap != id_tipo_ap
+        ).first()
+        if existente:
+            flash(f'Ya existe otro tipo de acción con el nombre "{nombre_tipo}".', 'warning')
+            return render_template('accion_personal/ap_edit.html', tipo_ap=tipo_ap, page=page)
+
+        try:
+            tipo_ap.nombre_tipo = nombre_tipo
+            tipo_ap.descripcion_tipo = descripcion_tipo
+            db.session.commit()
+            flash('Tipo de acción actualizado exitosamente.', 'success')
+            return redirect(url_for('accion_personal_bp.configurar_ap', page=page))
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f'Error al editar el tipo de acción {id_tipo_ap}: {e}', exc_info=True)
+            flash('Ocurrió un error al actualizar el tipo de acción.', 'danger')
+    
+    return render_template('accion_personal/ap_edit.html', tipo_ap=tipo_ap, page=page)
+
+""" Ruta para eliminar un tipo de acción de personal """
+@accion_personal_bp.route('/configuracion_ap/eliminar/<int:id_tipo_ap>', methods=['POST'])
+# @permiso_requerido('configurar_accion_personal')
+@login_required
+def eliminar_ap_tipo(id_tipo_ap):
+    tipo_ap = Tipo_AP.query.get_or_404(id_tipo_ap)
+    page = request.form.get('page', 1, type=int)
+
+    try:
+        db.session.delete(tipo_ap)
+        db.session.commit()
+        flash('Tipo de acción eliminado exitosamente.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error al eliminar tipo de acción {id_tipo_ap}: {e}', exc_info=True)
+        flash('No se puede eliminar este tipo de acción porque probablemente está en uso en registros históricos.', 'danger')
+    
+    return redirect(url_for('accion_personal_bp.configurar_ap', page=page))
+
 """ Ruta para aprobar una acción de personal """
 @accion_personal_bp.route('/aprobar_accion/<int:ap_id>', methods=['POST'])
 @permiso_requerido('aprobar_acciones_personales')

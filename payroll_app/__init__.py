@@ -77,7 +77,7 @@ def create_app():
     from .routes.aguinaldo import aguinaldo_bp
     from .routes.liquidacion import liquidacion_bp
     from .routes.configuracion import config_bp
-        
+
     app.register_blueprint(login_bp, url_prefix='/auth')
     app.register_blueprint(empleado_bp, url_prefix='/auth/empleados')
     app.register_blueprint(rol_bp, url_prefix='/auth/roles')
