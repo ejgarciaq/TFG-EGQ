@@ -15,8 +15,7 @@ empleado_bp = Blueprint("empleado", __name__, template_folder="templates")
     Esta función recupera todos los registros de empleados de la base de datos
     y los pasa a la plantilla 'listar_empleado.html' para su renderizado en una tabla.
 
-    Returns:
-        Rendered template: Una página HTML que muestra la lista de empleados.
+    Returns: Rendered template: Una página HTML que muestra la lista de empleados.
     """
 @empleado_bp.route("/listar_empleado")
 @permiso_requerido('listar_empleados')
@@ -24,20 +23,16 @@ empleado_bp = Blueprint("empleado", __name__, template_folder="templates")
 def listar_empleado():
 
     page = request.args.get('page', 1, type=int)
-
     # Crea la consulta base, ordenada alfabéticamente por el nombre del empleado
     query = Empleado.query.order_by(Empleado.nombre)
-
     # Aplica la paginación a la consulta ordenada
     pagination = query.paginate(page=page, per_page=10, error_out=False)
 
     return render_template('empleado/listar_empleado.html', pagination=pagination)
 
-
 """   Crea un nuevo empleado en el sistema.
 
-    Returns:
-        _type_: Rendered template: Una página HTML con el formulario para crear un nuevo empleado.
+    Returns:   _type_: Rendered template: Una página HTML con el formulario para crear un nuevo empleado.
 """
 @empleado_bp.route("/crear_empleado", methods=["GET", "POST"])
 @permiso_requerido('crear_empleado')
@@ -46,53 +41,58 @@ def crear_empleado():
     roles = Rol.query.all()
     puestos = Puesto.query.all()
     tipos_nomina = TipoNomina.query.all()
-
+    # Manejo del formulario de creación de empleado
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
         correo = request.form["correo"]
         telefono = request.form["telefono"]
         cedula = request.form["cedula"]
-
         # Validaciones con expresiones regulares
         email_regex = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
         phone_regex = r"^[0-9]{8}$"
+        cedula_regex = r"^[0-9]{9}$"
         password_regex = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+-.,/])[A-Za-z\d!@#$%^&*()_+-.,/]{8,}$"
-
         # Se agregan todas las validaciones de duplicidad
         if Empleado.query.filter_by(cedula=cedula).first():
             flash("Ya existe un empleado con esa cédula en el sistema.", "danger")
             return redirect(url_for("empleado.crear_empleado"))
-        
+        # Validación para nombre de usuario duplicado
         if Usuario.query.filter_by(username=username).first():
             flash("El nombre de usuario ya existe. Por favor, elige otro.", "danger")
             return redirect(url_for("empleado.crear_empleado"))
-        
         # Validación para correo duplicado
         if Empleado.query.filter_by(correo=correo).first():
             flash("Ya existe un empleado con ese correo electrónico en el sistema.", "danger")
             return redirect(url_for("empleado.crear_empleado"))
-
+        # Validaciones de formato
         if not re.match(email_regex, correo):
             flash(
                 "El formato del correo electrónico no es válido. ejemplo@correo.com",
                 "danger",
             )
             return redirect(url_for("empleado.crear_empleado"))
-
+        # Validación de teléfono
         if not re.match(phone_regex, telefono):
             flash(
                 "El número de teléfono debe contener exactamente 8 dígitos.", "danger"
             )
             return redirect(url_for("empleado.crear_empleado"))
-
+        if not re.match(cedula_regex, cedula):
+            flash(
+                "El número de cédula debe contener exactamente 9 dígitos.", "danger"
+            )
+            return redirect(url_for("empleado.crear_empleado"))
+        # Validación de contraseña
         if not re.match(password_regex, password):
             flash(
-                "La nueva contraseña no cumple con los requisitos: <br>- Mínimo 8 caracteres.<br>- Al menos una mayúscula.<br>- Al menos una minúscula.<br>- Al menos un número.<br>- Al menos un símbolo.",
+                "La nueva contraseña no cumple con los requisitos: <br>- Mínimo 8 caracteres."
+                "<br>- Al menos una mayúscula.<br>- Al menos una minúscula.<br>"
+                "- Al menos un número.<br>- Al menos un símbolo.",
                 "danger",
             )
             return redirect(url_for("empleado.crear_empleado"))
-
+        # Creación del nuevo empleado y usuario asociado
         try:
             hashed_password = generate_password_hash(password)
             nuevo_usuario = Usuario(
@@ -101,13 +101,13 @@ def crear_empleado():
                 estado_usuario=True,
                 Rol_id_rol=request.form["rol_id"],
             )
-
+            # Agregar el nuevo usuario a la sesión
             fecha_ingreso = datetime.strptime(
                 request.form["fecha_ingreso"], "%Y-%m-%d"
             ).date()
-
+            # Obtener el tipo de nómina seleccionado
             tipo_nomina_id = request.form["tipo_nomina_id"]
-
+            # Crear el nuevo empleado
             nuevo_empleado = Empleado(
                 nombre=request.form["nombre"],
                 apellido_primero=request.form["apellido_primero"],
@@ -123,13 +123,12 @@ def crear_empleado():
                 TipoNomina_id_tipo_nomina=tipo_nomina_id,
                 usuario=nuevo_usuario,
             )
-
             db.session.add(nuevo_empleado)
             db.session.commit()
-
+            # Mensaje de éxito
             flash("Empleado creado exitosamente.", "success")
             return redirect(url_for("empleado.listar_empleado"))
-
+        # Manejo de errores
         except Exception as e:
             db.session.rollback()
             flash(f"Error al crear el empleado: {str(e)}", "danger")
@@ -139,18 +138,16 @@ def crear_empleado():
                 roles=roles,
                 tipos_nomina=tipos_nomina,
             )
-
+    # Renderizar la plantilla en el método GET
     return render_template(
         "empleado/crear_empleado.html", puestos=puestos, roles=roles, tipos_nomina=tipos_nomina
     )
 
 """ Edita la información de un empleado existente.
 
-    Args:
-        id (int): El ID del empleado a editar.
+    Args: id (int): El ID del empleado a editar.
 
-    Returns:
-        Rendered template: Una página HTML con el formulario para editar el empleado.
+    Returns: Rendered template: Una página HTML con el formulario para editar el empleado.
 """
 @empleado_bp.route("/editar_empleado/<int:id>", methods=["GET", "POST"])
 @permiso_requerido('editar_emplado')
@@ -199,13 +196,17 @@ def editar_empleado(id):
                 # Validaciones de formato
                 email_regex = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
                 phone_regex = r"^[0-9]{8}$"
+                cedula_regex = r"^[0-9]{9}$"
                 
                 if not re.match(email_regex, correo):
                     errores.append("El formato del correo electrónico no es válido.")
 
                 if not re.match(phone_regex, telefono):
                     errores.append("El número de teléfono debe contener exactamente 8 dígitos.")
-                
+
+                if not re.match(cedula_regex, cedula):
+                    errores.append("El número de cédula debe contener exactamente 9 dígitos.")
+
                 try:
                     salario_base = float(salario_base_str)
                 except ValueError:
@@ -295,17 +296,13 @@ def editar_empleado(id):
 def ver_perfil_empleado(empleado_id):
     try:
         usuario_actual = current_user
-        
         # Obtener el empleado asociado al usuario actual
         empleado_actual = Empleado.query.filter_by(Usuario_id_usuario=usuario_actual.id_usuario).first()
-        
         # Obtener el perfil del empleado que se desea ver (o 404 si no existe)
         empleado_perfil = Empleado.query.get_or_404(empleado_id)
-        
         # Lógica de seguridad para verificar permisos (RNF-SE-009)
         # La corrección se hace aquí, usando "or []"
         es_admin = usuario_actual.rol.tipo_rol == 'administrador'
-        
         # Si el usuario NO es un administrador Y el perfil solicitado no es el suyo, se deniega el acceso
         if not es_admin and empleado_perfil.id_empleado != empleado_actual.id_empleado:
             flash("Acceso denegado. No tiene los permisos necesarios para ver esta información.", "danger")
@@ -321,11 +318,9 @@ def ver_perfil_empleado(empleado_id):
 
 """ Elimina un empleado y todos sus datos asociados del sistema.
 
-    Args:
-        id (int): El ID del empleado a eliminar.
+    Args: id (int): El ID del empleado a eliminar.
 
-    Returns:
-        Redirect: Redirige a la página de listado de empleados después de la eliminación.
+    Returns: Redirect: Redirige a la página de listado de empleados después de la eliminación.
 """
 @empleado_bp.route("/eliminar_empleado/<int:id>", methods=["POST"])
 @permiso_requerido('eliminar_emplado')

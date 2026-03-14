@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}Detalle de Acción de Personal{% endblock %}
+{% block title %} - Detalle de Acción de Personal{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
     <div class="card">
         <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">Detalle de la Acción de Personal</h4>
+            <h4 class="mb-0 fw-bold">Detalle de la Acción de Personal</h4>
         </div>
         <div class="card-body">
-            <dl class="row">
+            <dl class="row fw-semibold">
                 <dt class="col-sm-4">Empleado:</dt>
                 <dd class="col-sm-8">{{ accion.empleado.nombre_completo }}</dd>
 
@@ -51,10 +51,11 @@
             </dl>
         </div>
 <div class="card-footer text-end">
-    {% if current_user.is_admin %}
-        <a href="{{ url_for('accion_personal_bp.ver_historial_apu') }}" class="btn btn-secondary">Volver</a>
+    {% if is_admin %}
+        <a href="{{ url_for('accion_personal_bp.acciones_administrativas') }}" class="btn btn-secondary fw-semibold">Volver</a>        
     {% else %}
-        <a href="{{ url_for('accion_personal_bp.acciones_administrativas') }}" class="btn btn-secondary">Volver al Historial</a>
+
+        <a href="{{ url_for('accion_personal_bp.ver_historial_apu') }}" class="btn btn-secondary fw-semibold">Volver al Historial</a>
     {% endif %}
 </div>
     </div>

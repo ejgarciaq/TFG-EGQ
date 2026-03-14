@@ -2,6 +2,8 @@ from datetime import datetime
 from payroll_app import db
 from flask_login import UserMixin
 
+
+
 # Gestión Administrativa de la base de datos
 # Este archivo define la estructura de las tablas de la base de datos
 # a través de los modelos de SQLAlchemy, facilitando la interacción con la misma.
@@ -307,3 +309,30 @@ class Liquidacion(db.Model):
     
     def __repr__(self):
         return f"Liquidacion(id={self.id_liquidacion}, Empleado={self.Empleado_id_empleado}, Total={self.total_monto})"
+    
+class Configuracion(db.Model):
+    """
+    Modelo para almacenar parámetros configurables del sistema, 
+    adaptado a varios tipos de datos.
+    """
+    __tablename__ = 'configuracion'
+
+    nombre_parametro = db.Column(db.String(100), primary_key=True)
+    valor_parametro = db.Column(db.String(1000), nullable=False)
+    # Tipo de dato original para la conversion en Python:
+    tipo_dato = db.Column(db.String(20), default='float')
+    #Breve descripción para el dormulario de administración
+    descripcion = db.Column(db.String(255), nullable=True)
+
+    fecha_actualizacion = db.Column(db.DateTime, default=datetime.utcnow,
+                                     onupdate=datetime.utcnow)
+   
+    def __repr__(self):
+        return f'<Configuracion {self.nombre_configuracion}: {self.valor_configuracion}>'
+
+    
+    
+
+
+
+

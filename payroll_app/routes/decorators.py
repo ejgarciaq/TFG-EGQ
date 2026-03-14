@@ -2,6 +2,7 @@ from functools import wraps
 from flask import redirect, url_for, flash
 from flask_login import current_user
 
+""" Decorador de Roles """
 def rol_requerido(rol):
     """
     Decorador principal que restringe el acceso a una ruta a usuarios con un rol específico.
@@ -16,7 +17,7 @@ def rol_requerido(rol):
                 flash("Por favor, inicie sesión para acceder a esta página.", "info")
                 return redirect(url_for('auth.login'))
             
-            # ✅ Verifica si el rol del usuario actual coincide con el rol requerido.
+            #  Verifica si el rol del usuario actual coincide con el rol requerido.
             if current_user.rol.tipo_rol != rol:
                 # Si el rol no coincide, muestra un mensaje flash y redirige al inicio.
                 flash("Acceso denegado. No tiene los permisos necesarios para esta acción.", "danger")
@@ -26,7 +27,7 @@ def rol_requerido(rol):
         return decorated_function
     return decorator
 
-# --- Decorador de Permisos (nuevo) ---
+""" Decorador de Permisos """
 def permiso_requerido(permiso_nombre):
     """
     Decorador que verifica si el usuario autenticado tiene un permiso específico.
@@ -40,7 +41,7 @@ def permiso_requerido(permiso_nombre):
                 flash("Por favor, inicie sesión para acceder a esta página.", "info")
                 return redirect(url_for('auth.login'))
             
-            # ✅ Verifica si el rol del usuario tiene el permiso requerido.
+            # Verifica si el rol del usuario tiene el permiso requerido.
             # Se comprueba si el usuario tiene un rol asignado y si alguno de los permisos
             # de ese rol coincide con el 'permiso_nombre' que se busca.
             if not current_user.rol or not any(p.nombre == permiso_nombre for p in current_user.rol.permisos):
@@ -57,4 +58,4 @@ def admin_required(f):
     Un decorador de conveniencia que utiliza 'rol_requerido'
     para proteger las rutas exclusivas de los administradores.
     """
-    return rol_requerido('Administrador')(f)
+    return rol_requerido('administrador')(f)

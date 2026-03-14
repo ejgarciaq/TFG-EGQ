@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function actualizarReloj() {
         const ahora = new Date();
-        const hora = ahora.toLocaleTimeString("es-CR", { hour12: false });
+        const hora = ahora.toLocaleTimeString("es-CR", { hour12: true });
         const fecha = ahora.toLocaleDateString("es-CR", {
             weekday: "long", year: "numeric", month: "long", day: "numeric",
         });
@@ -63,7 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnIcon = document.getElementById('btn_icon');
     const marcarBtn = document.getElementById("marcar_btn");
     // Obtenemos el estado actual desde el atributo data del contenedor principal
-    const containerElement = document.querySelector('.container');
+    const containerElement = document.querySelector('.container-flex');
     const estadoActual = containerElement && containerElement.dataset.estadoActual
                          ? containerElement.dataset.estadoActual.trim() // Aseguramos que no haya espacios extra
                          : "entrada"; // Valor por defecto si no se encuentra el atributo
@@ -74,35 +74,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
     switch (estadoActual) {
         case 'entrada':
-            console.log("DEBUG (JS): Switch cayó en 'entrada'");
+            //console.log("DEBUG (JS): Switch cayó en 'entrada'");
             textoBoton = "Marcar Entrada";
             iconoBoton = "fas fa-sign-in-alt";
             valorAccion = "entrada";
             claseBoton = "btn-success";
             break;
         case 'salida_almuerzo':
-            console.log("DEBUG (JS): Switch cayó en 'salida_almuerzo'");
+            //console.log("DEBUG (JS): Switch cayó en 'salida_almuerzo'");
             textoBoton = "Salida a Almuerzo";
             iconoBoton = "fas fa-utensils";
             valorAccion = "salida_almuerzo";
             claseBoton = "btn-warning";
             break;
         case 'regreso_almuerzo':
-            console.log("DEBUG (JS): Switch cayó en 'regreso_almuerzo'");
+            //console.log("DEBUG (JS): Switch cayó en 'regreso_almuerzo'");
             textoBoton = "Regreso del Almuerzo";
             iconoBoton = "fas fa-mug-hot";
             valorAccion = "regreso_almuerzo";
             claseBoton = "btn-info";
             break;
         case 'salida_final':
-            console.log("DEBUG (JS): Switch cayó en 'salida_final'");
+            //console.log("DEBUG (JS): Switch cayó en 'salida_final'");
             textoBoton = "Finalizar Jornada";
             iconoBoton = "fas fa-sign-out-alt";
             valorAccion = "salida_final";
             claseBoton = "btn-danger";
             break;
         case 'jornada_completa_hoy':
-            console.log("DEBUG (JS): Switch cayó en 'jornada_completa_hoy'");
+            //console.log("DEBUG (JS): Switch cayó en 'jornada_completa_hoy'");
             textoBoton = "Jornada Finalizada Hoy";
             iconoBoton = "fas fa-check-circle";
             valorAccion = "jornada_finalizada"; // Esto es lo que se enviaría si se pulsara, aunque el botón debería estar deshabilitado
@@ -176,20 +176,32 @@ document.addEventListener('DOMContentLoaded', function() {
         if (tipoApSelect && vacationFields && incapacityLeaveFields) {
             const selectedOption = tipoApSelect.options[tipoApSelect.selectedIndex];
             const nombreTipo = selectedOption.getAttribute('data-nombre-tipo');
-
-            // Ocultar ambos contenedores primero
-            vacationFields.style.display = 'none';
-            incapacityLeaveFields.style.display = 'none';
             
-            // Mostrar el contenedor correcto basado en el nombre del tipo de acción
+            // --- Lógica de Visibilidad y Requerimiento ---
+            
+            // 1. Ocultar ambos contenedores y quitar 'required' de todos los campos internos
+            vacationFields.style.display = 'none';
+            if (fechaInicioVacacionesInput) fechaInicioVacacionesInput.required = false;
+            if (fechaFinVacacionesInput) fechaFinVacacionesInput.required = false;
+            
+            incapacityLeaveFields.style.display = 'none';
+            if (fechaInicioIncapacidadInput) fechaInicioIncapacidadInput.required = false;
+            if (fechaFinIncapacidadInput) fechaFinIncapacidadInput.required = false;
+            
+            // 2. Mostrar el contenedor correcto y AÑADIR 'required' a sus campos
             if (nombreTipo === 'Vacaciones') {
                 vacationFields.style.display = 'block';
+                if (fechaInicioVacacionesInput) fechaInicioVacacionesInput.required = true;
+                if (fechaFinVacacionesInput) fechaFinVacacionesInput.required = true;
+                
                 // Solo llama a actualizarSaldoVacaciones si es necesario
                 if (empleadoSelect.length && saldoVacacionesInput) {
                     actualizarSaldoVacaciones();
                 }
             } else if (nombreTipo === 'Incapacidad' || nombreTipo === 'Permiso c/ Goce de Salario') {
                 incapacityLeaveFields.style.display = 'block';
+                if (fechaInicioIncapacidadInput) fechaInicioIncapacidadInput.required = true;
+                if (fechaFinIncapacidadInput) fechaFinIncapacidadInput.required = true;
             }
         }
     }
@@ -271,7 +283,26 @@ document.addEventListener('DOMContentLoaded', function() {
             placeholder: "Seleccione un empleado...",
             allowClear: true,
             theme: "bootstrap-5",
-            width: '100%' 
+            width: '100%',
+            templateResult: function (data) {
+                if (!data.id) {
+                    const placeholder = document.createElement("span");
+                    placeholder.className = "fw-bold text-muted";
+                    placeholder.textContent = data.text;
+                    return placeholder;
+                }
+                const option = document.createElement("span");
+                option.className = "fw-bold";
+                option.textContent = data.text;
+                return option;
+            },
+            templateSelection: function (data) {
+                const selected = document.createElement("span");
+                selected.className = data.id ? "fw-bold" : "fw-bold text-muted";
+                selected.textContent = data.text;
+                return selected;
+            }
+
         });
         empleadoSelect.on('change', actualizarSaldoVacaciones);
     }
@@ -286,7 +317,25 @@ document.addEventListener('DOMContentLoaded', function() {
             placeholder: "Seleccione un tipo de acción...",
             allowClear: true,
             theme: "bootstrap-5",
-            width: '100%' 
+            width: '100%',
+            templateResult: function (data) {
+                if (!data.id) {
+                    const placeholder = document.createElement("span");
+                    placeholder.className = "fw-bold text-muted";
+                    placeholder.textContent = data.text;
+                    return placeholder;
+                }
+                const option = document.createElement("span");
+                option.className = "fw-bold";
+                option.textContent = data.text;
+                return option;
+            },
+            templateSelection: function (data) {
+                const selected = document.createElement("span");
+                selected.className = data.id ? "fw-bold" : "fw-bold text-muted";
+                selected.textContent = data.text;
+                return selected;
+            }
         });
         $(tipoApSelect).on('change', actualizarCampos);
     }
@@ -307,42 +356,49 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /* Lógica para validar los requisitos de la contraseña y controlar el envío del formulario */
 document.addEventListener('DOMContentLoaded', function() {
-    // Obtener elementos clave del DOM, verificando el campo principal de entrada
     const passwordInput = document.getElementById('nueva_contrasena');
+    const confirmInput = document.getElementById('confirmar_contrasena');
     
-    // Si el campo de contraseña NO existe, salimos inmediatamente
-    if (!passwordInput) {
-        // console.log("DEBUG: Campo 'nueva_contrasena' no encontrado. Saltando validación de contraseña.");
-        return; 
+    // Si alguno de los campos no existe, significa que no estamos en la página
+    // de cambio de contraseña, por lo que detenemos la ejecución de este script.
+    if (!passwordInput || !confirmInput) {
+        return;
     }
     
-    // A partir de aquí, el código solo se ejecuta si estamos en la página correcta
-    
-    const form = document.querySelector('form');
-    const confirmInput = document.getElementById('confirmar_contrasena');
-    const submitButton = form.querySelector('button[type="submit"]');
+    // --- Si el script llega a este punto, significa que SÍ estamos en la página de cambio de contraseña ---
 
-    // Requisitos de complejidad
+    // Elementos de la interfaz para los requisitos
     const lengthReq = document.getElementById('length-req');
     const uppercaseReq = document.getElementById('uppercase-req');
     const lowercaseReq = document.getElementById('lowercase-req');
     const numberReq = document.getElementById('number-req');
     const symbolReq = document.getElementById('symbol-req');
     const confirmReq = document.getElementById('confirm-req');
+    
+    // Obtenemos el formulario y el botón de submit específicos de esta página
+    const form = passwordInput.closest('form');
+    const submitButton = form ? form.querySelector('button[type="submit"]') : null;
+
+    // Si no hay botón, no continuamos
+    if (!submitButton) {
+        return;
+    }
 
     // Deshabilitar el botón de envío por defecto
-    submitButton.disabled = true;
+    submitButton.disabled = true; 
 
-    // Escuchar eventos de teclado en ambos campos
+    // Escuchar eventos de teclado en los campos de contraseña para validar en tiempo real
     passwordInput.addEventListener('keyup', validatePassword);
     confirmInput.addEventListener('keyup', validatePassword);
     
-    // ... (El resto de la función validatePassword() y updateRequirement() queda igual)
+    /**
+     * Valida la contraseña y la confirmación, actualiza la UI y habilita/deshabilita el botón de envío.
+     */
     function validatePassword() {
         const password = passwordInput.value;
         const confirmPassword = confirmInput.value;
 
-        // ... (Tu lógica de validación de complejidad e isMatchValid) ...
+        // 1. Validar la complejidad de la nueva contraseña
         const isLengthValid = password.length >= 8;
         const isUppercaseValid = /[A-Z]/.test(password);
         const isLowercaseValid = /[a-z]/.test(password);
@@ -350,37 +406,39 @@ document.addEventListener('DOMContentLoaded', function() {
         const isSymbolValid = /[@$!%*?&]/.test(password);
         const isMatchValid = password === confirmPassword && confirmPassword.length > 0;
 
-        // Actualizar la interfaz (se asume que los elementos existen por la verificación inicial)
-        updateRequirement(lengthReq, isLengthValid);
-        updateRequirement(uppercaseReq, isUppercaseValid);
-        updateRequirement(lowercaseReq, isLowercaseValid);
-        updateRequirement(numberReq, isNumberValid);
-        updateRequirement(symbolReq, isSymbolValid);
-        updateRequirement(confirmReq, isMatchValid);
+        // 2. Actualizar la interfaz de usuario (los checks de requisitos)
+        if (lengthReq) updateRequirement(lengthReq, isLengthValid);
+        if (uppercaseReq) updateRequirement(uppercaseReq, isUppercaseValid);
+        if (lowercaseReq) updateRequirement(lowercaseReq, isLowercaseValid);
+        if (numberReq) updateRequirement(numberReq, isNumberValid);
+        if (symbolReq) updateRequirement(symbolReq, isSymbolValid);
+        if (confirmReq) updateRequirement(confirmReq, isMatchValid);
 
-        // Comprobar estado final para el botón
+        // 3. Habilitar el botón de envío solo si todos los requisitos se cumplen
         const allComplexValid = isLengthValid && isUppercaseValid && isLowercaseValid && isNumberValid && isSymbolValid;
         submitButton.disabled = !(allComplexValid && isMatchValid);
     }
 
+    /**
+     * Actualiza el estilo de un elemento de requisito (color e ícono) según si es válido o no.
+     * @param {HTMLElement} element - El elemento de la lista de requisitos.
+     * @param {boolean} isValid - Si el requisito se cumple.
+     */
     function updateRequirement(element, isValid) {
         const icon = element.querySelector('i');
         if (icon) {
-            if (isValid) {
-                element.classList.remove('text-danger');
-                element.classList.add('text-success');
-                icon.classList.remove('fa-times-circle');
-                icon.classList.add('fa-check-circle');
-            } else {
-                element.classList.remove('text-success');
-                element.classList.add('text-danger');
-                icon.classList.remove('fa-check-circle');
-                icon.classList.add('fa-times-circle');
-            }
+            const action = isValid ? 'add' : 'remove';
+            const opposite = isValid ? 'remove' : 'add';
+
+            element.classList[opposite]('text-danger');
+            element.classList[action]('text-success');
+            icon.classList[opposite]('fa-times-circle');
+            icon.classList[action]('fa-check-circle');
         }
     }
     
-    validatePassword(); 
+    // Ejecutar la validación una vez al cargar la página para establecer el estado inicial
+    validatePassword();
 });
 
 /* Solo se ejecuta si estamos en la página correcta (existe el campo 'password' y el botón 'generatePasswordBtn') */
@@ -418,16 +476,6 @@ if (passwordInput && generatePasswordBtn) {
     });
 }
 
-/* jQuery y clase CSS Select2 están cargados antes de este script */
-$(document).ready(function() {
-    // Inicialización de Select2 en el campo de empleados
-    $('.select2').select2({
-        placeholder: "Busca y selecciona...",
-        allowClear: true,
-        theme: "bootstrap-5"
-    });
-});
-
 /* Seleccionar o deseleccionar todos los checkboxes */
 document.getElementById('seleccionar_todo').addEventListener('change', function() {
     var checkboxes = document.querySelectorAll('input[name="registros_seleccionados"]');
@@ -435,6 +483,30 @@ document.getElementById('seleccionar_todo').addEventListener('change', function(
             checkboxes[i].checked = this.checked;
         }
 });
-
-
-
+2
+/* jQuery y clase CSS Select2 están cargados antes de este script */
+$(document).ready(function() {
+    $(".select2").select2({
+        placeholder: "Busca y selecciona...",
+        allowClear: true,
+        theme: "bootstrap-5",
+            templateResult: function (data) {
+                if (!data.id) {
+                    const placeholder = document.createElement("span");
+                    placeholder.className = "fw-bold text-muted";
+                    placeholder.textContent = data.text;
+                    return placeholder;
+                }
+                const option = document.createElement("span");
+                option.className = "fw-bold";
+                option.textContent = data.text;
+                return option;
+            },
+            templateSelection: function (data) {
+                const selected = document.createElement("span");
+                selected.className = data.id ? "fw-bold" : "fw-bold text-muted";
+                selected.textContent = data.text;
+                return selected;
+            }
+    });
+});

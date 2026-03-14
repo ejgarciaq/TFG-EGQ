@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %} - Editar Tipo de Acción de Personal{% endblock %}
+
+{% block content %}
+<div class="container">
+    <fieldset class="shadow border p-3 mb-4 rounded border-primary">
+        <legend class="float-none w-auto px-2 fs-4 text-center fw-bold">Editar Tipo de Acción</legend>
+        <form method="POST" action="{{ url_for('accion_personal_bp.editar_ap_tipo', id_tipo_ap=tipo_ap.id_tipo_ap) }}">
+            <input type="hidden" name="page" value="{{ page }}">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="nombre_tipo" class="form-label fw-bold">Nombre del Tipo de Acción</label>
+                    <input type="text" class="form-control fw-semibold" id="nombre_tipo" name="nombre_tipo" value="{{ tipo_ap.nombre_tipo }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="descripcion_tipo" class="form-label fw-bold">Descripción (Opcional)</label>
+                    <textarea class="form-control fw-semibold" id="descripcion_tipo" name="descripcion_tipo" rows="2">{{ tipo_ap.descripcion_tipo or '' }}</textarea>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary fw-bold">
+                <i class="fa fa-save"></i> Guardar Cambios
+            </button>
+            <a href="{{ url_for('accion_personal_bp.configurar_ap', page=page) }}" class="btn btn-secondary fw-bold">
+                <i class="fa fa-times"></i> Cancelar
+            </a>
+        </form>
+    </fieldset>
+</div>
+{% endblock %}

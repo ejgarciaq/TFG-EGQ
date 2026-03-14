@@ -9,15 +9,14 @@ from payroll_app.routes.decorators import permiso_requerido
 from flask_mail import Message
 from threading import Thread
 
-
 """ Blueprint para las rutas de acciones de personal"""
 accion_personal_bp = Blueprint('accion_personal_bp', __name__)
 
 """ Configuración para la carga de archivos """
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
 
+"""Verifica si la extensión del archivo es permitida."""
 def allowed_file(filename):
-    """Verifica si la extensión del archivo es permitida."""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -49,7 +48,6 @@ def enviar_notificacion_por_correo(destinatario, asunto, cuerpo):
             recipients=[destinatario],
             body=cuerpo
         )
-        
         # Crea y lanza el hilo para enviar el correo en segundo plano
         thr = Thread(target=send_async_email, args=[app, msg])
         thr.start()
@@ -65,75 +63,87 @@ def enviar_notificacion_por_correo(destinatario, asunto, cuerpo):
 @permiso_requerido('listar_accion_personal')
 @login_required
 def accion_personal():
+    # Lógica del Método POST (Procesamiento del formulario)
     if request.method == 'POST':
         try:
             empleado_id = request.form.get('empleado_id')
             tipo_ap_id = request.form.get('tipo_ap_id')
-            detalles = request.form.get('detalles')
-            
-            fecha_accion = datetime.utcnow().date()
-            
+            detalles = request.form.get('detalles')           
+            fecha_accion = datetime.utcnow().date()            
             empleado = Empleado.query.get(empleado_id)
             tipo_ap = Tipo_AP.query.get(tipo_ap_id)
-            
+            # Validaciones Básicas
             if not empleado or not tipo_ap:
                 flash('Empleado o tipo de acción no válido.', 'danger')
                 return redirect(url_for('accion_personal_bp.accion_personal'))
-
             fecha_inicio = None
             fecha_fin = None
             cantidad_dia = None
             cantidad_dia_str = None 
-            
+            # Lógica de Extracción de Datos de Fecha/Días
             if tipo_ap.nombre_tipo in ['Vacaciones', 'Permiso c/ Goce de Salario', 'Permiso s/ Goce de Salario']:
                 fecha_inicio_str = request.form.get('fecha_inicio')
                 fecha_fin_str = request.form.get('fecha_fin')
                 cantidad_dia_str = request.form.get('cantidad_dia_vac')
-                
+
             elif tipo_ap.nombre_tipo == 'Incapacidad':
                 fecha_inicio_str = request.form.get('fecha_inicio_inc')
                 fecha_fin_str = request.form.get('fecha_fin_inc')
                 cantidad_dia_str = request.form.get('cantidad_dia_inc')
             
-            if tipo_ap.nombre_tipo in ['Vacaciones', 'Incapacidad', 'Permiso c/ Goce de Salario']:
+            # Conversión de fechas y validación básica de fechas
+            if tipo_ap.nombre_tipo in ['Vacaciones', 'Incapacidad', 'Permiso c/ Goce de Salario', 'Permiso s/ Goce de Salario']:
                 if not fecha_inicio_str or not fecha_fin_str:
                     flash('Las fechas de inicio y fin son obligatorias para este tipo de acción.', 'danger')
                     return redirect(url_for('accion_personal_bp.accion_personal'))
                 
                 fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
                 fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
-            
+
                 if fecha_inicio > fecha_fin:
                     flash('La fecha de fin no puede ser anterior a la fecha de inicio.', 'danger')
                     return redirect(url_for('accion_personal_bp.accion_personal'))
             
             if cantidad_dia_str:
                 cantidad_dia = int(cantidad_dia_str)
+            
+            # Validaciones Específicas por Tipo de Acción
+            #-- Validación para Vacaciones --
+            if tipo_ap.nombre_tipo == 'Vacaciones':
+                if cantidad_dia is None or cantidad_dia <= 0:
+                    flash('Error: La cantidad de días de vacaciones solicitados es inválida.', 'danger')
+                    return redirect(url_for('accion_personal_bp.accion_personal'))
+                
+                # Valida que el saldo disponible no sea menor a lo solicitado
+                if empleado.vacaciones_disponibles is None or empleado.vacaciones_disponibles < cantidad_dia:
+                    flash('Error: Los días solicitados exceden el saldo de vacaciones disponible.', 'danger')
+                    return redirect(url_for('accion_personal_bp.accion_personal'))
 
+            # --- Manejo de Archivos ---
             documento_adjunto = request.files.get('documento_adjunto')
             nombre_archivo = None
-            
+            # Guardar el archivo si se ha subido uno
             if documento_adjunto and documento_adjunto.filename != '':
+                # Verificar la extensión del archivo
                 if not allowed_file(documento_adjunto.filename):
                     flash('Tipo de archivo no permitido. Las extensiones válidas son: png, jpg, jpeg, pdf.', 'danger')
                     return redirect(url_for('accion_personal_bp.accion_personal'))
-                
+                # Generar un nombre de archivo único y seguro
                 fecha_formato = fecha_accion.strftime('%Y-%m-%d')
-                
                 nombre_empleado_sanitized = empleado.nombre_completo.replace(' ', '_').replace('á', 'a').replace('é', 'e').replace('í', 'i').replace('ó', 'o').replace('ú', 'u').replace('ñ', 'n')
                 nombre_tipo_sanitized = tipo_ap.nombre_tipo.replace(' ', '_').replace('/', '_').replace('\\', '_').replace(':', '_')
-                
                 ext = os.path.splitext(secure_filename(documento_adjunto.filename))[1]
                 nuevo_nombre = f"{fecha_formato}_{nombre_tipo_sanitized}_{nombre_empleado_sanitized}{ext}"
                 nombre_archivo = nuevo_nombre
-                
                 app_root = os.path.dirname(os.path.abspath(__file__))
                 upload_folder = os.path.join(app_root, '..', 'static', 'uploads')
+                # Crear el directorio si no existe
                 if not os.path.exists(upload_folder):
                     os.makedirs(upload_folder)
                 ruta_completa = os.path.join(upload_folder, nombre_archivo)
                 documento_adjunto.save(ruta_completa)
             
+            # --- Creación de Acción y Commit ---
             nueva_accion = Accion_Personal(
                 Empleado_id_empleado=empleado_id,
                 Tipo_Ap_id_tipo_ap=tipo_ap_id,
@@ -149,6 +159,7 @@ def accion_personal():
             db.session.add(nueva_accion)
             db.session.commit()
             
+            # --- Envío de Correos ---
             correo_admin = 'edson.garcia.cr@outlook.com'
             asunto_admin = f'Nueva Solicitud de {tipo_ap.nombre_tipo} Pendiente'
             cuerpo_admin = f'Una nueva solicitud de {tipo_ap.nombre_tipo} de {empleado.nombre_completo} ha sido enviada. Por favor, revísela.'
@@ -169,23 +180,27 @@ def accion_personal():
             return redirect(url_for('accion_personal_bp.accion_personal'))
     
     else: 
+        # --- Lógica del Método GET (Preparación de datos para el template) ---
         is_admin = current_user.rol.tipo_rol == 'administrador'
         
         if is_admin:
             tipos_ap = Tipo_AP.query.all()
             empleados_para_form = Empleado.query.all()
         else:
-            allowed_types = ['Incapacidad', 'Vacaciones', 'Permiso c/ Goce de Salario', 'Permiso s/ Goce de Salario', 'Renuncia']
+            allowed_types = ['Incapacidad', 'Vacaciones']
             tipos_ap = Tipo_AP.query.filter(Tipo_AP.nombre_tipo.in_(allowed_types)).all()
             empleados_para_form = [current_user.empleado] if current_user.empleado else []
         
         dias_feriados = [f.fecha_feriado.strftime('%Y-%m-%d') for f in Feriado.query.all()]
+
+        hoy_formato_min = datetime.utcnow().date().strftime('%Y-%m-%d')
         
         return render_template('accion_personal/accion_personal.html', 
-                               empleados=empleados_para_form, 
-                               tipos_ap=tipos_ap, 
-                               dias_feriados=dias_feriados,
-                               fecha_accion_actual=datetime.utcnow().date())
+                                empleados=empleados_para_form, 
+                                tipos_ap=tipos_ap, 
+                                dias_feriados=dias_feriados,
+                                fecha_minima=hoy_formato_min, 
+                                fecha_accion_actual=datetime.utcnow().date())
 
 """ Ruta para ver el historial de acciones de personal del usuario actual """
 @accion_personal_bp.route('/ver_historial', methods=['GET'])
@@ -227,6 +242,104 @@ def acciones_administrativas():
     return render_template('accion_personal/historial_acciones.html', 
                            pagination=paginated_acciones)
 
+""" Ruta para configurar los tipos de acciones de personal """
+@accion_personal_bp.route('/configuracion_ap', methods=['GET', 'POST'])
+# @permiso_requerido('configurar_accion_personal') # Puedes descomentar esto si creas el permiso
+@login_required
+def configurar_ap():
+    page = request.args.get('page', 1, type=int)
+    per_page = 8
+
+    if request.method == 'POST':
+        nombre_tipo = request.form.get('nombre_tipo')
+        descripcion_tipo = request.form.get('descripcion_tipo')
+
+        if not nombre_tipo:
+            flash('El nombre del tipo de acción es obligatorio.', 'danger')
+            return redirect(url_for('accion_personal_bp.configurar_ap'))
+
+        # Verificar si ya existe un tipo con el mismo nombre (ignorando mayúsculas/minúsculas)
+        existente = Tipo_AP.query.filter(func.lower(Tipo_AP.nombre_tipo) == func.lower(nombre_tipo)).first()
+        if existente:
+            flash(f'El tipo de acción "{nombre_tipo}" ya existe.', 'warning')
+            return redirect(url_for('accion_personal_bp.configurar_ap'))
+
+        try:
+            nuevo_tipo = Tipo_AP(
+                nombre_tipo=nombre_tipo,
+                descripcion_tipo=descripcion_tipo
+            )
+            db.session.add(nuevo_tipo)
+            db.session.commit()
+            flash(f'El tipo de acción "{nombre_tipo}" ha sido agregado exitosamente.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f'Error al agregar nuevo tipo de acción: {e}', exc_info=True)
+            flash('Ocurrió un error al agregar el nuevo tipo de acción.', 'danger')
+
+        return redirect(url_for('accion_personal_bp.configurar_ap'))
+
+    # Método GET: Muestra la página con los tipos existentes
+    pagination = Tipo_AP.query.order_by(Tipo_AP.nombre_tipo).paginate(page=page, per_page=per_page, error_out=False)
+    return render_template('accion_personal/ap_config.html', pagination=pagination)
+
+""" Ruta para editar un tipo de acción de personal """
+@accion_personal_bp.route('/configuracion_ap/editar/<int:id_tipo_ap>', methods=['GET', 'POST'])
+# @permiso_requerido('configurar_accion_personal')
+@login_required
+def editar_ap_tipo(id_tipo_ap):
+    tipo_ap = Tipo_AP.query.get_or_404(id_tipo_ap)
+    page = request.args.get('page', 1, type=int)
+
+    if request.method == 'POST':
+        page = request.form.get('page', 1, type=int)
+        nombre_tipo = request.form.get('nombre_tipo')
+        descripcion_tipo = request.form.get('descripcion_tipo')
+
+        if not nombre_tipo:
+            flash('El nombre del tipo de acción es obligatorio.', 'danger')
+            return render_template('accion_personal/ap_edit.html', tipo_ap=tipo_ap, page=page)
+
+        # Verificar si ya existe otro tipo con el mismo nombre
+        existente = Tipo_AP.query.filter(
+            func.lower(Tipo_AP.nombre_tipo) == func.lower(nombre_tipo),
+            Tipo_AP.id_tipo_ap != id_tipo_ap
+        ).first()
+        if existente:
+            flash(f'Ya existe otro tipo de acción con el nombre "{nombre_tipo}".', 'warning')
+            return render_template('accion_personal/ap_edit.html', tipo_ap=tipo_ap, page=page)
+
+        try:
+            tipo_ap.nombre_tipo = nombre_tipo
+            tipo_ap.descripcion_tipo = descripcion_tipo
+            db.session.commit()
+            flash('Tipo de acción actualizado exitosamente.', 'success')
+            return redirect(url_for('accion_personal_bp.configurar_ap', page=page))
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f'Error al editar el tipo de acción {id_tipo_ap}: {e}', exc_info=True)
+            flash('Ocurrió un error al actualizar el tipo de acción.', 'danger')
+    
+    return render_template('accion_personal/ap_edit.html', tipo_ap=tipo_ap, page=page)
+
+""" Ruta para eliminar un tipo de acción de personal """
+@accion_personal_bp.route('/configuracion_ap/eliminar/<int:id_tipo_ap>', methods=['POST'])
+# @permiso_requerido('configurar_accion_personal')
+@login_required
+def eliminar_ap_tipo(id_tipo_ap):
+    tipo_ap = Tipo_AP.query.get_or_404(id_tipo_ap)
+    page = request.form.get('page', 1, type=int)
+
+    try:
+        db.session.delete(tipo_ap)
+        db.session.commit()
+        flash('Tipo de acción eliminado exitosamente.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error al eliminar tipo de acción {id_tipo_ap}: {e}', exc_info=True)
+        flash('No se puede eliminar este tipo de acción porque probablemente está en uso en registros históricos.', 'danger')
+    
+    return redirect(url_for('accion_personal_bp.configurar_ap', page=page))
 
 """ Ruta para aprobar una acción de personal """
 @accion_personal_bp.route('/aprobar_accion/<int:ap_id>', methods=['POST'])
@@ -255,7 +368,7 @@ def aprobar_accion(ap_id):
         
         db.session.commit()
 
-        # --- CÓDIGO AÑADIDO: Notificación de aprobación por correo ---
+        # --- Notificación de aprobación por correo ---
         empleado = ap.empleado
         asunto_aprobacion = f'Actualización de Solicitud de {ap.tipo_ap.nombre_tipo}'
         cuerpo_aprobacion = f'Hola {empleado.nombre_completo}, tu solicitud de {ap.tipo_ap.nombre_tipo} ha sido aprobada.'
@@ -333,4 +446,5 @@ def ver_detalle_ap(ap_id):
     Muestra los detalles completos de una acción de personal específica.
     """
     accion = Accion_Personal.query.get_or_404(ap_id)
-    return render_template('accion_personal/detalle_ap.html', accion=accion)
+    is_admin = current_user.rol.tipo_rol.lower() == 'administrador'
+    return render_template('accion_personal/detalle_ap.html', accion=accion, is_admin=is_admin)

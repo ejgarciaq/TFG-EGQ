@@ -7,36 +7,37 @@
     <div class="row justify-content-center">
         <div class="col-md-6">
             <fieldset class="shadow border p-2 mb-0 rounded border-primary">
-            <legend class="float-none w-auto px-1 fs-3 text-center">Editar el Rol</legend>
+            <legend class="float-none w-auto px-1 fs-3 text-center fw-bold">Editar el Rol</legend>
 
             <form method="POST" action="{{ url_for('rol.editar_rol', id=rol.id_rol) }}">
                 <div class="mb-3">
-                    <label for="tipo_rol" class="form-label">Nombre del Rol</label>
-                    <input type="text" class="form-control" id="tipo_rol" name="tipo_rol" value="{{ rol.tipo_rol }}" required>
+                    <label for="tipo_rol" class="form-label fw-bold">Nombre del Rol</label>
+                    <input type="text" class="form-control fw-semibold" id="tipo_rol" name="tipo_rol" value="{{ rol.tipo_rol }}" required>
                 </div>
                 <div class="mb-3">
-                    <label for="descripcion_rol" class="form-label">Descripción del Rol</label>
-                    <textarea class="form-control" id="descripcion_rol" name="descripcion_rol" rows="3">{{ rol.descripcion_rol }}</textarea>
+                    <label for="descripcion_rol" class="form-label fw-bold">Descripción del Rol</label>
+                    <textarea class="form-control fw-semibold" id="descripcion_rol" name="descripcion_rol" rows="3">{{ rol.descripcion_rol }}</textarea>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Permisos</label>
-                    <div class="card p-3 shadow-sm" style="height: 200px; overflow-y: auto;">
+                    <label class="form-label fw-bold">Permisos</label>
+                    <div class="card p-3 shadow-sm h-50 overflow-auto scrollbar" style="max-height: 350px;">
                         {% for permiso in permisos %}
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="permisos" value="{{ permiso.id_permiso }}" id="permiso-{{ permiso.id_permiso }}"
+                            <input class="form-check-input " type="checkbox" name="permisos" value="{{ permiso.id_permiso }}" id="permiso-{{ permiso.id_permiso }}"
                             {% if permiso in rol.permisos %}checked{% endif %}>
-                            <label class="form-check-label" for="permiso-{{ permiso.id_permiso }}">
+                            <label class="form-check-label fw-bold" for="permiso-{{ permiso.id_permiso }}">
                                 {{ permiso.nombre }}
                             </label>
+                            <span class="text-muted small fw-semibold">({{ permiso.descripcion }})</span> </label>
                         </div>
                         {% endfor %}
                     </div>
                 </div>
 
                 <div class="d-flex justify-content-between mt-4">
-                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Guardar Cambios</button>
-                    <a href="{{ url_for('rol.listar_roles') }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Volver</a>
+                    <button type="submit" class="btn btn-primary fw-bold"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+                    <a href="{{ url_for('rol.listar_roles') }}" class="btn btn-secondary fw-bold"><i class="fa-solid fa-arrow-left"></i> Volver</a>
                 </div>
             </form>
 

@@ -1,9 +1,12 @@
 {% extends "base.html" %}
+
+{% block title %} - Cálculo de Aguinaldo{% endblock %}
+
 {% block content %}
 
 <div class="row mb-2">
     <div class="col-12 text-center">
-        <h2 class="display-5 text-dark "><i class="fas fa-calculator text-primary me-2"></i> Cálculo de Aguinaldo</h2>
+        <h3 class=" text-dark fw-bold"><i class="fas fa-calculator text-primary me-2"></i> Cálculo de Aguinaldo</h3>
         <p class="lead text-muted">Utilice esta herramienta para generar el **Aguinaldo** de los empleados. El cálculo se basa en el promedio de los últimos 12 meses de salarios brutos (Dic. año anterior a Nov. año actual).</p>
     </div>
 </div>
@@ -12,43 +15,44 @@
 
 <div class="row">
     
-    {# --- COLUMNA 1: FORMULARIO DE CÁLCULO --- #}
     <div class="col-lg-12 mb-4"> 
         <div class="card shadow-lg border-primary h-100">
-
             <div class="card-body">
-                <form method="POST" action="{{ url_for('aguinaldo.calcular_aguinaldo') }}">
-                    {# Usamos align-items-center para centrar verticalmente si hay diferencia de altura #}
+                <form id="calculoForm" method="POST" action="{{ url_for('aguinaldo.calcular_aguinaldo') }}">
                     <div class="row g-3 align-items-center"> 
                         
-                        {# Año Fiscal #}
                         <div class="col-12 col-lg-4">
                             <label for="anio_fiscal" class="form-label fw-bold mb-0">Año Fiscal</label>
-                            <input type="number" class="form-control" id="anio_fiscal" name="anio_fiscal" 
-                                value="{{ anio_actual }}" min="2000" max="{{ anio_actual + 1 }}" required>
-                            {# Mover el form-text para que no afecte tanto la alineación #}
-                            <small class="form-text text-muted d-block mt-1">Año de pago del aguinaldo.</small>
+                            <input type="number" class="form-control fw-semibold" id="anio_fiscal" name="anio_fiscal" 
+                                value="{{ anio_fiscal_seleccionado or anio_actual }}" min="2000" max="{{ anio_actual + 1 }}" required>
+                            <small class="form-text text-muted d-block mt-1 ">Año de pago del aguinaldo.</small>
                         </div>
-                        
-                        {# Tipo de Nómina #}
+        
                         <div class="col-12 col-lg-5">
                             <label for="tipo_nomina_id" class="form-label fw-bold mb-0">Filtrar por Tipo de Nómina</label>
-                            <select class="form-select" id="tipo_nomina_id" name="tipo_nomina_id">
-                                <option value="">Todos los Empleados</option>
+                            <select class="form-select fw-semibold" id="tipo_nomina_id" name="tipo_nomina_id">
+                                <option class="fw-semibold" value="">Todos los Empleados</option>
                                 {% for tn in tipos_nomina %}
-                                    <option value="{{ tn.id_tipo_nomina }}">{{ tn.nombre_tipo }}</option>
+                                    <option class="fw-semibold" value="{{ tn.id_tipo_nomina }}"
+                                            {% if tn.id_tipo_nomina == tipo_nomina_id_seleccionado %}selected{% endif %}>
+                                        {{ tn.nombre_tipo }}
+                                    </option>
                                 {% endfor %}
                             </select>
-                            <small class="form-text text-muted d-block mt-1">&nbsp;</small> {# Espacio vacío para igualar la altura #}
+                            <small class="form-text text-muted d-block mt-1">&nbsp;</small> 
                         </div>
                         
-                        {# Botón de Cálculo #}
-                        <div class="col-12 col-lg-3 d-grid">
-                            {# Damos un pequeño margen superior si el botón no está perfectamente alineado con los inputs #}
-                            <button type="submit" class="btn btn-success" 
-                                    onclick="return confirm('ATENCIÓN: ¿Está seguro de que desea iniciar el cálculo? Esto puede tardar unos segundos.')">
-                                <i class="fas fa-play me-1"></i> Calcular
-                            </button>
+                        <div class="col-12 col-lg-3 d-grid d-lg-block">
+                            <div class="d-flex justify-content-between align-items-end h-100">
+                                <button type="submit" class="btn btn-success flex-grow-1 me-2 fw-bold"  
+                                        onclick="return confirm('ATENCIÓN: ¿Está seguro de que desea iniciar el cálculo? Esto puede tardar unos segundos.')">
+                                    <i class="fas fa-calculator me-1"></i> Calcular
+                                </button>
+
+                                <button type="button" class="btn btn-outline-info flex-grow-1 fw-semibold" onclick="applyFilters()">
+                                    <i class="fas fa-filter me-1"></i> Filtrar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -56,13 +60,17 @@
         </div>
     </div>
     
-    {# --- COLUMNA 2: REGISTROS RECIENTES PARA AUDITORÍA (CON PAGINACIÓN) --- #}
+    <hr>
+    
     <div class="col-lg-12 mb-4">
         <div class="card shadow-lg border-secondary ">
 
-            <p class="text-muted p-3 mb-0 border-bottom">
-                Últimos aguinaldos calculados. 
-                {# Mostrar el estado actual de la paginación #}
+            <p class="text-muted p-3 mb-0 border-bottom fw-semibold">
+                Últimos aguinaldos calculados
+                {% if anio_fiscal_seleccionado %}
+                    (Año: <span class="fw-bold">{{ anio_fiscal_seleccionado }}</span>)
+                {% endif %}
+                .
                 {% if aguinaldos_paginados and aguinaldos_paginados.pages > 0 %}
                     <span class="fw-bold">Página {{ aguinaldos_paginados.page }} de {{ aguinaldos_paginados.pages }}</span>
                 {% endif %}
@@ -73,30 +81,44 @@
                     <thead>
                         <tr class="text-center">
                             <th scope="col">Empleado</th>
-                            <th scope="col" class="text-center">Fecha Estimada de Pago</th>
-                            <th scope="col" class="text-center">Monto</th>
-                            <th scope="col" class="text-center">Detalle</th>
+                            <th scope="col">Tipo Nómina</th> 
+                            <th scope="col">Fecha Estimada de Pago</th>
+                            <th scope="col">Monto</th>
+                            <th scope="col">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {#  CAMBIO CLAVE: Ahora itera sobre los .items del objeto paginado #}
                         {% for aguinaldo, empleado in aguinaldos_paginados.items %}
                         <tr>
-                            <td>{{ empleado.nombre_completo }}</td>
-                            <td class="text-center">{{ aguinaldo.fecha_pago.strftime('%d/%m/%Y') }}</td>
-                            <td class="text-center">₡{{ "{:,.2f}".format(aguinaldo.monto) }}</td>
-                            <td class="text-center">
-                                <form action="{{ url_for('aguinaldo.ver_detalle', aguinaldo_id=aguinaldo.id_aguinaldo) }}">
-                                    <button type="submit" class="btn btn-primary btn-sm" title="Ver Detalle de Cálculo">
-                                        <i class="fa-solid fa-eye"></i> Ver
-                                    </button> 
+                            <td class="text-start fw-semibold">{{ empleado.nombre_completo }}</td>
+                            <td class="text-center fw-semibold">{{ empleado.tipo_nomina_relacion.nombre_tipo if empleado.tipo_nomina_relacion else 'N/A' }}</td>
+                            <td class="text-center fw-semibold">{{ aguinaldo.fecha_pago.strftime('%d/%m/%Y') }}</td>
+                            <td class="text-center fw-semibold">₡{{ "{: ,.2f}".format(aguinaldo.monto) }}</td>
+                            <td class="text-center fw-semibold">
+                                
+                                <a href="{{ url_for('aguinaldo.ver_detalle', aguinaldo_id=aguinaldo.id_aguinaldo) }}" class="btn btn-primary btn-sm me-1 fw-bold" title="Ver Detalle de Cálculo">
+                                    <i class="fa-solid fa-eye"></i> Ver
+                                </a>
+
+                                {% set delete_params = {
+                                    'anio_fiscal': anio_fiscal_seleccionado,
+                                    'tipo_nomina_id': tipo_nomina_id_seleccionado,
+                                    'page': aguinaldos_paginados.page
+                                } %}
+                                <form action="{{ url_for('aguinaldo.eliminar_aguinaldo', aguinaldo_id=aguinaldo.id_aguinaldo, **delete_params) }}"
+                                      method="POST"
+                                      style="display:inline;"
+                                      onsubmit="return confirm('¿Está seguro de que desea eliminar este registro de aguinaldo para {{ empleado.nombre_completo }}? Esta acción es irreversible.');">
+                                    <button type="submit" class="btn btn-danger btn-sm fw-bold" title="Eliminar Aguinaldo">
+                                        <i class="fa-solid fa-trash"></i> Eliminar
+                                    </button>
                                 </form>
                             </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="4" class="text-center text-muted py-3">
-                                <i class="fas fa-info-circle me-1"></i> No hay registros de aguinaldo calculados aún.
+                            <td colspan="5" class="text-center text-muted py-3">
+                                <i class="fas fa-info-circle me-1"></i> No hay registros de aguinaldo calculados que coincidan con el filtro.
                             </td>
                         </tr>
                         {% endfor %}
@@ -108,11 +130,17 @@
             {% if aguinaldos_paginados and aguinaldos_paginados.pages > 1 %}
             <div class="card-footer bg-light border-top text-center">
                 <nav aria-label="Navegación de Registros">
-                    <ul class="pagination justify-content-center mb-0">
+                    <ul class="pagination pagination-sm fw-semibold justify-content-center mb-0">
                         
+                        {# Diccionario de filtros para mantener el estado en la paginación #}
+                        {% set query_params = {
+                            'anio_fiscal': anio_fiscal_seleccionado,
+                            'tipo_nomina_id': tipo_nomina_id_seleccionado
+                        } %}
+
                         {# Botón Anterior #}
                         <li class="page-item {% if not aguinaldos_paginados.has_prev %}disabled{% endif %}">
-                            <a class="page-link" href="{{ url_for('aguinaldo.calcular_aguinaldo', page=aguinaldos_paginados.prev_num) }}" aria-label="Anterior">
+                            <a class="page-link" href="{{ url_for('aguinaldo.calcular_aguinaldo', page=aguinaldos_paginados.prev_num, **query_params) }}" aria-label="Anterior">
                                 <span aria-hidden="true">&laquo;</span>
                             </a>
                         </li>
@@ -120,14 +148,11 @@
                         {# Números de Página #}
                         {% for page_num in aguinaldos_paginados.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
                             {% if page_num %}
-                                {# Página actual #}
                                 {% if aguinaldos_paginados.page == page_num %}
                                     <li class="page-item active" aria-current="page"><a class="page-link" href="#">{{ page_num }}</a></li>
-                                {# Otras páginas #}
                                 {% else %}
-                                    <li class="page-item"><a class="page-link" href="{{ url_for('aguinaldo.calcular_aguinaldo', page=page_num) }}">{{ page_num }}</a></li>
+                                    <li class="page-item"><a class="page-link" href="{{ url_for('aguinaldo.calcular_aguinaldo', page=page_num, **query_params) }}">{{ page_num }}</a></li>
                                 {% endif %}
-                            {# Puntos suspensivos #}
                             {% else %}
                                 <li class="page-item disabled"><span class="page-link">...</span></li>
                             {% endif %}
@@ -135,7 +160,7 @@
                         
                         {# Botón Siguiente #}
                         <li class="page-item {% if not aguinaldos_paginados.has_next %}disabled{% endif %}">
-                            <a class="page-link" href="{{ url_for('aguinaldo.calcular_aguinaldo', page=aguinaldos_paginados.next_num) }}" aria-label="Siguiente">
+                            <a class="page-link" href="{{ url_for('aguinaldo.calcular_aguinaldo', page=aguinaldos_paginados.next_num, **query_params) }}" aria-label="Siguiente">
                                 <span aria-hidden="true">&raquo;</span>
                             </a>
                         </li>
@@ -148,4 +173,28 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function applyFilters() {
+        // 1. Obtiene los valores seleccionados en el formulario
+        const anioFiscalInput = document.getElementById('anio_fiscal');
+        const tipoNominaSelect = document.getElementById('tipo_nomina_id');
+        
+        const anioFiscal = anioFiscalInput ? anioFiscalInput.value : '';
+        const tipoNomina = tipoNominaSelect ? tipoNominaSelect.value : '';
+
+        // 2. Construye la URL base para el método GET
+        let url = "{{ url_for('aguinaldo.calcular_aguinaldo') }}";
+        const params = new URLSearchParams();
+        
+        // 3. Agrega los filtros a los parámetros de la URL
+        if (anioFiscal) params.append('anio_fiscal', anioFiscal);
+        if (tipoNomina) params.append('tipo_nomina_id', tipoNomina);
+        
+        // 4. Redirige la página (dispara la solicitud GET a Flask)
+        window.location.href = url + '?' + params.toString();
+    }
+</script>
 {% endblock %}

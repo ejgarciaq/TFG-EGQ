@@ -1,29 +1,52 @@
 {% extends "base.html" %}
-
-{% block title %}Seleccionar Empleado para Liquidación{% endblock %}
-
+{% block title %} - Cálculo de Liquidación{% endblock %}
 {% block content %}
-<div class="container mt-4">
-    <h2 class="mb-4">Seleccionar Empleado para Liquidación</h2>
-    
+    <div class="container mt-4">
+        <h2 class="text-center">Cálculo de Liquidación Proporcional</h2>
+        <hr>
 
-    <div class="card p-4 shadow">
-        <form method="POST" action="{{ url_for('liquidacion.buscar_empleado') }}">
-            <div class="mb-3">
-                <label for="empleado_id" class="form-label">Empleado:</label>
-                <select class="form-select select2" id="empleado_id" name="empleado_id" required>
-                    <option value="">Busca y selecciona</option>
-                    {% for empleado in empleados %}
-                        <option value="{{ empleado.id_empleado }}">{{ empleado.nombre }} {{ empleado.apellido_primero }} {{ empleado.apellido_segundo }} (Cédula: {{ empleado.cedula }})</option>
-                    {% endfor %}
-                </select>
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white fw-bold">
+                Selección de Empleado y Parámetros
             </div>
-            <div class="mb-3">
-                <label for="fecha_fin_contrato" class="form-label">Fecha de Finalización del Contrato:</label>
-                <input type="date" class="form-control" id="fecha_fin_contrato" name="fecha_fin_contrato" value="{{ today.strftime('%Y-%m-%d') }}" required>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('liquidacion.buscar_empleado') }}">
+                    
+                    <div class="form-group mb-3">
+                        <label for="empleado_id" class="fw-bold">Seleccionar Empleado:</label>
+                        <select class="form-control" id="empleado_id" name="empleado_id" required>
+                            <option value="" disabled selected>-- Elija un empleado --</option>
+                            {% for empleado in empleados %}
+                                <option value="{{ empleado.id_empleado }}">{{ empleado.nombre_completo }} (Cédula: {{ empleado.cedula }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="fecha_fin_contrato" class="fw-bold">Fecha de Finalización de Contrato:</label>
+                        <input type="date" class="form-control fw-semibold" id="fecha_fin_contrato" name="fecha_fin_contrato" 
+                                value="{{ fecha_fin_contrato.strftime('%Y-%m-%d') if fecha_fin_contrato else today.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    
+                    <div class="form-group mb-4">
+                        <label for="causa_despido" class="fw-bold">Causa de Terminación:</label>
+                        <select class="form-control fw-semibold" id="causa_despido" name="causa_despido" required>
+                            <option value="" disabled selected>-- Elija la causa --</option>
+                            {% for value, label in causas %}
+                                <option class="fw-semibold" value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="form-text text-muted">
+                            Esta selección es crucial: solo el 'Despido sin justa causa' y 'Despido Indirecto' pagan Cesantía y Preaviso.
+                        </small>
+                    </div>
+
+                    <button type="submit" class="btn btn-success btn-block fw-bold">
+                        <i class="fas fa-calculator"></i> Calcular Liquidación
+                    </button>
+                </form>
             </div>
-            <button type="submit" class="btn btn-primary "><i class="fa-solid fa-calculator"></i> Calcular Liquidación</button>
-        </form>
+        </div>
+
     </div>
-</div>
 {% endblock %}

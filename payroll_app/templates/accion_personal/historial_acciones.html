@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 
-{% block title %}Aprobación de Acciones de Personal{% endblock %}
+{% block title %} - Aprobación de Acciones de Personal{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="row">
         <div class="col-12 text-center">
-            <h3>Aprobación de Acciones de Personal</h3>
+            <h3 class="fw-bold">Aprobación de Acciones de Personal</h3>
             <p>Aquí puedes revisar, aprobar, rechazar o eliminar las acciones de personal pendientes.</p>
         </div>
     </div>
 
     <div class="mb-5">
         <nav aria-label="Page navigatio">
-            <ul class="pagination">
+            <ul class="pagination pagination-sm fw-bold">
                 {% if pagination.has_prev %}
                     <li class="page-item"><a class="page-link" href="{{ url_for('accion_personal_bp.acciones_administrativas', page=pagination.prev_num) }}">Anterior</a></li>
                 {% else %}
@@ -46,7 +46,7 @@
             <div class="table-responsive">
                 <table class="table table-striped table-hover">
                     <thead>
-                        <tr class="text-center">
+                        <tr class="text-center fw-bold">
                             <th>Empleado</th>
                             <th>Tipo de Acción</th>
                             <th>Fecha de Solicitud</th>
@@ -58,7 +58,7 @@
                     </thead>
 <tbody>
     {% for accion in pagination.items %}
-    <tr>
+    <tr class="fw-semibold">
         <td>{{ accion.empleado.nombre_completo }}</td>
         <td>{{ accion.tipo_ap.nombre_tipo }}</td>
         <td class="text-center">{{ accion.fecha_accion.strftime('%d-%m-%Y') }}</td>
@@ -73,14 +73,14 @@
             {% if accion.estado_ap == 1 %}
                 <span class="badge bg-warning text-dark">Pendiente</span>
             {% elif accion.estado_ap == 2 %}
-                <span class="badge bg-success">Aprobada</span>
+                <span class="badge bg-success ">Aprobada</span>
             {% elif accion.estado_ap == 3 %}
                 <span class="badge bg-danger">Rechazada</span>
             {% endif %}
         </td>
         <td class="text-center">
             {% if accion.documento_adjunto %}
-                <a href="{{ url_for('static', filename='uploads/' + accion.documento_adjunto) }}" target="_blank" class="btn btn-sm btn-info">
+                <a href="{{ url_for('static', filename='uploads/' + accion.documento_adjunto) }}" target="_blank" class="btn btn-sm btn-info fw-semibold">
                     <i class="fa-solid fa-eye"></i> Ver
                 </a>
             {% else %}
@@ -89,23 +89,23 @@
         </td>
         <td>
             <div class="d-flex gap-2">
-                <a href="{{ url_for('accion_personal_bp.ver_detalle_ap', ap_id=accion.id_accion) }}" class="btn btn-primary btn-sm">
+                <a href="{{ url_for('accion_personal_bp.ver_detalle_ap', ap_id=accion.id_accion) }}" class="btn btn-primary btn-sm fw-semibold">
                     <i class="fa-solid fa-eye"></i> Ver
                 </a>
                 
                 {% if accion.estado_ap == 1 %}
                     <form method="POST" action="{{ url_for('accion_personal_bp.aprobar_accion', ap_id=accion.id_accion) }}">
                         <input type="hidden" name="page" value="{{ pagination.page }}">
-                        <button type="submit" class="btn btn-success btn-sm">Aprobar</button>
+                        <button type="submit" class="btn btn-success btn-sm fw-semibold">Aprobar</button>
                     </form>
                     <form method="POST" action="{{ url_for('accion_personal_bp.rechazar_accion', ap_id=accion.id_accion) }}">
                         <input type="hidden" name="page" value="{{ pagination.page }}">
-                        <button type="submit" class="btn btn-warning btn-sm">Rechazar</button>
+                        <button type="submit" class="btn btn-warning btn-sm fw-semibold">Rechazar</button>
                     </form>
                 {% else %}
                     <form method="POST" action="{{ url_for('accion_personal_bp.eliminar_accion', ap_id=accion.id_accion) }}" style="display:inline-block;">
                         <input type="hidden" name="page" value="{{ pagination.page }}">
-                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que deseas eliminar esta acción? Esta acción es irreversible.');">
+                        <button type="submit" class="btn btn-danger btn-sm fw-semibold" style="display:inline-block;"onclick="return confirm('¿Estás seguro de que deseas eliminar esta acción? Esta acción es irreversible.');">
                             <i class="fas fa-trash-alt"></i> Eliminar
                         </button>
                     </form>

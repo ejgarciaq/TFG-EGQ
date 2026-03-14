@@ -1,17 +1,17 @@
 {% extends 'base.html' %}
 
-{% block title %}Acciones de Personal{% endblock %}
+{% block title %} - Acciones de Personal{% endblock %}
 
 {% block content %}
 <div class="container">
 
     <fieldset class="shadow border p-2 mb-0 rounded border-primary">
-        <legend class="float-none w-auto px-1 fs-3 text-center">Acciones de Personal</legend>
+        <legend class="float-none w-auto px-1 fs-3 text-center fw-bold">Acciones de Personal</legend>
 
         <form method="POST" action="{{ url_for('accion_personal_bp.accion_personal') }}" enctype="multipart/form-data">
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label for="empleado_id" class="form-label">Empleado</label>
+                    <label for="empleado_id" class="form-label fw-bold">Empleado</label>
                     <select class="form-control select2" id="empleado_id" name="empleado_id" required>
                         <option value="">Seleccione un empleado...</option>
                         {% for empleado in empleados %}
@@ -21,7 +21,7 @@
                 </div>
 
                 <div class="col-md-6 mb-3">
-                    <label for="tipo_ap_id" class="form-label">Tipo de Acción</label>
+                    <label for="tipo_ap_id" class="form-label fw-bold">Tipo de Acción</label>
                     <select class="form-control select2" id="tipo_ap_id" name="tipo_ap_id" required>
                         <option value="">Seleccione un tipo de acción...</option>
                         {% for tipo in tipos_ap %}
@@ -32,29 +32,31 @@
             </div>
             
             <div class="mb-3">
-                <label for="fecha_accion" class="form-label">Fecha de la Acción</label>
-                <input type="date" class="form-control" id="fecha_accion" name="fecha_accion" value="{{ fecha_accion_actual }}" readonly>
+                <label for="fecha_accion" class="form-label fw-bold">Fecha de la Acción</label>
+                <input type="date" class="form-control fw-semibold" id="fecha_accion" name="fecha_accion" value="{{ fecha_accion_actual }}" readonly>
             </div>
             
             <div id="vacation_fields" style="display: none;" data-dias-festivos='{{ dias_feriados | tojson }}'>
                 <div class="row">
                     <div id="vacaciones_disponibles_info" class="col-md-6 mb-3">
-                        <label for="saldo_vacaciones_input" class="form-label">Días de vacaciones disponibles</label>
-                        <input type="number" class="form-control" id="saldo_vacaciones_input" readonly>
+                        <label for="saldo_vacaciones_input" class="form-label fw-bold">Días de vacaciones disponibles</label>
+                        <input type="number" class="form-control fw-semibold" id="saldo_vacaciones_input" readonly>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label for="cantidad_dia_vac" class="form-label">Cantidad de Días</label>
-                        <input type="number" class="form-control" id="cantidad_dia_vac" name="cantidad_dia_vac" readonly>
+                        <label for="cantidad_dia_vac" class="form-label fw-bold">Cantidad de Días</label>
+                        <input type="number" class="form-control fw-semibold" id="cantidad_dia_vac" name="cantidad_dia_vac" readonly>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="fecha_inicio" class="form-label">Fecha de Inicio</label>
-                        <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio">
+                        <label for="fecha_inicio" class="form-label fw-bold">Fecha de Inicio</label>
+                        <input type="date" class="form-control fw-semibold" id="fecha_inicio" name="fecha_inicio" required
+                            min="{{ fecha_minima }}"> 
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label for="fecha_fin" class="form-label">Fecha de Fin</label>
-                        <input type="date" class="form-control" id="fecha_fin" name="fecha_fin">
+                        <label for="fecha_fin" class="form-label fw-bold">Fecha de Fin</label>
+                        <input type="date" class="form-control fw-semibold" id="fecha_fin" name="fecha_fin" required
+                            min="{{ fecha_minima }}">
                     </div>
                 </div>
             </div>
@@ -62,31 +64,35 @@
             <div id="incapacity_leave_fields" style="display: none;" data-dias-festivos='{{ dias_feriados | tojson }}'>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="fecha_inicio_inc" class="form-label">Fecha de Inicio</label>
-                        <input type="date" class="form-control" id="fecha_inicio_inc" name="fecha_inicio_inc">
+                        <label for="fecha_inicio_inc" class="form-label fw-bold">Fecha de Inicio</label>
+                        <input type="date" class="form-control fw-semibold" id="fecha_inicio_inc" name="fecha_inicio_inc" required
+                            min="{{ fecha_minima }}"> 
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label for="fecha_fin_inc" class="form-label">Fecha de Fin</label>
-                        <input type="date" class="form-control" id="fecha_fin_inc" name="fecha_fin_inc">
+                        <label for="fecha_fin_inc" class="form-label fw-bold">Fecha de Fin</label>
+                        <input type="date" class="form-control fw-semibold" id="fecha_fin_inc" name="fecha_fin_inc" required
+                            min="{{ fecha_minima }}">
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label for="cantidad_dia_inc" class="form-label">Cantidad de Días</label>
-                        <input type="number" class="form-control" id="cantidad_dia_inc" name="cantidad_dia_inc" readonly>
+                        <label for="cantidad_dia_inc" class="form-label fw-bold">Cantidad de Días</label>
+                        <input type="number" class="form-control fw-semibold" id="cantidad_dia_inc" name="cantidad_dia_inc" readonly>
                     </div>
                 </div>
             </div>
 
             <div class="mb-3">
-                <label for="detalles" class="form-label">Comentarios</label>
-                <textarea class="form-control" id="detalles" name="detalles" rows="3"></textarea>
+                <label for="detalles" class="form-label fw-bold">Comentarios</label>
+                <textarea class="form-control fw-semibold" id="detalles" name="detalles" rows="3"></textarea>
             </div>
             <div class="mb-3">
-                <label for="documento_adjunto" class="form-label">Documento Adjunto</label>
-                <input type="file" class="form-control" id="documento_adjunto" name="documento_adjunto">
+                <label for="documento_adjunto" class="form-label fw-bold">Documento Adjunto</label>
+                <input type="file" class="form-control fw-semibold" id="documento_adjunto" name="documento_adjunto">
             </div>
 
-            <button type="submit" class="btn btn-primary "><i class="fa fa-file-invoice"></i> Registrar Acción</button>
-            <a href="{{ url_for('accion_personal_bp.ver_historial_apu') }}" class="btn btn-outline-primary">
+            <button type="submit" class="btn btn-primary fw-bold" id="btn_registrar_accion">
+                <i class="fa fa-file-invoice"></i> Registrar Acción
+            </button>
+            <a href="{{ url_for('accion_personal_bp.ver_historial_apu') }}" class="btn btn-outline-primary fw-semibold">
                 <i class="fa-solid fa-clock-rotate-left"></i> Ver mi Historial
             </a>
         </form>
@@ -94,4 +100,5 @@
     </fieldset>
 
 </div>
+
 {% endblock %}

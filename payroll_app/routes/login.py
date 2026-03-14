@@ -40,13 +40,9 @@ def validar_complejidad_password(password):
     # 5. Al menos un carácter especial
     if not re.search(r"[@$!%*?&]", password):
         return False, 'La contraseña debe contener al menos uno de los siguientes caracteres especiales: @$!%*?&.'
-    
     return True, ''
 
-#-----------------------------------------------------------------------------------
-# RUTAS DE AUTENTICACIÓN
-#-----------------------------------------------------------------------------------
-
+""" Ruta principal que redirige al login o a la página base según el estado de autenticación."""
 @login_bp.route('/')
 def home():
     """Redirige la ruta principal a la página de login."""
@@ -56,12 +52,12 @@ def home():
     # Si no, lo redirige a la página de inicio de sesión.
     return redirect(url_for('auth.login'))
 
+""" Ruta de inicio de sesión. """
 @login_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """ Maneja el inicio de sesión de los usuarios."""
     if current_user.is_authenticated:
         return redirect(url_for('auth.base'))
-
+    # Maneja el envío del formulario de inicio de sesión.
     if request.method == 'POST':
         try:
             username = request.form.get('username')
@@ -75,7 +71,6 @@ def login():
             
             if usuario:
                 ahora = datetime.now(ZONA_HORARIA_LOCAL)
-                
                 # Lógica de desbloqueo temporal:
                 # Si la cuenta está inactiva (bloqueada) y ha pasado el tiempo de bloqueo,
                 # la desbloquea y reinicia el contador de intentos.
@@ -85,10 +80,14 @@ def login():
                         usuario.estado_usuario = True
                         usuario.intentos_fallidos = 0
                         db.session.commit()
-                        flash('Su cuenta ha sido desbloqueada. Por favor, intente iniciar sesión de nuevo.', 'success')
+                        flash('Su cuenta ha sido desbloqueada. Por favor, intente iniciar sesión de nuevo.',
+                               'success')
                         return render_template('auth/index.html')
                     else:
-                        flash('Su cuenta se encuentra temporalmente bloqueada debido a demasiados intentos fallidos. Por favor, inténtelo de nuevo más tarde.', 'danger')
+                        flash(
+                            'Su cuenta se encuentra temporalmente bloqueada debido a' \
+                            ' demasiados intentos fallidos. Por favor, inténtelo de nuevo más tarde.',
+                            'danger')
                         return render_template('auth/index.html')
                 # Verifica la contraseña con la función de hash.
                 if check_password_hash(usuario.password, password):
@@ -100,7 +99,6 @@ def login():
                     db.session.commit()
                     login_user(usuario) 
                     flash('Inicio de sesión exitoso.', 'success')
-                    
                     # Redirección condicional: si el cambio de contraseña es requerido,
                     # lo envía a la página de cambio de contraseña.
                     if usuario.cambio_password_requerido:
@@ -117,9 +115,11 @@ def login():
                     if usuario.intentos_fallidos >= MAX_INTENTOS_FALLIDOS:
                         usuario.estado_usuario = False
                         db.session.commit()
-                        flash(f'Se ha excedido el número de intentos. Su cuenta ha sido bloqueada por {TIEMPO_BLOQUEO_MINUTOS} minutos.', 'danger')
+                        flash(f'Se ha excedido el número de intentos. Su cuenta ha sido bloqueada \
+                               por {TIEMPO_BLOQUEO_MINUTOS} minutos.', 'danger')
                     else:
-                        flash('Nombre de usuario o contraseña incorrecta. Por favor, inténtelo de nuevo.', 'danger')
+                        flash('Nombre de usuario o contraseña incorrecta. Por favor, inténtelo de \
+                               nuevo.', 'danger')
             else:
                 # Usuario no encontrado.
                 flash('Nombre de usuario o contraseña incorrecta. Por favor, inténtelo de nuevo.', 'danger')
@@ -131,13 +131,15 @@ def login():
             return render_template('auth/index.html')
             
     return render_template('auth/index.html')
-    
+
+""" Ruta para la página base de la aplicación."""    
 @login_bp.route('/base')
 @login_required # Decorador que asegura que solo los usuarios autenticados pueden acceder a esta ruta.
 def base():
     """Ruta para la página principal de la aplicación, solo accesible para usuarios autenticados."""
     return render_template('base.html')
-    
+
+""" Ruta para cerrar sesión. """    
 @login_bp.route('/logout')
 @login_required
 def logout():
@@ -151,12 +153,13 @@ def logout():
         flash('Ocurrió un error inesperado al cerrar la sesión.\nPor favor, inténtelo de nuevo.', 'danger')
         return redirect(url_for('auth.base'))
 
+""" Ruta para la página de 'olvidó su contraseña'. """
 @login_bp.route('/olvido_contrasena', methods=['GET'])
 def olvido_contrasena():
     """Muestra la página de 'olvidó su contraseña' que redirige al administrador."""
     return render_template('auth/olvido_contrasena.html')
 
-
+""" Middleware para redirigir a cambio de contraseña si es requerido."""
 @login_bp.before_app_request
 def redirect_if_password_change_required():
     # 1. Verificar si hay un usuario logueado
@@ -180,6 +183,7 @@ def redirect_if_password_change_required():
                 
                 return redirect(url_for('auth.cambiar_contrasena'))
 
+""" Ruta para que un administrador restablezca la contraseña de otro usuario."""
 @login_bp.route('/admin/restablecer_contrasena', methods=['POST']) # ✅ Cambiar a solo POST
 @login_required
 def restablecer_contrasena_admin():
@@ -227,6 +231,7 @@ def restablecer_contrasena_admin():
     # Redirigir de vuelta a la página de edición del empleado
     return redirect(url_for('empleado.editar_empleado', id=empleado.id_empleado))
 
+""" Ruta para que un usuario cambie su contraseña temporal."""
 @login_bp.route('/cambiar_contrasena', methods=['GET', 'POST'])
 @login_required
 def cambiar_contrasena():

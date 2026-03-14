@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+
+{% block title %} - Detalle de Cálculo de Aguinaldo{% endblock %}
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -16,11 +18,11 @@
                 <h5 class="mb-0">Resumen del Aguinaldo</h5>
             </div>
             <div class="card-body">
-                <p><strong>Empleado:</strong> {{ empleado.nombre_completo }}</p>
-                <p><strong>Identificación:</strong> {{ empleado.identificacion }}</p>
-                <p><strong>Fecha de Pago Registrada:</strong> {{ aguinaldo.fecha_pago.strftime('%d/%m/%Y') }}</p>
+                <p class="fw-semibold"><strong>Empleado:</strong> {{ empleado.nombre_completo }}</p>
+                <p class="fw-semibold"><strong>Identificación:</strong> {{ empleado.cedula }}</p>
+                <p class="fw-semibold"><strong>Fecha de Pago Registrada:</strong> {{ aguinaldo.fecha_pago.strftime('%d/%m/%Y') }}</p>
                 <hr>
-                <h4 class="text-success">Monto Calculado: ₡{{ "{:,.2f}".format(aguinaldo.monto) }}</h4>
+                <h4 class="text-success">Monto Calculado: ₡{{ "{: ,.2f}".format(aguinaldo.monto) }}</h4>
             </div>
         </div>
 
@@ -28,14 +30,14 @@
             <div class="card-header bg-light">
                 <h5 class="mb-0">Base de Cálculo</h5>
             </div>
-            <ul class="list-group list-group-flush">
+            <ul class="list-group list-group-flush fw-semibold">
                 <li class="list-group-item d-flex justify-content-between">
                     <span>Período Auditado:</span>
                     <span class="fw-bold">{{ periodo_inicio.strftime('%d/%m/%Y') }} al {{ periodo_fin.strftime('%d/%m/%Y') }}</span>
                 </li>
                 <li class="list-group-item d-flex justify-content-between">
                     <span>Suma Total de Salario Bruto (Período):</span>
-                    <span class="fw-bold">₡{{ "{:,.2f}".format(total_bruto) }}</span>
+                    <span class="fw-bold">₡{{ "{: ,.2f}".format(total_bruto) }}</span>
                 </li>
                 <li class="list-group-item d-flex justify-content-between">
                     <span>Divisor Legal (Meses):</span>
@@ -43,7 +45,7 @@
                 </li>
                 <li class="list-group-item d-flex justify-content-between bg-warning bg-opacity-25">
                     <span class="fw-bold">Aguinaldo (Total Bruto / 12):</span>
-                    <span class="fw-bold text-primary">₡{{ "{:,.2f}".format(promedio_calculado) }}</span>
+                    <span class="fw-bold text-primary">₡{{ "{: ,.2f}".format(promedio_calculado) }}</span>
                 </li>
             </ul>
         </div>
@@ -53,7 +55,7 @@
     <div class="col-md-7">
         <div class="card shadow-sm">
             <div class="card-header bg-info text-white">
-                <h5 class="mb-0">Registros de Nómina Utilizados (RNF-US-018)</h5>
+                <h5 class="mb-0">Registros de Nómina Utilizados</h5>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -68,9 +70,9 @@
                         <tbody>
                             {% for nomina in registros_nomina %}
                             <tr>
-                                <td>Nom. #{{ nomina.id_nomina }}</td>
-                                <td>{{ nomina.fecha_fin.strftime('%d/%m/%Y') }}</td>
-                                <td class="text-end">₡{{ "{:,.2f}".format(nomina.salario_bruto) }}</td>
+                                <td class="fw-semibold">Nom. #{{ nomina.id_nomina }}</td>
+                                <td class="fw-semibold">{{ nomina.fecha_fin.strftime('%d/%m/%Y') }}</td>
+                                <td class="text-end fw-semibold">₡{{ "{: ,.2f}".format(nomina.salario_bruto) }}</td>
                             </tr>
                             {% else %}
                             <tr>
@@ -81,7 +83,7 @@
                         <tfoot class="table-secondary">
                             <tr>
                                 <td colspan="2" class="fw-bold text-end">SUMA TOTAL:</td>
-                                <td class="fw-bold text-end">₡{{ "{:,.2f}".format(total_bruto) }}</td>
+                                <td class="fw-bold text-end">₡{{ "{: ,.2f}".format(total_bruto) }}</td>
                             </tr>
                         </tfoot>
                     </table>

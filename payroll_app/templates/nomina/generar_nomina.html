@@ -1,68 +1,59 @@
 {% extends "base.html" %}
-
+{% block title %} - Cálculo de Nómina{% endblock %}
 {% block content %}
 <div class="container-fluid">
-    {# Formulario para generar nómina #}
 
     <fieldset class="shadow border p-4 mb-3 rounded border-primary">
-        <legend class="float-none w-auto px-1 fs-3 text-center">Generar Nómina</legend>
-        {# El action del formulario sigue apuntando a la misma ruta que maneja POST #}
+        <legend class="float-none w-auto px-1 fs-3 text-center fw-bold ">Generar Nómina</legend>
         <form method="POST" action="{{ url_for('registro_asistencia.generar_nomina') }}">
             <div class="row g-3">
-                <div class="col-md-4">
-                    <div class="mb-3">
-                        <label for="fecha_inicio" class="form-label">Fecha de Inicio de Periodo</label>
-                        <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required value="{{ fecha_inicio_seleccionada if fecha_inicio_seleccionada }}">
-                    </div>
+                <div class="col-md-3">
+                        <label for="fecha_inicio" class="form-label fw-bold">Fecha de Inicio de Periodo</label>
+                        <input type="date" class="form-control fw-semibold" id="fecha_inicio" name="fecha_inicio" required value="{{ fecha_inicio_seleccionada if fecha_inicio_seleccionada }}">
                 </div>
-                <div class="col-md-4">
-                    <div class="mb-3">
-                        <label for="fecha_fin" class="form-label">Fecha de Fin de Periodo</label>
-                        <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required value="{{ fecha_fin_seleccionada if fecha_fin_seleccionada }}">
-                    </div>
+                <div class="col-md-3">
+                        <label for="fecha_fin" class="form-label fw-bold">Fecha de Fin de Periodo</label>
+                        <input type="date" class="form-control fw-semibold" id="fecha_fin" name="fecha_fin" required value="{{ fecha_fin_seleccionada if fecha_fin_seleccionada }}">
                 </div>
-                <div class="col-md-4">
-                    <div class="mb-3">
-                        <label for="tipo_nomina_id" class="form-label">Tipo de Nómina</label>
-                        <select class="form-select" id="tipo_nomina_id" name="tipo_nomina_id" required>
+                <div class="col-md-3">
+
+                        <label for="tipo_nomina_id" class="form-label fw-bold">Tipo de Nómina</label>
+                        <select class="form-select fw-semibold" id="tipo_nomina_id" name="tipo_nomina_id" required>
                             <option value="">Seleccione un tipo de nómina</option>
                             {% for tipo in tipos_nomina %}
-                                <option value="{{ tipo.id_tipo_nomina }}" {% if tipo.id_tipo_nomina == id_tipo_nomina_seleccionado|int %}selected{% endif %}>
+                                <option class="fw-semibold" value="{{ tipo.id_tipo_nomina }}" {% if tipo.id_tipo_nomina == id_tipo_nomina_seleccionado|int %}selected{% endif %}>
                                     {{ tipo.nombre_tipo }}
                                 </option>
                             {% endfor %}
                         </select>
-                    </div>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2 fw-bold"><i class="fa fa-file-invoice"></i> Generar Nómina</button>
+
+                    <button type="button" class="btn btn-outline-info fw-bold" onclick="applyFilters()"><i class="fa fa-filter"></i> Filtrar</button>
                 </div>
             </div>
-            <button type="submit" class="btn btn-primary mt-1"><i class="fa fa-file-invoice"></i> Generar Nómina</button>
-            {# Opcional: Un botón para aplicar solo filtros sin generar una nueva nómina #}
-            <button type="button" class="btn btn-outline-secondary mt-1 " onclick="applyFilters()"><i class="fa fa-filter"></i> Filtrar</button>
+  
         </form>
     </fieldset>
 
-
     <fieldset class="shadow border p-4 mb-3 rounded border-primary">
-        <legend class="float-none w-auto px-1 fs-3 text-center">Nóminas Generadas</legend>
-            {% if nominas %}
-            <h3 class="mt-4 text-center"></h3>
+        <legend class="float-none w-auto px-1 fs-3 text-center fw-bold">Nóminas Generadas</legend>
+            {% if paginated_nominas.items %}
             
-            {# --- INICIO DE LA NAVEGACIÓN DE PAGINACIÓN --- #}
             {% if paginated_nominas and paginated_nominas.pages > 1 %}
-                {# query_params captura los valores de los filtros actuales #}
                 {% set query_params = {
                     'fecha_inicio': fecha_inicio_seleccionada,
                     'fecha_fin': fecha_fin_seleccionada,
                     'tipo_nomina_id': id_tipo_nomina_seleccionado
                 } %}
-                <nav aria-label="Navegación de nóminas" class="d-flex justify-content-left ">
-                    <ul class="pagination">
+                <nav aria-label="Navegación de nóminas" class="d-flex justify-content-left">
+                    <ul class="pagination pagination-sm fw-semibold">
                         {# Enlace "Anterior" #}
                         <li class="page-item {% if not paginated_nominas.has_prev %}disabled{% endif %}">
                             {# url_for apunta a la misma ruta 'generar_nomina' y le pasa la página anterior + los filtros #}
                             <a class="page-link" href="{{ url_for('registro_asistencia.generar_nomina', page=paginated_nominas.prev_num, **query_params) }}" tabindex="-1" aria-disabled="true">Anterior</a>
                         </li>
-                        
                         {# Números de página #}
                         {% for p in paginated_nominas.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
                             {% if p %}
@@ -85,10 +76,10 @@
             {% endif %}
             {# --- FIN DE LA NAVEGACIÓN DE PAGINACIÓN --- #}
 
-            <div class="table-responsive">
+            <div class="table-responsive mt-5">
                 <table class="table table-striped">
                     <thead>
-                        <tr>
+                        <tr class="text-center">
                             <th>Empleado</th>
                             <th>Tipo de Nómina</th>
                             <th>Periodo</th>
@@ -100,15 +91,15 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for nomina in nominas %}
-                        <tr>
-                            <td>{{ nomina.empleado.nombre_completo }}</td>
-                            <td>{{ nomina.tipo_nomina_relacion.nombre_tipo }}</td>
-                            <td>{{ nomina.fecha_inicio.strftime('%Y-%m-%d') }} a {{ nomina.fecha_fin.strftime('%Y-%m-%d') }}</td>
-                            <td>₡ {{ "%.2f"|format(nomina.salario_bruto) }}</td>
-                            <td>₡ {{ "%.2f"|format(nomina.deducciones) }}</td>
-                            <td>₡ {{ "%.2f"|format(nomina.salario_neto) }}</td>
-                            <td>{{ nomina.fecha_creacion.strftime('%Y-%m-%d') }}</td>
+                        {% for nomina in paginated_nominas.items %}
+                        <tr class="text-center">
+                            <td class="text-start fw-semibold">{{ nomina.empleado.nombre_completo }}</td>
+                            <td class="fw-semibold">{{ nomina.tipo_nomina_relacion.nombre_tipo }}</td>
+                            <td class="fw-semibold">{{ nomina.fecha_inicio.strftime('%Y-%m-%d') }} a {{ nomina.fecha_fin.strftime('%Y-%m-%d') }}</td>
+                            <td class="fw-semibold">₡{{ "{: ,.2f}".format(nomina.salario_bruto) }}</td>
+                            <td class="fw-semibold">₡{{ "{: ,.2f}".format(nomina.deducciones) }}</td>    
+                            <td class="fw-semibold">₡{{ "{: ,.2f}".format(nomina.salario_neto) }}</td>
+                            <td class="fw-semibold">{{ nomina.fecha_creacion.strftime('%Y-%m-%d') }}</td>
                             <td>
                                 {# Formulario para el botón de eliminar #}
                                 <form action="{{ url_for('registro_asistencia.eliminar_nomina', id_nomina=nomina.id_nomina, 
@@ -120,7 +111,7 @@
                                     method="POST" 
                                     style="display:inline;"
                                     onsubmit="return confirm('¿Está seguro de que desea eliminar esta nómina? Esta acción es irreversible.');">
-                                    <button type="submit" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i> Eliminar</button>
+                                    <button type="submit" class="btn btn-danger btn-sm fw-semibold"><i class="fa fa-trash"></i> Eliminar</button>
                                 </form>
                             </td>
                         </tr>

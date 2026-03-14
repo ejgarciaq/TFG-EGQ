@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %} Gestion de Nómina {% endblock %}</title>
+    <title>Gestion de Nómina{% block title %}{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -23,98 +23,111 @@
 
         <ul class="nav flex-column menu small">
             <li class="nav-item {% if request.endpoint == 'auth.base' %}active{% endif %}">
-                <a class="nav-link" href="{{ url_for('auth.base') }}"><i class="fas fa-home"></i> Inicio</a>
+                <a class="nav-link fw-semibold" href="{{ url_for('auth.base') }}"><i class="fas fa-home"></i> Inicio</a>
             </li>
 
             <li class="nav-item {% if request.endpoint == 'registro_asistencia.ver_asistencia' %}active{% endif %}">
-                <a class="nav-link" href="{{ url_for('registro_asistencia.ver_asistencia') }}"><i class="fas fa-calendar-check"></i> Asistencia</a>
+                <a class="nav-link fw-semibold" href="{{ url_for('registro_asistencia.ver_asistencia') }}"><i class="fas fa-calendar-check"></i> Asistencia</a>
             </li>
 
             <li class="nav-item {% if request.endpoint == 'accion_personal_bp.accion_personal' %}active{% endif %}">
-                <a class="nav-link" href="{{ url_for('accion_personal_bp.accion_personal') }}"><i class="fas fa-user-edit"></i> Acción de Personal</a>
+                <a class="nav-link fw-semibold" href="{{ url_for('accion_personal_bp.accion_personal') }}"><i class="fas fa-user-edit"></i> Acción Personal</a>
             </li>
             <hr class="border border-primary m-2">
-            <h5 class="text-center small">Administración</h5>
+            <h5 class="text-center small fw-bold">Administración</h5>
             <hr class="border border-primary m-0">
 
+            <li class="nav-item {% if request.endpoint == 'registro_asistencia.listar_asistencia' %}active{% endif %}">
+                <a class="nav-link fw-semibold" href="{{ url_for('registro_asistencia.listar_asistencia') }}">
+                    <i class="fas fa-clipboard-list"></i> Asistencias
+                </a>
+            </li>
+
             <li class="nav-item {% if request.endpoint == 'registro_asistencia.generar_nomina' %}active{% endif %}">
-                <a class="nav-link" href="{{ url_for('registro_asistencia.generar_nomina') }}"><i class="fas fa-money-check-alt"></i> Nómina</a>
+                <a class="nav-link fw-semibold" href="{{ url_for('registro_asistencia.generar_nomina') }}"><i class="fas fa-money-check-alt"></i> Nómina</a>
             </li>
 
             <li class="nav-item {% if request.endpoint == 'aguinaldo.calcular_aguinaldo' %}active{% endif %}">
-                <a class="nav-link" href="{{ url_for('aguinaldo.calcular_aguinaldo') }}"><i class="fas fa-gift"></i> Aguinaldo</a>
+                <a class="nav-link fw-semibold" href="{{ url_for('aguinaldo.calcular_aguinaldo') }}"><i class="fas fa-gift"></i> Aguinaldo</a>
             </li>
             <li class="nav-item {% if request.endpoint == 'liquidacion.buscar_empleado' %}active{% endif %}">
-                <a class="nav-link" href="{{ url_for('liquidacion.buscar_empleado') }}"><i class="fas fa-handshake-slash"></i> Liquidación</a>
+                <a class="nav-link fw-semibold" href="{{ url_for('liquidacion.buscar_empleado') }}"><i class="fas fa-handshake-slash"></i> Liquidación</a>
             </li>
             <li class="nav-item {% if request.endpoint == 'accion_personal_bp.acciones_administrativas' %}active{% endif %}">
-                <a class="nav-link" href="{{ url_for('accion_personal_bp.acciones_administrativas') }}">
+                <a class="nav-link fw-semibold" href="{{ url_for('accion_personal_bp.acciones_administrativas') }}">
                     <i class="fas fa-history"></i> Acciones Personal
                 </a>
             </li>
-            <li class="nav-item {% if request.endpoint == 'registro_asistencia.listar_asistencia' %}active{% endif %}">
-                <a class="nav-link" href="{{ url_for('registro_asistencia.listar_asistencia') }}">
-                    <i class="fas fa-clipboard-list"></i> Asistencias
+
+            <li class="nav-item dropdown {% if request.blueprint in ['reportes_bp'] %}active{% endif %}">
+                <a class="nav-link dropdown-toggle fw-semibold" href="#" id="dropdownMenuButton" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-chart-bar"></i> Reportes
                 </a>
+                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    <li>
+                        <a class="dropdown-item fw-semibold {% if request.endpoint == 'reportes_bp.mostrar_pagina_reporte' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_pagina_reporte') }}">Reportes Asistencia</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item fw-semibold {% if request.endpoint == 'reportes_bp.mostrar_pagina_reporte_nomina' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_pagina_reporte_nomina') }}">Reporte de Nómina</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item fw-semibold {% if request.endpoint == 'reportes_bp.mostrar_reporte_aguinaldos' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_reporte_aguinaldos') }}">Reporte de Aguinaldos</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item fw-semibold {% if request.endpoint == 'reportes_bp.mostrar_reporte_liquidaciones' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_reporte_liquidaciones') }}">Reporte de Liquidaciones</a>
+                    </li>
+
+                </ul>
             </li>
 
             <hr class="border border-primary m-2">
             
             <li class="nav-item dropdown {% if request.blueprint in ['empleado', 'rol', 'puesto', 'feriado',] %}active{% endif %}">
-                <a class="nav-link dropdown-toggle" href="#" id="dropdownMenuButton" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                   <i class="fas fa-tools"></i> Administración
+                <a class="nav-link dropdown-toggle fw-semibold" href="#" id="dropdownMenuButton" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                   <i class="fas fa-tools"></i> Mantenimiento
                 </a>
                 <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
                     <li>
-                        <a class="dropdown-item {% if request.endpoint == 'empleado.listar_empleado' %}active{% endif %}" href="{{ url_for('empleado.listar_empleado') }}">
+                        <a class="dropdown-item fw-semibold {% if request.endpoint == 'empleado.listar_empleado' %}active{% endif %}" href="{{ url_for('empleado.listar_empleado') }}">
                             <i class="fas fa-users"></i> Empleados
                         </a>
                     </li>
                     <li>
-                        <a class="dropdown-item {% if request.endpoint == 'rol.listar_roles' %}active{% endif %}" href="{{ url_for('rol.listar_roles') }}">
+                        <a class="dropdown-item fw-semibold {% if request.endpoint == 'rol.listar_roles' %}active{% endif %}" href="{{ url_for('rol.listar_roles') }}">
                             <i class="fas fa-user-tag"></i> Roles y Permisos</a>
                     </li>
                     <li>
-                        <a class="dropdown-item {% if request.endpoint == 'puesto.listar_puestos' %}active{% endif %}" href="{{ url_for('puesto.listar_puestos') }}">
+                        <a class="dropdown-item fw-semibold {% if request.endpoint == 'puesto.listar_puestos' %}active{% endif %}" href="{{ url_for('puesto.listar_puestos') }}">
                             <i class="fas fa-briefcase"></i> Puestos
                         </a>
                     </li>
                     <li>
-                        <a class="dropdown-item {% if request.endpoint == 'feriado.listar_feriados' %}active{% endif %}" href="{{ url_for('feriado.listar_feriados') }}">
+                        <a class="dropdown-item fw-semibold {% if request.endpoint == 'feriado.listar_feriados' %}active{% endif %}" href="{{ url_for('feriado.listar_feriados') }}">
                             <i class="fas fa-calendar-alt"></i> Feriados</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item fw-semibold" href="{{ url_for('accion_personal_bp.configurar_ap') }}">
+                            <i class="fas fa-cogs"></i> Tipos de Acción de Personal
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item fw-semibold {% if request.endpoint == 'config.administrar_configuracion' %}active{% endif %}" 
+                        href="{{ url_for('config.administrar_configuracion') }}">
+                            <i class="fas fa-cog"></i> Configuración
+                        </a>
                     </li>
                 </ul>
             </li>
 
             <hr class="border border-primary m-2">
-            
-            <li class="nav-item dropdown {% if request.blueprint in ['reportes_bp'] %}active{% endif %}">
-                <a class="nav-link dropdown-toggle" href="#" id="dropdownMenuButton" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-chart-bar"></i> Reportes
-                </a>
-                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                    <li>
-                        <a class="dropdown-item {% if request.endpoint == 'reportes_bp.mostrar_pagina_reporte' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_pagina_reporte') }}">Reportes Asistencia</a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item {% if request.endpoint == 'reportes_bp.mostrar_pagina_reporte_nomina' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_pagina_reporte_nomina') }}">Reporte de Nómina</a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item {% if request.endpoint == 'reportes_bp.mostrar_reporte_aguinaldos' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_reporte_aguinaldos') }}">Reporte de Aguinaldos</a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item {% if request.endpoint == 'reportes_bp.mostrar_reporte_liquidaciones' %}active{% endif %}" href="{{ url_for('reportes_bp.mostrar_reporte_liquidaciones') }}">Reporte de Liquidaciones</a>
-                    </li>
 
-                </ul>
-            </li>
         </ul>
 
         <ul class="nav flex-column mt-auto">
         <hr class="border border-primary">
             {% if current_user.empleado %}
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('empleado.ver_perfil_empleado', empleado_id=current_user.empleado.id_empleado) }}"><i class="fas fa-user-circle"></i> Mi perfil</a>
+                    <a class="nav-link fw-semibold" href="{{ url_for('empleado.ver_perfil_empleado', empleado_id=current_user.empleado.id_empleado) }}"><i class="fas fa-user-circle"></i> Mi perfil</a>
                 </li>
             {% else %}
                 <li class="nav-item">
@@ -122,7 +135,7 @@
                 </li>
             {% endif %}
             <li class="nav-item">
-                <a class="nav-link text-dark" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a>
+                <a class="nav-link text-dark fw-semibold" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a>
             </li>
         </ul>
     </nav>
@@ -132,7 +145,7 @@
             <h5>Bienvenido,{% if current_user.is_authenticated %} {{ current_user.empleado.nombre }}  {% endif %}</h5>
             <hr class="border border-primary">
         </div>
-        
+
         <div class="flashes">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
@@ -165,5 +178,8 @@
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script> 
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
+
+    {% block scripts %}
+    {% endblock %}
 </body>
 </html>

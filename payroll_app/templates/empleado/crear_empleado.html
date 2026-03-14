@@ -1,30 +1,30 @@
 {% extends 'base.html' %}
 
-{% block title %}Crear Empleado{% endblock %}
+{% block title %} - Crear Empleado{% endblock %}
 
 {% block content %}
 <div class="container">
-    <h4 class="text-center">Crear Empleado</h4>
+    <h3 class="text-center fw-bold">Crear Empleado</h3>
         <form method="POST" action="{{ url_for('empleado.crear_empleado') }}">
             <fieldset class="shadow border p-2 mb-0 rounded border-primary">
-                <legend class="float-none w-auto px-1 fs-5">Datos de Usuario</legend>
+                <legend class="float-none w-auto px-1 fs-5 fw-bold">Datos de Usuario</legend>
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <label for="username" class="form-label">Nombre de Usuario</label>
-                        <input type="text" class="form-control" id="username" name="username" required>
+                        <label for="username" class="form-label fw-bold">Nombre de Usuario</label>
+                        <input type="text" class="form-control fw-semibold" id="username" name="username" required>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label for="password" class="form-label">Contraseña Temporal</label>
+                        <label for="password" class="form-label fw-bold">Contraseña Temporal</label>
                         <div class="input-group">
-                            <input type="text" class="form-control" id="password" name="password" readonly>
-                            <button class="btn btn-outline-secondary" type="button" id="generatePasswordBtn">Generar</button>
+                            <input type="text" class="form-control fw-semibold" id="password" name="password" readonly>
+                            <button class="btn btn-primary" type="button" id="generatePasswordBtn">Generar</button>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label for="rol_id" class="form-label">Rol</label>
-                        <select class="form-control" id="rol_id" name="rol_id" required>
+                        <label for="rol_id" class="form-label fw-bold">Rol</label>
+                        <select class="form-control fw-semibold" id="rol_id" name="rol_id" required>
                             {% for rol in roles %}
-                            <option value="{{ rol.id_rol }}">{{ rol.tipo_rol }}</option>
+                            <option class="fw-semibold" value="{{ rol.id_rol }}">{{ rol.tipo_rol }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -32,59 +32,64 @@
             </fieldset>      
 
             <fieldset class="shadow border p-2 mb-0 rounded border-primary">
-                <legend class="float-none w-auto px-2 fs-5">Datos de Empleado</legend>
+                <legend class="float-none w-auto px-2 fs-5 fw-bold">Datos de Empleado</legend>
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <label for="nombre" class="form-label">Nombre</label>
-                        <input type="text" class="form-control" id="nombre" name="nombre" required>
+                        <label for="nombre" class="form-label fw-bold">Nombre</label>
+                        <input type="text" class="form-control fw-semibold" id="nombre" name="nombre" required>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label for="apellido_primero" class="form-label">Primer Apellido</label>
-                        <input type="text" class="form-control" id="apellido_primero" name="apellido_primero" required>
+                        <label for="apellido_primero" class="form-label fw-bold">Primer Apellido</label>
+                        <input type="text" class="form-control fw-semibold" id="apellido_primero" name="apellido_primero" required>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label for="apellido_segundo" class="form-label">Segundo Apellido</label>
-                        <input type="text" class="form-control" id="apellido_segundo" name="apellido_segundo">
+                        <label for="apellido_segundo" class="form-label fw-bold">Segundo Apellido</label>
+                        <input type="text" class="form-control fw-semibold" id="apellido_segundo" name="apellido_segundo">
                     </div>
                 </div>
                 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="cedula" class="form-label">Cédula</label>
-                        <input type="text" class="form-control" id="cedula" pattern="\d{9}" placeholder="123456789" title="La cédula debe tener exactamente 9 números" name="cedula" required>
+                        <label for="cedula" class="form-label fw-bold">Cédula</label>
+                        <input type="number" class="form-control fw-semibold" id="cedula" 
+                        maxlength="9" pattern="\d{9}" placeholder="123456789" 
+                        title="La cédula debe tener exactamente 9 números" name="cedula" required oninput="if(this.value.length > 9) this.value = this.value.slice(0,9);">
+
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label for="correo" class="form-label">Correo</label>
-                        <input type="email" class="form-control" id="correo" placeholder="ejemplo@correo.com" name="correo" required>
+                        <label for="correo" class="form-label fw-bold">Correo</label>
+                        <input type="email" class="form-control fw-semibold" id="correo" placeholder="ejemplo@correo.com" name="correo" required>
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="telefono" class="form-label">Teléfono</label>
-                        <input type="tel" class="form-control" id="telefono" name="telefono" pattern="[0-9]{8}" title="El teléfono debe tener exactamente 8 números" placeholder="88888888" required>
+                        <label for="telefono" class="form-label fw-bold">Teléfono</label>
+                        <input type="number" class="form-control fw-semibold" id="telefono" 
+                        name="telefono" pattern="[0-9]{8}" title="El teléfono debe tener exactamente 8 números" 
+                        placeholder="88888888" required oninput="if(this.value.length > 8) this.value = this.value.slice(0,8);">
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label for="salario_base" class="form-label" for="inlineFormInputGroupUsername">Salario Base</label>
+                        <label for="salario_base" class="form-label fw-bold" for="inlineFormInputGroupUsername">Salario Base</label>
                         <div class="input-group"> 
                             <div class="input-group-prepend">
                                 <div class="input-group-text">₡</div>
                             </div>      
-                            <input type="text" class="form-control" id="salario_base" name="salario_base_visual" required>
+                            <input type="number" class="form-control fw-semibold" id="salario_base" name="salario_base" required>
                         </div>
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="fecha_ingreso" class="form-label">Fecha de Ingreso</label>
-                        <input type="date" class="form-control" id="fecha_ingreso" name="fecha_ingreso" required>
+                        <label for="fecha_ingreso" class="form-label fw-bold">Fecha de Ingreso</label>
+                        <input type="date" class="form-control fw-semibold" id="fecha_ingreso" name="fecha_ingreso" required>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label for="puesto_id" class="form-label">Puesto</label>
-                        <select class="form-control select2" id="puesto_id" name="puesto_id" required>
+                        <label for="puesto_id" class="form-label fw-bold">Puesto</label>
+                        <select class="form-control select2 fw-semibold" id="puesto_id" name="puesto_id" required>
                             {% for puesto in puestos %}
-                            <option value="{{ puesto.id_puesto }}">{{ puesto.tipo_puesto }}</option>
+                            <option class="fw-semibold" value="{{ puesto.id_puesto }}">{{ puesto.tipo_puesto }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -92,10 +97,10 @@
                 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="tipo_nomina_id" class="form-label">Tipo de Nómina</label>
-                        <select class="form-control" id="tipo_nomina_id" name="tipo_nomina_id" required>
+                        <label for="tipo_nomina_id" class="form-label fw-bold">Tipo de Nómina</label>
+                        <select class="form-control fw-semibold" id="tipo_nomina_id" name="tipo_nomina_id" required>
                             {% for tipo in tipos_nomina %}
-                            <option value="{{ tipo.id_tipo_nomina }}">{{ tipo.nombre_tipo }}</option>
+                            <option class="fw-semibold" value="{{ tipo.id_tipo_nomina }}">{{ tipo.nombre_tipo }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -103,8 +108,8 @@
                 
             </fieldset>      
         <div class="mt-2">
-            <button type="submit" class="btn btn-primary"><i class="fas fa-user-plus"></i> Crear Empleado</button>
-            <a href="{{ url_for('empleado.listar_empleado') }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Volver</a>
+            <button type="submit" class="btn btn-primary fw-bold"><i class="fas fa-user-plus"></i> Crear Empleado</button>
+            <a href="{{ url_for('empleado.listar_empleado') }}" class="btn btn-secondary fw-bold"><i class="fa-solid fa-arrow-left"></i> Volver</a>
         </div>
         
     </form>
