@@ -200,6 +200,44 @@ class Nomina(db.Model):
 
     def __repr__(self):
         return f'<Nomina {self.id_nomina} del Empleado {self.Empleado_id_empleado}>'
+
+# --- Deducción ---
+class Deduccion(db.Model):
+    """
+    Modelo para la tabla 'deduccion'.
+    Almacena las deducciones detalladas de cada nómina (CCSS-SEM, CCSS-IVM, LPT, ISR, etc).
+    """
+    __tablename__ = 'deduccion'
+    id_deduccion = db.Column(db.Integer, primary_key=True)
+    Nomina_id_nomina = db.Column(db.Integer, db.ForeignKey('nomina.id_nomina'), nullable=False)
+    tipo_deduccion = db.Column(db.String(50), nullable=False)  # 'CCSS-SEM', 'CCSS-IVM', 'LPT', 'ISR', etc.
+    monto = db.Column(db.Float, nullable=False)
+    porcentaje = db.Column(db.Float, nullable=True)  # Porcentaje aplicado (ej: 5.50 para CCSS-SEM)
+    
+    # Relación con Nomina
+    nomina = db.relationship('Nomina', backref='deducciones_detalle', lazy=True)
+    
+    def __repr__(self):
+        return f'<Deduccion {self.tipo_deduccion} ${self.monto:.2f} para Nomina {self.Nomina_id_nomina}>'
+
+# --- Concepto de Nómina (Ingresos y Bonificaciones) ---
+class ConceptoNomina(db.Model):
+    """
+    Modelo para la tabla 'concepto_nomina'.
+    Almacena los conceptos adicionales de cada nómina (vacaciones, incapacidades, etc).
+    """
+    __tablename__ = 'concepto_nomina'
+    id_concepto = db.Column(db.Integer, primary_key=True)
+    Nomina_id_nomina = db.Column(db.Integer, db.ForeignKey('nomina.id_nomina'), nullable=False)
+    tipo_concepto = db.Column(db.String(50), nullable=False)  # 'Vacaciones', 'Incapacidad-Carencia', 'Incapacidad-Subsidio'
+    dias = db.Column(db.Integer, nullable=True)
+    monto = db.Column(db.Float, nullable=False)
+    descripcion = db.Column(db.String(255), nullable=True)
+    
+    nomina = db.relationship('Nomina', backref='conceptos_nomina', lazy=True)
+    
+    def __repr__(self):
+        return f'<ConceptoNomina {self.tipo_concepto} {self.dias} días ${self.monto:.2f}>'
     
 # --- Registro de Asistencia ---
 class RegistroAsistencia(db.Model):

@@ -1,9 +1,9 @@
 from time import strptime
-from flask import Blueprint, logging, render_template, request, flash, redirect, url_for
+from flask import Blueprint, logging, render_template, request, flash, redirect, url_for, make_response
 from flask_login import current_user, login_required
 from payroll_app.routes.decorators import permiso_requerido
 from sqlalchemy import func
-from payroll_app.models import db, RegistroAsistencia, Feriado, Empleado, Nomina, TipoNomina, Tipo_AP, Accion_Personal
+from payroll_app.models import db, RegistroAsistencia, Feriado, Empleado, Nomina, TipoNomina, Tipo_AP, Accion_Personal, Deduccion, ConceptoNomina
 from datetime import datetime, date, time, timedelta
 import os, logging
 from werkzeug.utils import secure_filename # Importar para nombres de archivo seguros
@@ -1027,15 +1027,15 @@ def generar_nomina():
                 # 8. Calcular el monto bruto TOTAL (Lo que se paga al empleado)
                 total_monto_bruto = monto_gravable_bruto + monto_por_incapacidad_subsidio # Subsidio (No Gravable)
 
-                # 9. Calcular deducciones y salario neto (Aplicadas SOLO a monto_gravable_bruto)
+                # 9. Calcular deducciones por separado (Aplicadas SOLO a monto_gravable_bruto)
                 # Asumiendo las constantes PORCENTAJE_CCSS_SEM, PORCENTAJE_CCSS_IVM, PORCENTAJE_LPT
-                total_deducciones = (
-                    monto_gravable_bruto * PORCENTAJE_CCSS_SEM +
-                    monto_gravable_bruto * PORCENTAJE_CCSS_IVM +
-                    monto_gravable_bruto * PORCENTAJE_LPT
-                )
-                # Asumiendo la función calcular_isr
-                total_deducciones += calcular_isr(monto_gravable_bruto, fecha_inicio_obj, fecha_fin_obj)
+                deduccion_ccss_sem = round(monto_gravable_bruto * PORCENTAJE_CCSS_SEM, 2)
+                deduccion_ccss_ivm = round(monto_gravable_bruto * PORCENTAJE_CCSS_IVM, 2)
+                deduccion_lpt = round(monto_gravable_bruto * PORCENTAJE_LPT, 2)
+                deduccion_isr = round(calcular_isr(monto_gravable_bruto, fecha_inicio_obj, fecha_fin_obj), 2)
+                
+                # Total de deducciones
+                total_deducciones = deduccion_ccss_sem + deduccion_ccss_ivm + deduccion_lpt + deduccion_isr
                 
                 # 10. Salario neto final
                 monto_neto = total_monto_bruto - total_deducciones
@@ -1052,6 +1052,88 @@ def generar_nomina():
                     fecha_creacion=datetime.now()
                 )
                 db.session.add(nueva_nomina)
+                db.session.flush()  # Guardar la nómina para obtener su ID
+                
+                # 12. Crear registros de deducción detallados
+                if deduccion_ccss_sem > 0:
+                    deduccion_record_sem = Deduccion(
+                        Nomina_id_nomina=nueva_nomina.id_nomina,
+                        tipo_deduccion='CCSS-SEM',
+                        monto=deduccion_ccss_sem,
+                        porcentaje=PORCENTAJE_CCSS_SEM * 100
+                    )
+                    db.session.add(deduccion_record_sem)
+                
+                if deduccion_ccss_ivm > 0:
+                    deduccion_record_ivm = Deduccion(
+                        Nomina_id_nomina=nueva_nomina.id_nomina,
+                        tipo_deduccion='CCSS-IVM',
+                        monto=deduccion_ccss_ivm,
+                        porcentaje=PORCENTAJE_CCSS_IVM * 100
+                    )
+                    db.session.add(deduccion_record_ivm)
+                
+                if deduccion_lpt > 0:
+                    deduccion_record_lpt = Deduccion(
+                        Nomina_id_nomina=nueva_nomina.id_nomina,
+                        tipo_deduccion='LPT',
+                        monto=deduccion_lpt,
+                        porcentaje=PORCENTAJE_LPT * 100
+                    )
+                    db.session.add(deduccion_record_lpt)
+                
+                if deduccion_isr > 0:
+                    deduccion_record_isr = Deduccion(
+                        Nomina_id_nomina=nueva_nomina.id_nomina,
+                        tipo_deduccion='ISR',
+                        monto=deduccion_isr,
+                        porcentaje=None  # ISR no tiene un porcentaje fijo
+                    )
+                    db.session.add(deduccion_record_isr)
+                
+                # 13. Crear registros de conceptos (vacaciones, incapacidades)
+                if monto_por_vacaciones > 0:
+                    # Calcular días de vacaciones
+                    monto_diario_base = HORAS_POR_JORNADA_NORMAL * costo_por_hora_base if costo_por_hora_base > 0 else 1
+                    dias_vacaciones = int(round(monto_por_vacaciones / monto_diario_base)) if monto_diario_base > 0 else 0
+                    
+                    concepto_vacaciones = ConceptoNomina(
+                        Nomina_id_nomina=nueva_nomina.id_nomina,
+                        tipo_concepto='Vacaciones',
+                        dias=dias_vacaciones,
+                        monto=round(monto_por_vacaciones, 2),
+                        descripcion='Días de vacaciones disfrutados'
+                    )
+                    db.session.add(concepto_vacaciones)
+                
+                if monto_por_incapacidad_gravable > 0:
+                    # Incapacidad días de carencia (1-3 días, pago patrono 50%)
+                    monto_diario_base = HORAS_POR_JORNADA_NORMAL * costo_por_hora_base if costo_por_hora_base > 0 else 1
+                    dias_carencia = int(round(monto_por_incapacidad_gravable / (monto_diario_base * FACTOR_PAGO_EMPLEADOR_CARENCIA))) if (monto_diario_base * FACTOR_PAGO_EMPLEADOR_CARENCIA) > 0 else 0
+                    
+                    concepto_incapacidad_carencia = ConceptoNomina(
+                        Nomina_id_nomina=nueva_nomina.id_nomina,
+                        tipo_concepto='Incapacidad-Carencia',
+                        dias=dias_carencia,
+                        monto=round(monto_por_incapacidad_gravable, 2),
+                        descripcion=f'Incapacidad: {dias_carencia} días de carencia (50% patrono)'
+                    )
+                    db.session.add(concepto_incapacidad_carencia)
+                
+                if monto_por_incapacidad_subsidio > 0:
+                    # Incapacidad subsidio CAJA (4+ días, pago patrono 40%)
+                    monto_diario_base = HORAS_POR_JORNADA_NORMAL * costo_por_hora_base if costo_por_hora_base > 0 else 1
+                    dias_subsidio = int(round(monto_por_incapacidad_subsidio / (monto_diario_base * FACTOR_PAGO_EMPLEADOR_INCAPACIDAD))) if (monto_diario_base * FACTOR_PAGO_EMPLEADOR_INCAPACIDAD) > 0 else 0
+                    
+                    concepto_incapacidad_subsidio = ConceptoNomina(
+                        Nomina_id_nomina=nueva_nomina.id_nomina,
+                        tipo_concepto='Incapacidad-Subsidio',
+                        dias=dias_subsidio,
+                        monto=round(monto_por_incapacidad_subsidio, 2),
+                        descripcion=f'Incapacidad: {dias_subsidio} días subsidio CAJA (40% patrono)'
+                    )
+                    db.session.add(concepto_incapacidad_subsidio)
+                
                 nominas_generadas_info.append(f"Nómina generada para {empleado.nombre_completo}.")
 
             db.session.commit()
@@ -1153,7 +1235,7 @@ def listar_nominas():
 
         # 3. y 4. Paginar los resultados y obtener el objeto Pagination
         # 'per_page' define cuántos ítems se mostrarán por página
-        paginated_nominas = query.paginate(page=page, per_page=10, error_out=False)
+        paginated_nominas = query.paginate(page=page, per_page=9, error_out=False)
 
         tipos_nomina = TipoNomina.query.all()
         
@@ -1172,6 +1254,64 @@ def listar_nominas():
         tipos_nomina = TipoNomina.query.all()
         # En caso de error, devolver una lista vacía y un paginador nulo
         return render_template('nomina/generar_nomina.html', nominas=[], tipos_nomina=tipos_nomina, paginated_nominas=None)
+    
+""" Función para ver el detalle de una nómina con deducciones desglosadas --------"""
+@registro_asistencia_bp.route('/nomina/detalle/<int:id_nomina>', methods=['GET'])
+@permiso_requerido('listar_nominas')
+@login_required
+def ver_detalle_nomina(id_nomina):
+    """Muestra la boleta de pago detallada con todas las deducciones y conceptos."""
+    try:
+        nomina = Nomina.query.get_or_404(id_nomina)
+        deducciones = Deduccion.query.filter_by(Nomina_id_nomina=id_nomina).all()
+        conceptos = ConceptoNomina.query.filter_by(Nomina_id_nomina=id_nomina).all()
+        
+        return render_template(
+            'nomina/detalle_nomina.html',
+            nomina=nomina,
+            deducciones=deducciones,
+            conceptos=conceptos,
+            empleado=nomina.empleado
+        )
+    except Exception as e:
+        flash(f'Ocurrió un error al cargar el detalle de la nómina: {str(e)}', 'danger')
+        return redirect(url_for('registro_asistencia.listar_nominas'))
+
+""" Función para imprimir la boleta de pago en PDF --------------------------------"""
+@registro_asistencia_bp.route('/nomina/imprimir/<int:id_nomina>', methods=['GET'])
+@permiso_requerido('listar_nominas')
+@login_required
+def imprimir_boleta_pago(id_nomina):
+    """Genera un PDF de la boleta de pago con deducciones desglosadas."""
+    try:
+        from weasyprint import HTML, CSS
+        import io
+        
+        nomina = Nomina.query.get_or_404(id_nomina)
+        deducciones = Deduccion.query.filter_by(Nomina_id_nomina=id_nomina).all()
+        conceptos = ConceptoNomina.query.filter_by(Nomina_id_nomina=id_nomina).all()
+        
+        # Renderizar plantilla HTML
+        html_string = render_template(
+            'nomina/boleta_pago_pdf.html',
+            nomina=nomina,
+            deducciones=deducciones,
+            conceptos=conceptos,
+            empleado=nomina.empleado
+        )
+        
+        # Crear PDF
+        pdf_file = HTML(string=html_string).write_pdf()
+        
+        # Retornar como archivo descargable
+        response = make_response(pdf_file)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename=boleta_pago_{nomina.id_nomina}.pdf'
+        
+        return response
+    except Exception as e:
+        flash(f'Ocurrió un error al generar el PDF: {str(e)}', 'danger')
+        return redirect(url_for('registro_asistencia.listar_nominas'))
     
 """ Función para eliminar una nómina ------------------------------------------------"""
 @registro_asistencia_bp.route('/nomina/eliminar/<int:id_nomina>', methods=['POST'])
