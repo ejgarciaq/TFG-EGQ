@@ -1,0 +1,57 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment files
+.env
+.env.*
+
+# Local database / SQLite
+*.sqlite3
+*.db
+*.db-journal
+
+# Logs and temp files
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# IDEs and editors
+.vscode/
+.idea/
+.pyrepl_history
+
+# Test / coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.coverage.*
+*.cover
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Flask / app generated files
+instance/
+*.pid
+
+# Media uploads (if local/generated)
+payroll_app/static/uploads/*
+!payroll_app/static/uploads/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
