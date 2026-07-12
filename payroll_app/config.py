@@ -18,8 +18,8 @@ class Config:
     # El formato es: 'dialect+driver://usuario:contraseña@host/nombre_db'
     # En este caso, se conecta a una base de datos MySQL llamada 'rhcontrol'
     # en el servidor local (localhost).
-    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:2WpIC2frx7AcNZJ.@localhost/rhcontrol'
-    # SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:cayeYxFTpqyBizlNLpICucaSvBTTGriB.@tokaido.proxy.rlwy.net/rhcontrol'
+    #SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:2WpIC2frx7AcNZJ.@localhost/rhcontrol'
+    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:cayeYxFTpqyBizlNLpICucaSvBTTGriB.@tokaido.proxy.rlwy.net/rhcontrol'
     # SQLALCHEMY_TRACK_MODIFICATIONS es una configuración opcional que, si se
     # activa, genera eventos de señal para cada cambio en los objetos de la base de datos.
     # Se desactiva para mejorar el rendimiento y evitar advertencias innecesarias,
