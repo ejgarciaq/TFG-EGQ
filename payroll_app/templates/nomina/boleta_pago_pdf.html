@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boleta de Pago</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            background-color: #fff;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 0px;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 15px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 10px;
+            color: #666;
+        }
+        
+        .section {
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            background-color: #f0f0f0;
+            padding: 2px 2px;
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 10px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            width: 40%;
+        }
+        
+        .info-value {
+            width: 60%;
+            text-align: right;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        table thead {
+            background-color: #f9f9f9;
+            border-bottom: 2px solid #007bff;
+        }
+        
+        table th {
+            padding: 8px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        table td {
+            padding: 8px;
+            font-size: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        table .deduction-label {
+            font-weight: 500;
+        }
+        
+        table .amount {
+            text-align: right;
+        }
+        
+        table .total-row {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+        
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #007bff;
+        }
+        
+        .summary-item {
+            text-align: center;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .summary-item.gross {
+            background-color: #d4edda;
+        }
+        
+        .summary-item.deductions {
+            background-color: #f8d7da;
+        }
+        
+        .summary-item.net {
+            background-color: #d1ecf1;
+        }
+        
+        .summary-label {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .summary-amount {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 10px;
+            color: #999;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+        
+        .currency {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header con Logo -->
+        <div class="header">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                <img src="data:image/webp;base64,{{ url_for('static', filename='img/logo.webp') }}" alt="Logo" style="max-width: 100px; height: auto;">
+                <div style="text-align: right;">
+                    <h1>BOLETA DE PAGO</h1>
+                    <p>Período: {{ nomina.fecha_inicio.strftime('%d/%m/%Y') }} a {{ nomina.fecha_fin.strftime('%d/%m/%Y') }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información del Empleado -->
+        <div class="section">
+            <div class="section-title">INFORMACIÓN DEL EMPLEADO</div>
+            <div class="info-row">
+                <span class="info-label">Nombre:</span>
+                <span class="info-value">{{ empleado.nombre_completo }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Cédula:</span>
+                <span class="info-value">{{ empleado.cedula }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Puesto:</span>
+                <span class="info-value">{{ empleado.puesto.tipo_puesto }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Tipo de Nómina:</span>
+                <span class="info-value">{{ nomina.tipo_nomina_relacion.nombre_tipo }}</span>
+            </div>
+        </div>
+
+        <!-- Ingresos -->
+        <div class="section">
+            <div class="section-title">INGRESOS</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Concepto</th>
+                        <th class="amount">Monto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="total-row">
+                        <td class="deduction-label">Salario Bruto</td>
+                        <td class="amount"><span class="currency">₡</span>{{ "{: ,.2f}".format(nomina.salario_bruto) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Conceptos Adicionales (Vacaciones e Incapacidades) -->
+        {% if conceptos %}
+        <div class="section">
+            <div class="section-title">CONCEPTOS ADICIONALES</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Días</th>
+                        <th class="amount">Monto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for concepto in conceptos %}
+                    <tr>
+                        <td class="deduction-label">{{ concepto.tipo_concepto }}</td>
+                        <td style="text-align: center;">{% if concepto.dias %}{{ concepto.dias }}{% endif %}</td>
+                        <td class="amount"><span class="currency">₡</span>{{ "{: ,.2f}".format(concepto.monto) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Deducciones -->
+        <div class="section">
+            <div class="section-title">DEDUCCIONES</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tipo de Deducción</th>
+                        <th class="amount">Monto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if deducciones %}
+                        {% for deduccion in deducciones %}
+                        <tr>
+                            <td class="deduction-label">{{ deduccion.tipo_deduccion }}{% if deduccion.porcentaje %} ({{ "{:.2f}%".format(deduccion.porcentaje) }}){% endif %}</td>
+                            <td class="amount">-<span class="currency">₡</span>{{ "{: ,.2f}".format(deduccion.monto) }}</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="total-row">
+                            <td class="deduction-label">TOTAL DEDUCCIONES</td>
+                            <td class="amount">-<span class="currency">₡</span>{{ "{: ,.2f}".format(nomina.deducciones) }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="2" style="text-align: center; color: #999;">Sin deducciones registradas</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Resumen -->
+        <div class="summary">
+            <div class="summary-item gross">
+                <div class="summary-label">Salario Bruto</div>
+                <div class="summary-amount"><span class="currency">₡</span>{{ "{: ,.2f}".format(nomina.salario_bruto) }}</div>
+            </div>
+            <div class="summary-item deductions">
+                <div class="summary-label">Deducciones</div>
+                <div class="summary-amount">-<span class="currency">₡</span>{{ "{: ,.2f}".format(nomina.deducciones) }}</div>
+            </div>
+            <div class="summary-item net">
+                <div class="summary-label">Salario Neto</div>
+                <div class="summary-amount"><span class="currency">₡</span>{{ "{: ,.2f}".format(nomina.salario_neto) }}</div>
+            </div>
+        </div>
+
+        <!-- Aviso Legal -->
+        <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; font-size: 10px; color: #666;">
+            <p><strong>Aviso Legal:</strong> Esta boleta de pago es un documento legal que acredita el pago de salarios al empleado según la Ley de Código de Trabajo de Costa Rica. El empleador se compromete a mantener este documento como comprobante de pago por un período de 5 años.</p>
+            <p><strong>Artículos de Ley:</strong> Conforme a los Artículos 139 (Salario Mínimo), 146 (Pago de Salarios) y disposiciones sobre deducciones por CCSS, ISR y otros conceptos legales vigentes en Costa Rica.</p>
+        </div>
+
+        <!-- Firmas -->
+        <div style="margin-top: 40px; display: flex; justify-content: space-between;">
+            <div style="width: 45%; text-align: center;">
+                <p style="margin-bottom: 40px; font-size: 12px;">_________________________</p>
+                <p style="font-weight: bold; font-size: 12px;">Firma del Empleador</p>
+                <p style="font-size: 10px; color: #666;">Fecha: {{ nomina.fecha_creacion.strftime('%d/%m/%Y') }}</p>
+            </div>
+            <div style="width: 45%; text-align: center;">
+                <p style="margin-bottom: 40px; font-size: 12px;">_________________________</p>
+                <p style="font-weight: bold; font-size: 12px;">Firma del Empleado</p>
+                <p style="font-size: 10px; color: #666;">Cédula: {{ empleado.cedula }}</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Este documento fue generado automáticamente el {{ nomina.fecha_creacion.strftime('%d/%m/%Y a las %H:%M:%S') }}</p>
+        </div>
+    </div>
+</body>
+</html>
