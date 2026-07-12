@@ -1286,24 +1286,40 @@ def imprimir_boleta_pago(id_nomina):
     """Genera un PDF de la boleta de pago con deducciones desglosadas."""
     try:
         import io
+        from datetime import datetime
         
         nomina = Nomina.query.get_or_404(id_nomina)
         deducciones = Deduccion.query.filter_by(Nomina_id_nomina=id_nomina).all()
         conceptos = ConceptoNomina.query.filter_by(Nomina_id_nomina=id_nomina).all()
         
+        # 1. Iniciamos la lista con los datos generales básicos
         rows = [
             ('Empleado', nomina.empleado.nombre_completo if nomina.empleado else 'N/A'),
             ('Cédula', nomina.empleado.cedula if nomina.empleado else 'N/A'),
             ('Puesto', nomina.empleado.puesto.tipo_puesto if nomina.empleado and nomina.empleado.puesto else 'N/A'),
             ('Tipo de Nómina', nomina.tipo_nomina_relacion.nombre_tipo if nomina.tipo_nomina_relacion else 'N/A'),
             ('Salario Bruto', f"₡ {nomina.salario_bruto:,.2f}"),
-            ('Deducciones', f"₡ {nomina.deducciones:,.2f}"),
-            ('Salario Neto', f"₡ {nomina.salario_neto:,.2f}"),
         ]
+        
+        # 2. Iteramos dinámicamente las deducciones reales encontradas en la BD
+        for ded in deducciones:
+            # Si tiene porcentaje (ej. 5.5), se lo pegamos al nombre de forma limpia
+            porcentaje_str = f" ({ded.porcentaje}%)" if ded.porcentaje else ""
+            nombre_deduccion = f"Deducción: {ded.tipo_deduccion}{porcentaje_str}"
+            monto_deduccion = f"₡ {ded.monto:,.2f}"
+            
+            rows.append((nombre_deduccion, monto_deduccion))
+            
+        # 3. Agregamos los totales finales de cierre
+        rows.append(('Total Deducciones', f"₡ {nomina.deducciones:,.2f}"))
+        rows.append(('Salario Neto', f"₡ {nomina.salario_neto:,.2f}"))
+        
         metadata = {
             'Período': f"{nomina.fecha_inicio.strftime('%d/%m/%Y')} a {nomina.fecha_fin.strftime('%d/%m/%Y')}",
             'Fecha de generación': datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
         }
+        
+        # 4. Usamos la función optimizada de pdf_utils que creamos previamente
         pdf_file = build_pdf_from_rows(
             title='BOLETA DE PAGO',
             rows=rows,
@@ -1312,7 +1328,9 @@ def imprimir_boleta_pago(id_nomina):
         
         response = make_response(pdf_file)
         response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = f'attachment; filename=boleta_pago_{nomina.id_nomina}.pdf'
+        
+        # Opcional: Si cambiás 'attachment' por 'inline', se abrirá directo en el navegador en vez de forzar la descarga
+        response.headers['Content-Disposition'] = f'inline; filename=boleta_pago_{nomina.id_nomina}.pdf'
         
         return response
     except Exception as e:
