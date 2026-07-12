@@ -19,7 +19,7 @@ h1 {
 table {
     width: 100%;
     border-collapse: collapse; /* Elimina el espacio entre los bordes de las celdas */
-    margin-top: 10px;
+    margin-top: 5px;
 }
 
 /* Estilos para las celdas de encabezado y datos */
