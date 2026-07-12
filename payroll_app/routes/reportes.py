@@ -3,11 +3,11 @@ from flask import ( Blueprint, current_app, make_response, request, render_templ
 from flask_login import login_required
 from sqlalchemy import extract
 from payroll_app.models import Aguinaldo, Liquidacion, db, Empleado, RegistroAsistencia, Nomina, TipoNomina
-from weasyprint import HTML, CSS
 from datetime import datetime
 import pandas as pd
 from sqlalchemy.orm import joinedload, aliased
 from payroll_app.routes.decorators import permiso_requerido
+from payroll_app.pdf_utils import build_pdf_from_rows
 
 """ Rutas y lógica para generación de reportes en varios formatos (HTML, CSV, Excel, PDF)."""
 reportes_bp = Blueprint('reportes_bp', __name__)
@@ -31,11 +31,13 @@ def generate_file_in_thread(df_download, format, filename):
         elif format == 'excel':
             df_download.to_excel(filepath, index=False, engine='openpyxl')
         elif format == 'pdf':
-            # Nota: Esto asume que tienes todo el código de weasyprint disponible
-            from weasyprint import HTML, CSS 
-            html_reporte_pdf = "..." # Reconstruye tu HTML para el PDF aquí
-            css_path = os.path.join(current_app.root_path, 'static', 'css', 'reportes.css')
-            HTML(string=html_reporte_pdf).write_pdf(filepath, stylesheets=[CSS(filename=css_path)])
+            pdf_bytes = build_pdf_from_rows(
+                title='Reporte temporal',
+                rows=[('Archivo', filename)],
+                metadata={'Formato': format},
+            )
+            with open(filepath, 'wb') as handle:
+                handle.write(pdf_bytes)
             
         print(f"Archivo '{filename}' generado con éxito en: {filepath}")
 
@@ -136,36 +138,24 @@ def generar_reporte():
                                          download_name=f'reporte_asistencia_{fecha_inicio_str}_a_{fecha_fin_str}.xlsx')
 
                     elif descargar_formato == 'pdf':
-                        from weasyprint import HTML, CSS 
-                        
                         empleado_obj = Empleado.query.get(int(empleado_id_seleccionado)) if empleado_id_seleccionado.isdigit() else None
                         empleado_info = empleado_obj.nombre_completo if empleado_obj else 'Todos'
-                        logo_url = url_for('static', filename='img/logo.webp', _external=True)
-
-                        html_reporte_pdf = f"""<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reporte de Asistencia</title></head><body>
-                                                
-                                                <div class="logo-container">
-                                                    <img src="{logo_url}">
-                                                </div>
-
-                                                <div class="header-content-wrapper">
-                                                    <h1>Reporte de Asistencia</h1>
-                                                    <p><strong>Desde:</strong> {fecha_inicio_str} &nbsp;&nbsp; <strong>Hasta:</strong> {fecha_fin_str}</p>
-                                                    <p><strong>Empleado:</strong> {empleado_info}</p>
-                                                </div>
-                                                
-                                                {df_download.to_html(classes='table table-striped table-bordered', index=False)}
-                                                </body></html>"""
-                        
-                        css_path = os.path.join(current_app.root_path, 'static', 'css', 'reportes.css')
-                        pdf_buffer = io.BytesIO()
-                        HTML(string=html_reporte_pdf).write_pdf(pdf_buffer, stylesheets=[CSS(filename=css_path)])
+                        rows = [('Empleado', empleado_info), ('Desde', fecha_inicio_str), ('Hasta', fecha_fin_str)]
+                        for index, row in df_download.iterrows():
+                            rows.append((f"{index + 1}", f"{row['Empleado']} | {row['Fecha']} | {row['Hora Entrada']} | {row['Hora Salida']}"))
+                        pdf_bytes = build_pdf_from_rows(
+                            title='Reporte de Asistencia',
+                            rows=rows,
+                            metadata={'Empleado': empleado_info, 'Desde': fecha_inicio_str, 'Hasta': fecha_fin_str},
+                        )
+                        pdf_buffer = io.BytesIO(pdf_bytes)
                         pdf_buffer.seek(0)
-                        #  Retorna el archivo directamente 
-                        return send_file(pdf_buffer, 
-                                         mimetype='application/pdf', 
-                                         as_attachment=True, 
-                                         download_name=f'reporte_asistencia_{fecha_inicio_str}_a_{fecha_fin_str}.pdf')
+                        return send_file(
+                            pdf_buffer,
+                            mimetype='application/pdf',
+                            as_attachment=True,
+                            download_name=f'reporte_asistencia_{fecha_inicio_str}_a_{fecha_fin_str}.pdf'
+                        )
                     
                 else:
                     # No hay registros en total
@@ -399,9 +389,6 @@ def generar_reporte_nomina():
                  
             # --- Descarga PDF ---
             elif descargar_formato == 'pdf':
-                # Nota: Necesitas asegurarte de que TipoNomina.query.all() esté disponible
-                # y que weasyprint.HTML y weasyprint.CSS estén importados.
-                
                 # Obtener el nombre del tipo de nómina para el encabezado del PDF
                 tipo_nomina_nombre_descarga = next(
                     (t.nombre_tipo for t in TipoNomina.query.all() if str(t.id_tipo_nomina) == id_tipo_nomina_str),
@@ -434,14 +421,12 @@ def generar_reporte_nomina():
                 </body>
                 </html>
                 """
-                pdf_buffer = io.BytesIO()
-                
-                from weasyprint import HTML, CSS # Importación local para claridad
-                
-                HTML(string=html_reporte).write_pdf(
-                    pdf_buffer, 
-                    stylesheets=[CSS(filename=css_path)]
+                pdf_bytes = build_pdf_from_rows(
+                    title='Reporte de Nómina',
+                    rows=[('Período', f'{fecha_inicio_str} a {fecha_fin_str}'), ('Tipo de Nómina', tipo_nomina_nombre_descarga)],
+                    metadata={'Período': f'{fecha_inicio_str} a {fecha_fin_str}', 'Tipo de Nómina': tipo_nomina_nombre_descarga},
                 )
+                pdf_buffer = io.BytesIO(pdf_bytes)
                 pdf_buffer.seek(0)
                 return send_file(
                     pdf_buffer,
@@ -640,9 +625,12 @@ def exportar_aguinaldos(ano, formato):
             </html>
             """
             
-            pdf_buffer = io.BytesIO()
-            # Nota: usamos base_url=request.url_root para que WeasyPrint pueda cargar el CSS y el logo
-            HTML(string=html_content, base_url=request.url_root).write_pdf(pdf_buffer)
+            pdf_bytes = build_pdf_from_rows(
+                title='Reporte de Aguinaldos',
+                rows=[('Año', ano)],
+                metadata={'Año': ano},
+            )
+            pdf_buffer = io.BytesIO(pdf_bytes)
             pdf_buffer.seek(0)
             return send_file(
                 pdf_buffer,
@@ -860,10 +848,12 @@ def exportar_liquidaciones(fecha_inicio, fecha_fin, formato):
             </html>
             """
             
-            # --- Generación y Retorno del PDF ---
-            # Requiere WeasyPrint, io y send_file
-            pdf_buffer = io.BytesIO()
-            HTML(string=html_content, base_url=request.url_root).write_pdf(pdf_buffer)
+            pdf_bytes = build_pdf_from_rows(
+                title='Reporte de Liquidaciones',
+                rows=[('Período', f'{fecha_inicio} a {fecha_fin}')],
+                metadata={'Período': f'{fecha_inicio} a {fecha_fin}'},
+            )
+            pdf_buffer = io.BytesIO(pdf_bytes)
             pdf_buffer.seek(0)
             
             return send_file(
@@ -878,7 +868,7 @@ def exportar_liquidaciones(fecha_inicio, fecha_fin, formato):
             return redirect(url_for('reportes_bp.mostrar_reporte_liquidaciones'))
 
     except Exception as e:
-        # Aquí manejamos cualquier error, incluyendo la falla de WeasyPrint (si no está instalado).
-        flash(f'Error al exportar el reporte de liquidaciones. Asegúrese de que WeasyPrint y sus dependencias (cairo/pango) estén instalados: {e} (FA2)', 'danger')
+        # Aquí manejamos cualquier error en la exportación del reporte de liquidaciones.
+        flash(f'Error al exportar el reporte de liquidaciones: {e} (FA2)', 'danger')
         # logging.error(f'Error en exportar_liquidaciones: {e}', exc_info=True)
         return redirect(url_for('reportes_bp.mostrar_reporte_liquidaciones'))

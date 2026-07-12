@@ -9,6 +9,7 @@ import os, logging
 from werkzeug.utils import secure_filename # Importar para nombres de archivo seguros
 from sqlalchemy.orm import joinedload
 from payroll_app.utils import cargar_configuracion
+from payroll_app.pdf_utils import build_pdf_from_rows
 
 """ Blueprint para el módulo de Registro de Asistencia """
 registro_asistencia_bp = Blueprint('registro_asistencia', __name__)
@@ -1284,26 +1285,31 @@ def ver_detalle_nomina(id_nomina):
 def imprimir_boleta_pago(id_nomina):
     """Genera un PDF de la boleta de pago con deducciones desglosadas."""
     try:
-        from weasyprint import HTML, CSS
         import io
         
         nomina = Nomina.query.get_or_404(id_nomina)
         deducciones = Deduccion.query.filter_by(Nomina_id_nomina=id_nomina).all()
         conceptos = ConceptoNomina.query.filter_by(Nomina_id_nomina=id_nomina).all()
         
-        # Renderizar plantilla HTML
-        html_string = render_template(
-            'nomina/boleta_pago_pdf.html',
-            nomina=nomina,
-            deducciones=deducciones,
-            conceptos=conceptos,
-            empleado=nomina.empleado
+        rows = [
+            ('Empleado', nomina.empleado.nombre_completo if nomina.empleado else 'N/A'),
+            ('Cédula', nomina.empleado.cedula if nomina.empleado else 'N/A'),
+            ('Puesto', nomina.empleado.puesto.tipo_puesto if nomina.empleado and nomina.empleado.puesto else 'N/A'),
+            ('Tipo de Nómina', nomina.tipo_nomina_relacion.nombre_tipo if nomina.tipo_nomina_relacion else 'N/A'),
+            ('Salario Bruto', f"₡ {nomina.salario_bruto:,.2f}"),
+            ('Deducciones', f"₡ {nomina.deducciones:,.2f}"),
+            ('Salario Neto', f"₡ {nomina.salario_neto:,.2f}"),
+        ]
+        metadata = {
+            'Período': f"{nomina.fecha_inicio.strftime('%d/%m/%Y')} a {nomina.fecha_fin.strftime('%d/%m/%Y')}",
+            'Fecha de generación': datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+        }
+        pdf_file = build_pdf_from_rows(
+            title='BOLETA DE PAGO',
+            rows=rows,
+            metadata=metadata,
         )
         
-        # Crear PDF
-        pdf_file = HTML(string=html_string).write_pdf()
-        
-        # Retornar como archivo descargable
         response = make_response(pdf_file)
         response.headers['Content-Type'] = 'application/pdf'
         response.headers['Content-Disposition'] = f'attachment; filename=boleta_pago_{nomina.id_nomina}.pdf'
