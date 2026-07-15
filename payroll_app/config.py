@@ -11,7 +11,7 @@ def get_database_uri():
     Use DB_MODE or APP_DB_MODE to choose between a test connection and the
     default/production connection.
     """
-    mode = os.getenv('DB_MODE', os.getenv('APP_DB_MODE', 'test')).strip().lower()
+    mode = os.getenv('DB_MODE', os.getenv('APP_DB_MODE', 'default')).strip().lower()
 
     if mode == 'test':
         return (
