@@ -1,9 +1,7 @@
 import os
 from flask_sqlalchemy import SQLAlchemy
 
-
 db = SQLAlchemy()
-
 
 def get_database_uri():
     """Return the selected database URI from environment variables.
@@ -44,7 +42,7 @@ class Config:
     # Se puede elegir entre una conexión de prueba y una de desarrollo/producción
     # mediante la variable DB_MODE o APP_DB_MODE.
     DB_MODE = os.getenv('DB_MODE', os.getenv('APP_DB_MODE', 'default')).strip().lower()
-    SQLALCHEMY_DATABASE_URI = get_database_uri()
+    SQLALCHEMY_DATABASE_URI = get_database_uri() 
 
     # SQLALCHEMY_TRACK_MODIFICATIONS es una configuración opcional que, si se
     # activa, genera eventos de señal para cada cambio en los objetos de la base de datos.

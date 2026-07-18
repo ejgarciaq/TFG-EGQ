@@ -161,8 +161,8 @@ def accion_personal():
             
             # --- Envío de Correos ---
             correo_admin = [
-                'fundacionbanderablanca@gmail.com ',
-                'fundacionbanderablanca9@gmail.com'
+                'edson.garcia.cr@outlook.com ',
+                'Michiespinales09@gmail.com'
             ]
             asunto_admin = f'Nueva Solicitud de {tipo_ap.nombre_tipo} Pendiente'
             cuerpo_admin = f'Una nueva solicitud de {tipo_ap.nombre_tipo} de {empleado.nombre_completo} ha sido enviada. Por favor, revísela.'
