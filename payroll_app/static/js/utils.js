@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 while (currentDate <= fechaFin) {
                     const diaSemana = currentDate.getDay(); // 0 = Domingo, 1 = Lunes
                     // Excluir domingos (0) y días festivos
-                    // Si diaSemana es 1, 2, 3, 4, 5, 6, es un día laboral.
+                    // Si diaSemana es 1, 2, 3, 4, 5, 6, 0 es un día laboral.
                     if (diaSemana >= 1 && diaSemana <= 6 && !isHoliday(currentDate, diasFeriados)) { // Corregido: asumimos sabados laborales
                         diasLaborales++;
                     }
